@@ -9,6 +9,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: CDPTW
+
     steps:
       - name: Lay code
         uses: actions/checkout@v4
