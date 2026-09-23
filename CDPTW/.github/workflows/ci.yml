@@ -1,1 +1,25 @@
+name: Laravel CI
 
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Lay code
+        uses: actions/checkout@v4
+
+      - name: Cai PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Cai thu vien Composer
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Chay Laravel test
+        run: php artisan test
