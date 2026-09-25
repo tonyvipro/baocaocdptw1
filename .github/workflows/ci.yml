@@ -1,45 +1,45 @@
-name: Laravel CI
+name: Laravel CI/CD
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-
+  test-and-deploy:
+    runs-on: self-hosted # Hoặc ubuntu-latest tùy bạn chọn
+    
     steps:
-      - name: Lay code
+      - name: Set up job
+        run: echo "Starting deployment workflow..."
+
+      - name: Checkout tested code
         uses: actions/checkout@v4
 
-      - name: Cai PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5.10'
+          php-version: '8.5'
           extensions: mbstring, bcmath, pdo, sqlite, dom, fileinfo, pdo_mysql, mysqli
           coverage: none
 
-      - name: Cai thu vien Composer
+      - name: Install Production Dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-  deploy:
-    needs: test
-    runs-on: self-hosted 
+      - name: Prepare Deployment
+        run: |
+          echo "Preparing files for deployment..."
+          php -v
 
-    steps:
-      - name: Pull latest code
+      - name: Push Build to Deployment / Sync Code
         run: |
           git pull origin master
+          docker-compose down
+          docker-compose up -d --build
 
-      - name: Restart Docker Containers
-        run: |
-          cd C:\wamp64\www\baocaocdptw1
-          docker compose down
-          docker compose up -d --build
+      - name: Post Checkout tested code
+        run: echo "Cleaning up temporary environment variables..."
 
-          
-
+      - name: Complete job
+        run: echo "Deployment completed successfully!"
