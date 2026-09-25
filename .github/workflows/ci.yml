@@ -28,11 +28,15 @@ jobs:
 
   deploy:
     needs: test
-    runs-on: self-hosted # Chạy trên máy cá nhân đang mở run.cmd của bạn
+    runs-on: self-hosted
 
     steps:
-      - name: Pull code and restart Docker
+      - name: Pull latest code
         run: |
           git pull origin master
-          docker-compose down
-          docker-compose up -d --build
+
+      - name: Restart Docker Containers
+        run: |
+          cd C:\wamp64\www\baocaocdptw1
+          docker compose down
+          docker compose up -d --build
