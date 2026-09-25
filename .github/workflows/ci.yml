@@ -24,17 +24,13 @@ jobs:
           coverage: none
 
       - name: Cai thu vien Composer
-        working-directory: CDPTW
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Copy .env
-        working-directory: CDPTW
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Generate Key
-        working-directory: CDPTW
         run: php artisan key:generate
 
       - name: Chay Laravel test
-        working-directory: CDPTW
         run: php artisan test
