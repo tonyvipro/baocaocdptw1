@@ -20,17 +20,19 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5.10'
-          extensions: mbstring, bcmath, pdo, sqlite, dom, fileinfo
+          extensions: mbstring, bcmath, pdo, sqlite, dom, fileinfo, pdo_mysql, mysqli
           coverage: none
 
       - name: Cai thu vien Composer
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Copy .env
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+  deploy:
+    needs: test
+    runs-on: self-hosted # Chạy trên máy cá nhân đang mở run.cmd của bạn
 
-      - name: Generate Key
-        run: php artisan key:generate
-
-      - name: Chay Laravel test
-        run: php artisan test
+    steps:
+      - name: Pull code and restart Docker
+        run: |
+          git pull origin master
+          docker-compose down
+          docker-compose up -d --build
