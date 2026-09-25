@@ -1,4 +1,3 @@
-
 name: Laravel CI
 
 on:
@@ -24,21 +23,18 @@ jobs:
       - name: Cai PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, bcmath, pdo, sqlite
+          php-version: '8.2'
+          extensions: mbstring, bcmath, pdo, sqlite, dom, fileinfo
           coverage: none
 
       - name: Cai thu vien Composer
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      # 1. Thêm bước tạo file .env từ file .env.example có sẵn trong thư mục CDPTW
       - name: Copy .env
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
-      # 2. Thêm bước sinh khóa ứng dụng (App Key) để khắc phục lỗi thiếu key
       - name: Generate Key
         run: php artisan key:generate
 
       - name: Chay Laravel test
         run: php artisan test
-
