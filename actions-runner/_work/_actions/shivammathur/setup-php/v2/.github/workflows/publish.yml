@@ -1,0 +1,72 @@
+name: Publish Package
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      skip:
+        description: Skip release to repository
+        required: false
+      tag:
+        description: Tag name
+        required: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build and Publish
+    permissions:
+      contents: read # for actions/checkout
+      packages: write # For publishing to GitHub Packages
+      id-token: write # For authentication with npm registry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Checkout tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ github.event.inputs.tag }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '24.x'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install dependencies and add lib
+        run: |
+          npm install
+          npm run build
+          sed -i -e '/lib\//d' .gitignore
+
+      - name: Publish to NPM
+        if: "!contains(github.event.inputs.skip, 'skip-npm')"
+        run: npm publish --access public
+
+      - name: Change to GitHub Packages registry
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          registry-url: https://npm.pkg.github.com
+          package-manager-cache: false
+          scope: '@shivammathur'
+
+      - name: Patch package.json
+        run: |
+          sed -i 's#"name": "#"name": "@shivammathur/#' package.json
+
+      - name: Publish to GitHub Packages
+        if: "!contains(github.event.inputs.skip, 'skip-github-packages')"
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
