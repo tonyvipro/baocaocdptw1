@@ -1,0 +1,12 @@
+﻿{
+  "repositoryName": "tonyvipro/baocaocdptw1",
+  "pipelineDirectory": "baocaocdptw1",
+  "workspaceDirectory": "baocaocdptw1\\baocaocdptw1",
+  "repositories": {
+    "tonyvipro/baocaocdptw1": {
+      "repositoryPath": "baocaocdptw1\\baocaocdptw1",
+      "lastRunOn": "09/25/2026 13:52:16 +07:00"
+    }
+  },
+  "lastRunOn": "09/25/2026 13:52:16 +07:00"
+}
