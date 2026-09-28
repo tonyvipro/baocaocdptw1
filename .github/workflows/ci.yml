@@ -8,10 +8,11 @@ on:
 
 jobs:
   test-and-deploy:
-    runs-on: self-hosted # Hoặc ubuntu-latest tùy bạn chọn
+    runs-on: self-hosted
     
     steps:
       - name: Set up job
+        shell: pwsh
         run: echo "Starting deployment workflow..."
 
       - name: Checkout tested code
@@ -25,21 +26,26 @@ jobs:
           coverage: none
 
       - name: Install Production Dependencies
+        shell: pwsh
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Prepare Deployment
+        shell: pwsh
         run: |
           echo "Preparing files for deployment..."
           php -v
 
       - name: Push Build to Deployment / Sync Code
+        shell: pwsh
         run: |
           git pull origin master
           docker-compose down
           docker-compose up -d --build
 
       - name: Post Checkout tested code
+        shell: pwsh
         run: echo "Cleaning up temporary environment variables..."
 
       - name: Complete job
+        shell: pwsh
         run: echo "Deployment completed successfully!"
