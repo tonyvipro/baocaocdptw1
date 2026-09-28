@@ -12,40 +12,19 @@ jobs:
     
     steps:
       - name: Set up job
-        shell: pwsh
+        shell: powershell
         run: Write-Host "Starting deployment workflow..."
 
-      - name: Checkout tested code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          extensions: mbstring, bcmath, pdo, sqlite, dom, fileinfo, pdo_mysql, mysqli
-          coverage: none
-
-      - name: Install Production Dependencies
-        shell: pwsh
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Prepare Deployment
-        shell: pwsh
-        run: |
-          Write-Host "Preparing files for deployment..."
-          php -v
-
-      - name: Push Build to Deployment / Sync Code
-        shell: pwsh
+      - name: Deploy with Docker Compose
+        shell: powershell
         run: |
           git pull origin master
           docker-compose down
           docker-compose up -d --build
 
-      - name: Post Checkout tested code
-        shell: pwsh
-        run: Write-Host "Cleaning up temporary environment variables..."
-
       - name: Complete job
-        shell: pwsh
+        shell: powershell
         run: Write-Host "Deployment completed successfully!"
