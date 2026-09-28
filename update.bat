@@ -1,20 +1,21 @@
 @echo off
-chcp 65001 > nul
-echo ===================================================
-echo [1/3] Đang kéo mã nguồn mới nhất từ GitHub...
-echo ===================================================
+cls
+echo [1/4] Dang keo code moi nhat tu GitHub...
 git pull origin master
 
 echo.
-echo ===================================================
-echo [2/3] Đang cập nhật và khởi chạy môi trường Docker...
-echo ===================================================
+echo [2/4] Dang dung va khoi dong lai Docker...
 docker-compose down
 docker-compose up -d --build
 
 echo.
-echo ===================================================
-echo [3/3] Hoàn tất cập nhật CI/CD thành công!
-echo Truy cập ứng dụng tại: http://localhost:8080
-echo ===================================================
+echo [3/4] Dang cai dat Composer dependencies trong Docker...
+docker-compose exec -T web composer install --no-interaction --prefer-dist
+docker-compose exec -T web php artisan key:generate --force
+docker-compose exec -T web chmod -R 777 storage bootstrap/cache
+
+echo.
+echo [4/4] Hoan tat cap nhat thanh cong!
+echo Mo trinh duyet va truy cap: http://localhost:8080
+echo.
 pause
