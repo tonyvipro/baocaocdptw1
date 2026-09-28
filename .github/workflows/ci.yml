@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ master ]
 
+# Ép toàn bộ các bước chạy lệnh trong file này sử dụng cmd chuẩn của Windows
+defaults:
+  run:
+    shell: cmd
+
 jobs:
   test-and-deploy:
     runs-on: self-hosted
