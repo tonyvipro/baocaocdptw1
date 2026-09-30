@@ -1,11 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
 use App\Models\Property;
+
 
 Route::get('/', function () {
     return view('welcome');
 });
+
 
 Route::get('/api/properties', function () {
     try {
@@ -54,3 +57,4 @@ Route::get('/api/run-migrate', function () {
         ], 500);
     }
 });
+
