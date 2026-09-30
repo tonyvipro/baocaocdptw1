@@ -13,11 +13,9 @@
     <!-- AOS (Animate On Scroll) CSS -->
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 
-
     <!-- Leaflet CSS & JS for Interactive Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -245,21 +243,16 @@
         .filter-dropdown {
             opacity: 0;
             visibility: hidden;
-
             transform: translateY(8px) scale(0.98);
             transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
             z-index: 100 !important;
             box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.22), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
-            transform: translateY(10px) scale(0.98);
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-
         }
         .filter-dropdown.show {
             opacity: 1;
             visibility: visible;
             transform: translateY(0) scale(1);
         }
-
 
         /* Developer filter chips */
         .dev-filter-chip {
@@ -282,7 +275,6 @@
             border-color: #047857;
             box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3);
         }
-
 
         /* Heart Wishlist Animation */
         .btn-heart.liked svg {
@@ -358,15 +350,11 @@
     <!-- ============================================== -->
     <!-- 1. HERO SECTION & NAVBAR                       -->
     <!-- ============================================== -->
-
     <div class="relative z-20 min-h-[660px] lg:min-h-[760px] w-full flex flex-col justify-between overflow-visible pb-12 sm:pb-16">
-
-    <div class="relative min-h-[660px] lg:min-h-[760px] w-full flex flex-col justify-between overflow-hidden">
-
         
         <!-- Hero Background Image with Ken Burns Effect -->
         <div class="absolute inset-0 z-0 overflow-hidden">
-            <img src="{{ asset('images/hero-villa.jpg') }}" 
+            <img src="<?php echo e(asset('images/hero-villa.jpg')); ?>" 
                  alt="Biệt thự nghỉ dưỡng" 
                  class="w-full h-full object-cover object-center transform scale-100 hover:scale-105 transition duration-[8000ms] ease-out">
             <div class="absolute inset-0 hero-gradient"></div>
@@ -382,7 +370,7 @@
                 <nav class="flex items-center justify-between text-white">
                     
                     <!-- Logo with Hover Pulse -->
-                    <a href="{{ url('/') }}" class="flex items-center gap-2.5 group">
+                    <a href="<?php echo e(url('/')); ?>" class="flex items-center gap-2.5 group">
                         <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center backdrop-blur-sm group-hover:bg-emerald-500/40 group-hover:scale-110 group-hover:rotate-6 transition duration-300 shadow-lg shadow-emerald-900/30">
                             <i data-lucide="home" class="w-5 h-5 text-emerald-300 group-hover:text-white transition"></i>
                         </div>
@@ -421,11 +409,7 @@
         </div>
 
         <!-- Hero Content & Search Card -->
-
         <div class="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 my-auto">
-
-        <div class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 my-auto">
-
             
             <!-- Badge with floating animation -->
             <div data-aos="fade-down" data-aos-duration="800" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full badge-pill text-xs font-bold text-emerald-200 uppercase tracking-wider mb-6 hover:bg-white/25 hover:scale-105 transition duration-300 cursor-default">
@@ -438,7 +422,6 @@
                 Nơi hành trình về nhà <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-emerald-400">bắt đầu.</span>
             </h1>
             
-
             <p data-aos="fade-up" data-aos-delay="200" data-aos-duration="900" class="text-base sm:text-lg text-emerald-100/90 max-w-xl font-normal leading-relaxed mb-8">
                 Tìm kiếm hàng ngàn bất động sản đẳng cấp với pháp lý chuẩn mực và vị trí đắc địa nhất.
             </p>
@@ -496,35 +479,11 @@
                 </div>
 
                 <!-- Row 2: Filter Inputs Grid -->
-
-            <p data-aos="fade-up" data-aos-delay="200" data-aos-duration="900" class="text-base sm:text-lg text-emerald-100/90 max-w-xl font-normal leading-relaxed mb-10">
-                Khám phá hàng ngàn ngôi nhà tuyệt mỹ, mức giá chuẩn xác và nơi mọi kỳ vọng an cư được gửi gắm trọn vẹn.
-            </p>
-
-            <!-- Search Container Box with Glassmorphism & Micro-interactions -->
-            <div data-aos="zoom-in-up" data-aos-delay="300" data-aos-duration="1000" class="glass-card rounded-3xl p-4 sm:p-6 max-w-4xl border border-white/80 shadow-2xl">
-                
-                <!-- Search Tabs Switcher -->
-                <div class="flex items-center gap-8 border-b border-gray-100 pb-3.5 mb-5 text-sm font-semibold">
-                    <button id="tab-buy" onclick="switchSearchTab('buy')" class="search-tab-btn active flex items-center gap-2 pb-1 hover:text-emerald-700 transition">
-                        <i data-lucide="key" class="w-4 h-4 text-emerald-600"></i> Mua nhà đất
-                    </button>
-                    <button id="tab-rent" onclick="switchSearchTab('rent')" class="search-tab-btn text-gray-500 hover:text-emerald-700 flex items-center gap-2 pb-1 transition">
-                        <i data-lucide="home" class="w-4 h-4"></i> Thuê nhà đất
-                    </button>
-                    <button id="tab-project" onclick="switchSearchTab('project')" class="search-tab-btn text-gray-500 hover:text-emerald-700 flex items-center gap-2 pb-1 transition">
-                        <i data-lucide="building" class="w-4 h-4"></i> Dự án mới
-                    </button>
-                </div>
-
-                <!-- Filter Inputs Grid -->
-
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative">
                     
                     <!-- Location Filter with Dropdown -->
                     <div class="md:col-span-4 relative">
                         <div onclick="toggleDropdown('dropdown-location')" 
-
                              class="py-3 px-2.5 sm:px-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-2.5 cursor-pointer group hover:shadow-sm">
                             <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
                                 <i data-lucide="map-pin" class="w-4 h-4"></i>
@@ -532,19 +491,11 @@
                             <div class="flex-1 min-w-0 text-left">
                                 <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-gray-400">Vị trí</div>
                                 <div id="selected-location" class="text-xs sm:text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">Tất cả vị trí</div>
-                             class="p-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-3 cursor-pointer group hover:shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
-                                <i data-lucide="map-pin" class="w-4 h-4"></i>
-                            </div>
-                            <div class="flex-1 min-w-0 text-left">
-                                <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Vị trí</div>
-                                <div id="selected-location" class="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">TP. Hồ Chí Minh</div>
                             </div>
                             <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:rotate-180 transition duration-300 shrink-0"></i>
                         </div>
 
                         <!-- Dropdown Menu: Location -->
-
                         <div id="dropdown-location" class="filter-dropdown absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-[100] max-h-64 overflow-y-auto">
                             <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase sticky top-0 bg-white">Chọn tỉnh / thành phố</div>
                             <button onclick="selectOption('selected-location', 'Tất cả vị trí', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Tất cả vị trí</button>
@@ -553,30 +504,12 @@
                             <button onclick="selectOption('selected-location', 'Đà Nẵng', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Đà Nẵng</button>
                             <button onclick="selectOption('selected-location', 'Bình Dương', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Bình Dương</button>
                             <button onclick="selectOption('selected-location', 'Phú Quốc', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Phú Quốc</button>
-
-                        <div id="dropdown-location" class="filter-dropdown absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                            <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase">Chọn tỉnh / thành phố</div>
-                            <button onclick="selectOption('selected-location', 'TP. Hồ Chí Minh', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition flex items-center justify-between">
-                                <span>TP. Hồ Chí Minh</span>
-                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
-                            </button>
-                            <button onclick="selectOption('selected-location', 'Hà Nội', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition flex items-center justify-between">
-                                <span>Hà Nội</span>
-                            </button>
-                            <button onclick="selectOption('selected-location', 'Đà Nẵng', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition flex items-center justify-between">
-                                <span>Đà Nẵng</span>
-                            </button>
-                            <button onclick="selectOption('selected-location', 'Bình Dương', 'dropdown-location')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition flex items-center justify-between">
-                                <span>Bình Dương</span>
-                            </button>
-
                         </div>
                     </div>
 
                     <!-- Property Type Filter with Dropdown -->
                     <div class="md:col-span-3 relative">
                         <div onclick="toggleDropdown('dropdown-type')" 
-
                              class="py-3 px-2.5 sm:px-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-2.5 cursor-pointer group hover:shadow-sm">
                             <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
                                 <i data-lucide="building-2" class="w-4 h-4"></i>
@@ -584,27 +517,14 @@
                             <div class="flex-1 min-w-0 text-left">
                                 <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-gray-400">Loại BĐS</div>
                                 <div id="selected-type" class="text-xs sm:text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">Tất cả loại hình</div>
-
-                             class="p-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-3 cursor-pointer group hover:shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
-                                <i data-lucide="building-2" class="w-4 h-4"></i>
-                            </div>
-                            <div class="flex-1 min-w-0 text-left">
-                                <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Loại BĐS</div>
-                                <div id="selected-type" class="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">Căn hộ cao cấp</div>
-
                             </div>
                             <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:rotate-180 transition duration-300 shrink-0"></i>
                         </div>
 
                         <!-- Dropdown Menu: Type -->
-
                         <div id="dropdown-type" class="filter-dropdown absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-[100] max-h-64 overflow-y-auto">
                             <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase sticky top-0 bg-white">Loại hình bất động sản</div>
                             <button onclick="selectOption('selected-type', 'Tất cả loại hình', 'dropdown-type')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Tất cả loại hình</button>
-
-                        <div id="dropdown-type" class="filter-dropdown absolute top-full left-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                            <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase">Loại hình bất động sản</div>
                             <button onclick="selectOption('selected-type', 'Căn hộ cao cấp', 'dropdown-type')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Căn hộ cao cấp</button>
                             <button onclick="selectOption('selected-type', 'Nhà phố / Liền kề', 'dropdown-type')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Nhà phố / Liền kề</button>
                             <button onclick="selectOption('selected-type', 'Biệt thự nghỉ dưỡng', 'dropdown-type')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Biệt thự nghỉ dưỡng</button>
@@ -615,7 +535,6 @@
                     <!-- Price Filter with Dropdown -->
                     <div class="md:col-span-3 relative">
                         <div onclick="toggleDropdown('dropdown-price')" 
-
                              class="py-3 px-2.5 sm:px-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-2.5 cursor-pointer group hover:shadow-sm">
                             <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
                                 <i data-lucide="tag" class="w-4 h-4"></i>
@@ -623,27 +542,14 @@
                             <div class="flex-1 min-w-0 text-left">
                                 <div class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-gray-400">Mức giá</div>
                                 <div id="selected-price" class="text-xs sm:text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">Tất cả mức giá</div>
-
-                             class="p-3 rounded-2xl bg-gray-50/70 hover:bg-emerald-50/70 border border-gray-200/80 hover:border-emerald-400/80 transition duration-300 flex items-center gap-3 cursor-pointer group hover:shadow-sm">
-                            <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
-                                <i data-lucide="tag" class="w-4 h-4"></i>
-                            </div>
-                            <div class="flex-1 min-w-0 text-left">
-                                <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Mức giá</div>
-                                <div id="selected-price" class="text-sm font-bold text-gray-800 truncate group-hover:text-emerald-800 transition">2 tỷ - 6 tỷ</div>
                             </div>
                             <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:rotate-180 transition duration-300 shrink-0"></i>
                         </div>
 
                         <!-- Dropdown Menu: Price -->
-
                         <div id="dropdown-price" class="filter-dropdown absolute top-full left-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-[100] max-h-64 overflow-y-auto">
                             <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase sticky top-0 bg-white">Khoảng giá phù hợp</div>
                             <button onclick="selectOption('selected-price', 'Tất cả mức giá', 'dropdown-price')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Tất cả mức giá</button>
-
-                        <div id="dropdown-price" class="filter-dropdown absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 p-2 z-50">
-                            <div class="text-xs font-bold text-gray-400 px-3 py-1.5 uppercase">Khoảng giá phù hợp</div>
-
                             <button onclick="selectOption('selected-price', 'Dưới 2 tỷ', 'dropdown-price')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">Dưới 2 tỷ</button>
                             <button onclick="selectOption('selected-price', '2 tỷ - 6 tỷ', 'dropdown-price')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">2 tỷ - 6 tỷ</button>
                             <button onclick="selectOption('selected-price', '6 tỷ - 12 tỷ', 'dropdown-price')" class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition">6 tỷ - 12 tỷ</button>
@@ -668,11 +574,7 @@
     <!-- ============================================== -->
     <!-- 2. FEATURED LISTINGS (BẠN ĐANG TÌM LOẠI HÌNH?) -->
     <!-- ============================================== -->
-
     <section id="featured-listings" class="relative z-10 py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-    <section id="featured-listings" class="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
         
         <!-- Section Header with Animation -->
         <div data-aos="fade-up" class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
@@ -680,24 +582,16 @@
                 <span class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
                     <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> KHÁM PHÁ THEO NHU CẦU
                 </span>
-
                 <h2 id="featured-section-title" class="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
                     Bất động sản mua bán nổi bật
                 </h2>
                 <p id="featured-section-desc" class="text-gray-500 text-sm mt-1">Dữ liệu thực tế 10 Tập đoàn BĐS hàng đầu: Vinhomes, Novaland, Khang Điền, Nam Long, Sun Group, Hưng Thịnh, Him Lam, FLC, BIM Group, Kim Oanh</p>
-
-                <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2 tracking-tight">
-                    Bạn đang tìm loại hình nào?
-                </h2>
-                <p class="text-gray-500 text-sm mt-1">Tin bất động sản nổi bật được tuyển chọn và xác thực kỹ lưỡng</p>
-
             </div>
             <a href="#" class="group inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/70 px-4 py-2 rounded-full transition duration-300">
                 <span>Xem tất cả 1,420+ BĐS</span>
                 <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition duration-300"></i>
             </a>
         </div>
-
 
         <!-- Developer Filter Bar (10 Chủ Đầu Tư Lớn) -->
         <div class="mb-8 p-4 rounded-2xl bg-white/80 backdrop-blur-md border border-gray-100 shadow-sm">
@@ -740,16 +634,12 @@
 
         <!-- 3 Interactive Cards Grid (Dynamically filtered) -->
         <div id="properties-container" class="grid grid-cols-1 md:grid-cols-3 gap-8">
-
-        <!-- 3 Interactive Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-
             
             <!-- Card 1 -->
             <div data-aos="fade-up" data-aos-delay="100" class="interactive-card bg-white rounded-3xl overflow-hidden border border-gray-100 group">
                 <!-- Image Container with Zoom & Badge -->
                 <div class="relative h-64 overflow-hidden">
-                    <img src="{{ asset('images/prop-apartment.jpg') }}" 
+                    <img src="<?php echo e(asset('images/prop-apartment.jpg')); ?>" 
                          alt="Căn hộ The River" 
                          class="w-full h-full object-cover group-hover:scale-110 group-hover:brightness-105 transition duration-700 ease-out">
                     
@@ -795,7 +685,7 @@
             <!-- Card 2 -->
             <div data-aos="fade-up" data-aos-delay="200" class="interactive-card bg-white rounded-3xl overflow-hidden border border-gray-100 group">
                 <div class="relative h-64 overflow-hidden">
-                    <img src="{{ asset('images/prop-townhouse.jpg') }}" 
+                    <img src="<?php echo e(asset('images/prop-townhouse.jpg')); ?>" 
                          alt="Nhà phố xanh Đà Nẵng" 
                          class="w-full h-full object-cover group-hover:scale-110 group-hover:brightness-105 transition duration-700 ease-out">
                     
@@ -837,7 +727,7 @@
             <!-- Card 3 -->
             <div data-aos="fade-up" data-aos-delay="300" class="interactive-card bg-white rounded-3xl overflow-hidden border border-gray-100 group">
                 <div class="relative h-64 overflow-hidden">
-                    <img src="{{ asset('images/prop-resort.jpg') }}" 
+                    <img src="<?php echo e(asset('images/prop-resort.jpg')); ?>" 
                          alt="Biệt thự ven hồ" 
                          class="w-full h-full object-cover group-hover:scale-110 group-hover:brightness-105 transition duration-700 ease-out">
                     
@@ -897,7 +787,7 @@
             <div data-aos="fade-right" data-aos-duration="900" 
                  onclick="showToast('Khám phá Dự án Eaton Park!')"
                  class="relative h-96 rounded-3xl overflow-hidden shadow-xl group cursor-pointer border border-emerald-950/20 hover:border-emerald-500/50 transition duration-500">
-                <img src="{{ asset('images/project-eaton.jpg') }}" 
+                <img src="<?php echo e(asset('images/project-eaton.jpg')); ?>" 
                      alt="Eaton Park" 
                      class="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition duration-1000 ease-out">
                 
@@ -926,7 +816,7 @@
             <div data-aos="fade-left" data-aos-duration="900" 
                  onclick="showToast('Khám phá Dự án Sun Urban City!')"
                  class="relative h-96 rounded-3xl overflow-hidden shadow-xl group cursor-pointer border border-emerald-950/20 hover:border-emerald-500/50 transition duration-500">
-                <img src="{{ asset('images/project-sunurban.jpg') }}" 
+                <img src="<?php echo e(asset('images/project-sunurban.jpg')); ?>" 
                      alt="Sun Urban City" 
                      class="w-full h-full object-cover group-hover:scale-110 group-hover:rotate-1 transition duration-1000 ease-out">
                 
@@ -1181,7 +1071,7 @@
                 
                 <!-- Brand Info -->
                 <div class="md:col-span-4">
-                    <a href="{{ url('/') }}" class="flex items-center gap-2.5 mb-5 group">
+                    <a href="<?php echo e(url('/')); ?>" class="flex items-center gap-2.5 mb-5 group">
                         <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center group-hover:bg-emerald-500/40 transition">
                             <i data-lucide="home" class="w-5 h-5 text-emerald-300"></i>
                         </div>
@@ -1235,7 +1125,7 @@
             <!-- Bottom Copyright -->
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
                 <div>
-                    © {{ date('Y') }} 3TV. Tất cả các quyền được bảo lưu.
+                    © <?php echo e(date('Y')); ?> 3TV. Tất cả các quyền được bảo lưu.
                 </div>
                 <div class="flex items-center gap-6 font-medium">
                     <a href="#" class="hover:text-gray-300 transition">Điều khoản</a>
@@ -1245,7 +1135,6 @@
             </div>
         </div>
     </footer>
-
 
     <!-- ============================================== -->
     <!-- INTERACTIVE REAL ESTATE MAP MODAL (LEAFLET.JS) -->
@@ -1405,7 +1294,6 @@
         </div>
     </div>
 
-
     <!-- AOS (Animate On Scroll) JS -->
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
 
@@ -1421,9 +1309,7 @@
                 offset: 60
             });
             initCounters();
-
             performSearch();
-
         });
 
         // 2. Sticky Navbar Glass Blur on Scroll
@@ -1447,17 +1333,12 @@
             }
         });
 
-
         // 3. Search Tab Switcher & Purpose State
         let currentPurpose = 'buy'; // 'buy' (Mua bán), 'rent' (Cho thuê), 'project' (Dự án mới)
 
         function switchSearchTab(tabKey) {
             currentPurpose = tabKey;
             
-
-        // 3. Search Tab Switcher
-        function switchSearchTab(tabKey) {
-
             document.querySelectorAll('.search-tab-btn').forEach(btn => {
                 btn.classList.remove('active', 'text-emerald-700');
                 btn.classList.add('text-gray-500');
@@ -1467,7 +1348,6 @@
                 activeBtn.classList.add('active');
                 activeBtn.classList.remove('text-gray-500');
             }
-
 
             // Update Section Header dynamically
             const secTitle = document.getElementById('featured-section-title');
@@ -1487,9 +1367,6 @@
 
             performSearch();
             showToast(`Đã chuyển sang chế độ: ${activeBtn ? activeBtn.textContent.trim() : tabKey}`);
-
-            showToast(`Đã chuyển sang chế độ: ${activeBtn.textContent.trim()}`);
-
         }
 
         // 4. Interactive Dropdowns
@@ -1508,9 +1385,7 @@
         function selectOption(targetLabelId, value, dropdownId) {
             document.getElementById(targetLabelId).textContent = value;
             document.getElementById(dropdownId).classList.remove('show');
-
             performSearch();
-
             showToast(`Đã chọn: ${value}`);
         }
 
@@ -1520,7 +1395,6 @@
                 document.querySelectorAll('.filter-dropdown').forEach(d => d.classList.remove('show'));
             }
         });
-
 
         // ==============================================
         // 5. REALISTIC VINHOMES DATASET & SEARCH ENGINE
@@ -2489,14 +2363,6 @@
             if (e.target.id === 'map-modal') closeMapModal();
         });
 
-        // 5. Search Action Button
-        function performSearch() {
-            const loc = document.getElementById('selected-location').textContent;
-            const type = document.getElementById('selected-type').textContent;
-            const price = document.getElementById('selected-price').textContent;
-            showToast(`Đang tìm: ${type} tại ${loc} (${price})`);
-        }
-
         // 6. Like / Favorite Toggle
         function toggleLike(btn, event) {
             event.stopPropagation();
@@ -2560,3 +2426,4 @@
     </script>
 </body>
 </html>
+<?php /**PATH /var/www/html/resources/views/welcome.blade.php ENDPATH**/ ?>
