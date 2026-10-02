@@ -1,58 +1,80 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 3TV Land - Báo Cáo Chuyên Đề Phát Triển Web 1
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Hệ thống tra cứu, so sánh và định vị bất động sản cao cấp được phát triển bằng **ReactJS** (Frontend) và **Laravel 11** (Backend API).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📁 Cấu trúc thư mục dự án
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+baocaocdptw1/
+├── frontend/               # Ứng dụng Frontend ReactJS (Vite, TailwindCSS, Leaflet)
+│   ├── src/
+│   │   ├── components/     # Các thành phần giao diện (Navbar, Hero, Cards, Modal, Map,...)
+│   │   ├── data/           # Dữ liệu BĐS json chuẩn bị sẵn
+│   │   ├── services/       # Kết nối API Backend & fallback data
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── Dockerfile
+│   └── package.json
+│
+├── backend/                # Ứng dụng Backend Laravel 11 API & CSDL
+│   ├── app/                # Models, Controllers
+│   ├── database/           # Migrations, Seeders, Data JSON
+│   ├── routes/             # API routes (/api/properties, /api/run-migrate)
+│   ├── Dockerfile
+│   └── composer.json
+│
+└── docker-compose.yml      # Cấu hình Docker tự động cho toàn bộ hệ thống
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## 🐳 Hướng dẫn chạy bằng Docker (Khuyên Dùng)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Khởi động toàn bộ hệ thống
+Mở Terminal / PowerShell tại thư mục gốc `baocaocdptw1` và chạy lệnh:
 
-## Code of Conduct
+```bash
+docker compose up -d --build
+```
+*(Nếu dùng Docker bản cũ: `docker-compose up -d --build`)*
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 2. Các cổng dịch vụ sau khi khởi động:
+- **Frontend ReactJS**: [http://localhost:3000](http://localhost:3000)
+- **Backend Laravel API**: [http://localhost:8080](http://localhost:8080)
+- **phpMyAdmin (Quản lý CSDL)**: [http://localhost:8081](http://localhost:8081)
+  - **Tài khoản**: `root`
+  - **Mật khẩu**: `rootpassword`
+- **MySQL Database**: Cổng `3306`
 
-## Security Vulnerabilities
+### 3. Khởi tạo & nạp dữ liệu Database (Migrate & Seed)
+Bạn có thể bấm trực tiếp nút **"Backend DB"** trên thanh Menu của giao diện Frontend React, hoặc truy cập URL:
+```text
+http://localhost:8080/api/run-migrate
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 4. Dừng hệ thống Docker:
+```bash
+docker compose down
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 💻 Hướng dẫn chạy thủ công (Local Development)
+
+### 1. Chạy Frontend ReactJS:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Truy cập: `http://localhost:3000`
+
+### 2. Chạy Backend Laravel:
+```bash
+cd backend
+composer install
+php artisan serve
+```
+Truy cập: `http://127.0.0.1:8000`
