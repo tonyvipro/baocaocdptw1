@@ -22,10 +22,16 @@ class PropertySeeder extends Seeder
             $data = json_decode(File::get($jsonPath), true);
             
             foreach ($data as $item) {
+                $address = trim(($item['street'] ?? '') . ', ' . ($item['district'] ?? '') . ', ' . ($item['city'] ?? ''));
+                $price = $item['price_sale'] ?? $item['price_rent'] ?? 0;
+
                 Property::updateOrCreate(
                     ['code' => $item['code']],
                     [
                         'title' => $item['title'],
+                        'description' => $item['description'] ?? ($item['title'] . ' - Bất động sản cao cấp, vị trí đắc địa, pháp lý minh bạch.'),
+                        'price' => $price,
+                        'address' => $address ?: 'TP. Hồ Chí Minh',
                         'developer' => $item['developer'] ?? 'Vinhomes',
                         'project' => $item['project'],
                         'purpose' => $item['purpose'],
@@ -42,20 +48,20 @@ class PropertySeeder extends Seeder
                         'furniture' => $item['furniture'] ?? null,
                         'management_fee' => $item['management_fee'] ?? null,
                         'available_date' => $item['available_date'] ?? null,
-                        'area' => $item['area'],
-                        'bedrooms' => $item['bedrooms'],
-                        'bathrooms' => $item['bathrooms'],
-                        'street' => $item['street'],
-                        'district' => $item['district'],
-                        'city' => $item['city'],
-                        'lat' => $item['lat'],
-                        'lng' => $item['lng'],
-                        'image' => $item['image'],
+                        'area' => $item['area'] ?? 0,
+                        'bedrooms' => $item['bedrooms'] ?? 0,
+                        'bathrooms' => $item['bathrooms'] ?? 0,
+                        'street' => $item['street'] ?? null,
+                        'district' => $item['district'] ?? null,
+                        'city' => $item['city'] ?? 'TP. Hồ Chí Minh',
+                        'lat' => $item['lat'] ?? null,
+                        'lng' => $item['lng'] ?? null,
+                        'image' => $item['image'] ?? null,
                         'badge' => $item['badge'] ?? null,
                         'badge_class' => $item['badge_class'] ?? null,
                         'owner_name' => $item['owner_name'] ?? null,
                         'owner_phone' => $item['owner_phone'] ?? null,
-                        'status' => 'available',
+                        'status' => 1,
                     ]
                 );
             }
