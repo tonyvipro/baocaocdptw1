@@ -24,18 +24,15 @@ services:
       - ./backend:/var/www/html
     environment:
       - APACHE_DOCUMENT_ROOT=/var/www/html/public
+      - APP_KEY=base64:nQmTyAa3vuHvoA3wE+XN3c91AknORJxL6S1ulYPCyBQ=
+      - DB_CONNECTION=mysql
       - DB_HOST=db
       - DB_PORT=3306
       - DB_DATABASE=baocaocdptw1_db
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
     command: >
-      bash -c "if [ ! -f vendor/autoload.php ]; then
-                 echo 'Dang cai dat Composer dependencies...' &&
-                 composer install --no-interaction --prefer-dist;
-               fi &&
-               chmod -R 777 storage bootstrap/cache 2>/dev/null || true &&
-               apache2-foreground"
+      bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && chmod -R 777 storage bootstrap/cache 2>/dev/null || true && apache2-foreground"
     depends_on:
       - db
 

@@ -123,42 +123,41 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all">
+      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-700 px-8 pt-8 pb-6 text-white text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md mb-3 border border-white/30 shadow-inner">
-            <ShieldCheck className="w-6 h-6 text-white" />
+        <div className="bg-slate-900 px-6 pt-6 pb-4 text-white text-center">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-600 text-white mb-2 shadow-xs">
+            <ShieldCheck className="w-5 h-5" />
           </div>
-          <h3 className="text-xl font-black uppercase tracking-wider">
-            {mode === 'login' ? 'HỆ THỐNG ĐĂNG NHẬP' : 'ĐĂNG KÝ TÀI KHOẢN'}
+          <h3 className="text-base font-bold uppercase tracking-wider">
+            {mode === 'login' ? 'ĐĂNG NHẬP HỆ THỐNG' : 'ĐĂNG KÝ TÀI KHOẢN'}
           </h3>
-          <p className="text-emerald-100 text-xs mt-1 font-normal">
+          <p className="text-slate-400 text-xs mt-0.5">
             {mode === 'login' 
-              ? 'Vui lòng nhập thông tin đăng nhập của bạn.' 
-              : 'Tạo tài khoản mới để trải nghiệm đầy đủ tính năng hệ thống.'}
+              ? 'Nhập email và mật khẩu của bạn để tiếp tục.' 
+              : 'Đăng ký tài khoản để lưu tin và nhận tư vấn trực tiếp.'}
           </p>
 
           {/* Tab Switcher */}
-          <div className="mt-5 flex bg-emerald-900/40 p-1 rounded-xl backdrop-blur-sm border border-emerald-500/30">
+          <div className="mt-4 flex bg-slate-800 p-1 rounded-lg border border-slate-700">
             <button
               type="button"
               onClick={() => { setMode('login'); setStatusModal(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
                 mode === 'login' 
-                  ? 'bg-white text-emerald-800 shadow-sm' 
-                  : 'text-emerald-100 hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-xs' 
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               Đăng Nhập
@@ -166,10 +165,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             <button
               type="button"
               onClick={() => { setMode('register'); setStatusModal(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
                 mode === 'register' 
-                  ? 'bg-white text-emerald-800 shadow-sm' 
-                  : 'text-emerald-100 hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-xs' 
+                  : 'text-slate-300 hover:text-white'
               }`}
             >
               Đăng Ký Mới
@@ -178,16 +177,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
         </div>
 
         {/* Form Body */}
-        <div className="p-7">
+        <div className="p-6">
           {mode === 'login' ? (
-            /* ================= FORM ĐĂNG NHẬP (Hình 5) ================= */
-            <form onSubmit={handleLogin} className="space-y-4">
+            /* ================= FORM ĐĂNG NHẬP ================= */
+            <form onSubmit={handleLogin} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
                   Email Đăng Nhập
                 </label>
                 <div className="relative">
-                  <Mail className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="email"
                     name="email"
@@ -195,26 +194,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="name@example.com"
-                    className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Mật Khẩu
                   </label>
                   <button 
                     type="button" 
-                    onClick={() => alert('Vui lòng liên hệ Quản trị viên để đặt lại mật khẩu.')}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline"
+                    onClick={() => alert('Vui lòng liên hệ Hotline 1900 6868 hoặc quản trị viên để đặt lại mật khẩu.')}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold hover:underline"
                   >
                     Quên Mật Khẩu?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
@@ -222,19 +221,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-11 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    className="w-full pl-9 pr-9 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1 italic">
-                  * Lưu ý: Mật khẩu 8-32 ký tự, có hoa, thường, số, ký tự đặc biệt.
-                </p>
               </div>
 
               <div className="flex items-center justify-between pt-1">
@@ -244,19 +240,18 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     name="remember"
                     checked={formData.remember}
                     onChange={handleChange}
-                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
+                    className="w-3.5 h-3.5 rounded text-red-600 focus:ring-red-600 border-slate-300"
                   />
                   <span className="text-xs text-slate-600">Ghi nhớ đăng nhập</span>
                 </label>
               </div>
 
-              {/* Action Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition-all transform active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full mt-2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50"
               >
-                {loading ? 'ĐANG XỬ LÝ...' : 'ĐĂNG NHẬP'}
+                {loading ? 'Đang Đăng Nhập...' : 'ĐĂNG NHẬP NGAY'}
               </button>
 
               <div className="text-center pt-2">
@@ -265,7 +260,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <button
                     type="button"
                     onClick={() => { setMode('register'); setStatusModal(null); }}
-                    className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
                   >
                     Đăng ký tài khoản mới
                   </button>
@@ -383,9 +378,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-3 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition-all transform active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full mt-2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-50"
               >
-                {loading ? 'ĐANG TẠO TÀI KHOẢN...' : '[ ĐĂNG KÝ ]'}
+                {loading ? 'Đang Xử Lý...' : 'ĐĂNG KÝ TÀI KHOẢN'}
               </button>
 
               <div className="text-center pt-2">
@@ -394,7 +389,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <button
                     type="button"
                     onClick={() => { setMode('login'); setStatusModal(null); }}
-                    className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
                   >
                     Đăng nhập ngay
                   </button>
@@ -404,23 +399,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
           )}
         </div>
 
-        {/* Status Modal Overlay (Hình 7 & Hình 8) */}
+        {/* Status Modal Overlay */}
         {statusModal && (
-          <div className="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-fadeIn z-20">
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center animate-fadeIn z-20">
             {statusModal.type === 'success' ? (
-              /* Hình 7: Khi Đăng ký thành công */
               <div className="space-y-3">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shadow-inner">
-                  <CheckCircle2 className="w-10 h-10" />
+                <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-200">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h4 className="text-lg font-extrabold text-slate-800">{statusModal.title}</h4>
+                <h4 className="text-base font-bold text-slate-800">{statusModal.title}</h4>
                 <p className="text-xs text-slate-600 max-w-xs">{statusModal.message}</p>
                 <div className="pt-2">
                   <button
                     onClick={() => setStatusModal(null)}
-                    className="px-8 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs uppercase shadow-md hover:bg-emerald-700 transition-all"
+                    className="px-6 py-2 rounded-lg bg-slate-900 text-white font-bold text-xs uppercase hover:bg-slate-800 transition-colors cursor-pointer"
                   >
-                    OK
+                    Xác Nhận
                   </button>
                 </div>
               </div>

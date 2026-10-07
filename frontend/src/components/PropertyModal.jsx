@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Calendar, Phone, CheckCircle2, DollarSign, Layers, Share2, Heart, Sparkles, Building2 } from 'lucide-react';
+import { 
+  X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
+  Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck
+} from 'lucide-react';
 
 export default function PropertyModal({ property, onClose, isFavorite, onToggleFavorite, onOpenContact }) {
   const [copied, setCopied] = useState(false);
@@ -14,110 +17,118 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-xs overflow-y-auto">
       <div 
-        className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden my-8 border border-slate-100 flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         
-        {/* Header Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-xl text-xs font-bold text-white ${isRent ? 'bg-emerald-600' : 'bg-blue-600'}`}>
-              {isRent ? 'CHO THUÊ' : 'BÁN / CHUYỂN NHƯỢNG'}
-            </span>
-            <span className="text-xs font-mono text-slate-500 font-semibold">Mã: #{property.code}</span>
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 overflow-hidden truncate">
+            <span>Trang chủ</span>
+            <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+            <span>{isRent ? 'Nhà đất cho thuê' : 'Nhà đất bán'}</span>
+            <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
+            <span className="font-bold text-slate-800 truncate">{property.project}</span>
+            <span className="text-slate-400 font-mono text-[11px]">#{property.code}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0 ml-2">
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-200 transition-colors"
-              title="Sao chép link chia sẻ"
+              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+              title="Chia sẻ liên kết"
             >
               <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => onToggleFavorite(property)}
-              className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors"
-              title="Yêu thích"
+              className="p-1.5 rounded-lg text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Lưu tin đăng"
             >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500' : ''}`} />
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600 text-red-600' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors ml-1"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body Scrollable */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        {/* Modal Scrollable Body */}
+        <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-6">
           
-          {/* Main Hero Image & Basic Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Top Gallery & Quick Pricing Card */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             
-            {/* Image Preview */}
-            <div className="lg:col-span-7 relative h-72 lg:h-96 rounded-2xl overflow-hidden shadow-inner bg-slate-100">
+            {/* Main Photo Gallery */}
+            <div className="lg:col-span-7 relative h-64 sm:h-80 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
               <img
                 src={property.image}
                 alt={property.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-3 left-3 flex gap-2">
-                <span className="px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-xs font-bold">
-                  {property.developer}
+              <div className="absolute top-3 left-3 flex gap-2">
+                <span className={`px-2.5 py-1 rounded text-xs font-bold text-white shadow-xs ${
+                  isRent ? 'bg-blue-600' : 'bg-red-600'
+                }`}>
+                  {isRent ? 'CHO THUÊ' : 'BÁN / CHUYỂN NHƯỢNG'}
                 </span>
-                <span className="px-3 py-1 rounded-lg bg-emerald-600/90 backdrop-blur-md text-white text-xs font-bold">
-                  {property.project}
-                </span>
+              </div>
+              <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded backdrop-blur-xs font-medium">
+                {property.developer} • {property.project}
               </div>
             </div>
 
-            {/* Quick Pricing & Specs */}
-            <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
+            {/* Quick Details & Price Block */}
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-3">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900 leading-snug mb-3">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug mb-2">
                   {property.title}
-                </h2>
+                </h1>
                 
-                <p className="flex items-start gap-1.5 text-xs text-slate-500 mb-4">
-                  <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <p className="flex items-start gap-1 text-xs text-slate-600 mb-4">
+                  <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{property.street}, {property.district}, {property.city}</span>
                 </p>
 
-                {/* Price Block */}
-                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100 mb-4">
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                    {isRent ? 'Mức Giá Thuê' : 'Mức Giá Bán Niêm Yết'}
-                  </p>
-                  <p className="text-3xl font-black text-emerald-700 mt-1">
+                {/* Price Box */}
+                <div className="p-3.5 rounded-lg bg-red-50/70 border border-red-100 mb-3">
+                  <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider block">
+                    {isRent ? 'Mức giá thuê niêm yết' : 'Mức giá bán niêm yết'}
+                  </span>
+                  <p className="text-2xl font-black text-red-600 mt-0.5">
                     {isRent ? property.price_rent_text : property.price_sale_text}
                   </p>
                   {property.unit_price && (
-                    <p className="text-xs text-emerald-900/70 mt-0.5 font-medium">Đơn giá: {property.unit_price}</p>
+                    <p className="text-xs text-slate-600 mt-0.5 font-medium">Đơn giá: {property.unit_price}</p>
                   )}
                   {property.deposit_text && (
-                    <p className="text-xs text-slate-600 mt-2 pt-2 border-t border-emerald-200/60 font-semibold">
-                      Tiền cọc: <span className="text-slate-900 font-bold">{property.deposit_text}</span>
+                    <p className="text-xs text-slate-700 mt-2 pt-2 border-t border-red-200/50">
+                      Tiền đặt cọc: <strong className="text-slate-900">{property.deposit_text}</strong>
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Owner / Contact fast block */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
-                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Chuyên Viên Tư Vấn Trực Tiếp</p>
+              {/* Agent Contact Box */}
+              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                <p className="text-[11px] font-bold text-slate-500 uppercase mb-2">Môi giới phụ trách tin đăng</p>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-slate-900">{property.owner_name || 'Nguyễn Hoàng Nam'}</p>
-                    <p className="text-xs text-slate-500">Chuyên viên BĐS cao cấp 3TV</p>
+                    <p className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                      <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{property.owner_name || 'Nguyễn Hoàng Nam'}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">Chuyên viên tư vấn dự án</p>
                   </div>
                   <a
                     href={`tel:${property.owner_phone || '0912888777'}`}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>{property.owner_phone || '0912.888.777'}</span>
@@ -129,88 +140,96 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
 
           </div>
 
-          {/* Key Specifications Grid */}
+          {/* Key Specs Table (Real Estate Standards) */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-600" /> Thông Số Kỹ Thuật & Chi Tiết
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-1 border-b border-slate-200">
+              Đặc Điểm Bất Động Sản
             </h3>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1"><Maximize2 className="w-3.5 h-3.5 text-emerald-600" /> Diện tích</span>
-                <p className="text-base font-black text-slate-800 mt-1">{property.area} m²</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                <span className="text-slate-500 text-[11px] block">Diện tích sử dụng</span>
+                <strong className="text-sm text-slate-900 mt-0.5 block">{property.area} m²</strong>
               </div>
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1"><Bed className="w-3.5 h-3.5 text-emerald-600" /> Phòng ngủ</span>
-                <p className="text-base font-black text-slate-800 mt-1">{property.bedrooms} Phòng</p>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                <span className="text-slate-500 text-[11px] block">Số phòng ngủ</span>
+                <strong className="text-sm text-slate-900 mt-0.5 block">{property.bedrooms} Phòng</strong>
               </div>
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1"><Bath className="w-3.5 h-3.5 text-emerald-600" /> Phòng tắm / WC</span>
-                <p className="text-base font-black text-slate-800 mt-1">{property.bathrooms} Phòng</p>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                <span className="text-slate-500 text-[11px] block">Số phòng tắm</span>
+                <strong className="text-sm text-slate-900 mt-0.5 block">{property.bathrooms} WC</strong>
               </div>
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-                <span className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Tình trạng pháp lý</span>
-                <p className="text-xs font-bold text-slate-800 mt-1 truncate" title={property.legal}>{property.legal || 'Đầy đủ sổ hồng'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Detailed Specifications List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
-            <div className="space-y-2.5">
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Chủ đầu tư:</span>
-                <span className="text-slate-900 font-bold">{property.developer}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Dự án:</span>
-                <span className="text-slate-900 font-bold">{property.project}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Loại hình BĐS:</span>
-                <span className="text-slate-900 font-bold">{property.type || 'Căn hộ cao cấp'}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Phí quản lý:</span>
-                <span className="text-slate-900 font-bold">{property.management_fee || 'Theo quy định CĐT'}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Thời gian bàn giao:</span>
-                <span className="text-slate-900 font-bold">{property.available_date || 'Dọn vào ở ngay'}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Thời hạn hợp đồng:</span>
-                <span className="text-slate-900 font-bold">{property.rent_period_min || 'Linh hoạt'}</span>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                <span className="text-slate-500 text-[11px] block">Tình trạng pháp lý</span>
+                <strong className="text-xs text-slate-900 mt-0.5 block truncate" title={property.legal}>{property.legal || 'Sổ hồng lâu dài'}</strong>
               </div>
             </div>
           </div>
 
-          {/* Furniture & Description */}
+          {/* Specifications Details Table */}
+          <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Chủ đầu tư:</span>
+                <strong className="text-slate-900">{property.developer}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Dự án:</span>
+                <strong className="text-slate-900">{property.project}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Loại hình:</span>
+                <strong className="text-slate-900">{property.type || 'Căn hộ chung cư'}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Thời gian bàn giao:</span>
+                <strong className="text-slate-900">{property.available_date || 'Dọn vào ở ngay'}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Phí dịch vụ / Quản lý:</span>
+                <strong className="text-slate-900">{property.management_fee || 'Theo quy định ban quản lý'}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Thời hạn hợp đồng:</span>
+                <strong className="text-slate-900">{property.rent_period_min || 'Tối thiểu 1 năm'}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Description & Furniture */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600" /> Tình Trạng Nội Thất & Trang Bị
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 pb-1 border-b border-slate-200">
+              Thông Tin Mô Tả Chi Tiết
             </h3>
-            <p className="text-sm text-slate-700 bg-emerald-50/40 p-4 rounded-2xl border border-emerald-100/80 leading-relaxed font-medium">
-              {property.furniture || 'Đầy đủ trang thiết bị nội thất cao cấp chuẩn quốc tế, máy lạnh Inverter, thiết bị vệ sinh cao cấp.'}
-            </p>
+            <div className="text-xs text-slate-700 leading-relaxed space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p>
+                {property.furniture ? (
+                  <><strong>Tình trạng nội thất: </strong>{property.furniture}</>
+                ) : (
+                  'Đầy đủ nội thất cao cấp: Tủ bếp, bếp từ, máy hút mùi, điều hòa Daikin, sàn gỗ công nghiệp, thiết bị vệ sinh Toto cao cấp.'
+                )}
+              </p>
+              <p>
+                Căn hộ sở hữu tầm nhìn thoáng đãng, đón ánh sáng tự nhiên và gió trời trong lành. Tiện ích nội khu đẳng cấp: Hồ bơi tràn bờ, phòng gym tiêu chuẩn, công viên cây xanh, trường học quốc tế, bệnh viện và trung tâm thương mại ngay dưới chân tòa nhà.
+              </p>
+            </div>
           </div>
 
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-          {copied && (
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-lg">
-              ✓ Đã sao chép liên kết vào bộ nhớ tạm!
-            </span>
-          )}
-          <div className="flex items-center gap-3 ml-auto">
+        {/* Modal Footer Bar */}
+        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+          <div>
+            {copied && (
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded">
+                ✓ Đã sao chép liên kết vào bộ nhớ tạm!
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-all"
+              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
             >
               Đóng lại
             </button>
@@ -219,9 +238,9 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
                 onClose();
                 onOpenContact(property);
               }}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all"
+              className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
             >
-              Đặt Lịch Xem Nhà Ngay
+              Đặt Lịch Xem Bất Động Sản
             </button>
           </div>
         </div>
