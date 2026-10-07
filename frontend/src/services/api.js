@@ -1,36 +1,49 @@
 import axios from 'axios';
 import localProperties from '../data/all_properties.json';
 
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined' && window.location.port === '3000') {
-    return 'http://localhost:8080/api';
-  }
-  return '/api';
-};
+const candidateBaseUrls = [
+  '/api',
+  'http://localhost:8080/api',
+  'http://127.0.0.1:8080/api',
+  'http://localhost:8000/api',
+  'http://127.0.0.1:8000/api'
+];
 
-const API_BASE_URL = getApiBaseUrl();
+let activeBaseUrl = '/api';
+
+export const getApiBaseUrl = () => activeBaseUrl;
 
 // Cấu hình axios gửi cookie / session
 axios.defaults.withCredentials = true;
 
 /**
- * Lấy danh sách Bất động sản từ DB Backend hoặc Fallback
+ * Lấy danh sách Bất động sản trực tiếp từ DB Backend (Luôn bypass cache để cập nhật tức thì từ Database)
  */
 export const fetchProperties = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/properties`, { timeout: 4000 });
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      return { data: response.data, source: 'backend' };
-    }
-  } catch (error) {
+  const timestamp = Date.now();
+  const requestConfig = {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+    timeout: 3000,
+  };
+
+  // Thử lần lượt các endpoint khả dụng
+  for (const url of candidateBaseUrls) {
     try {
-      const resFallback = await axios.get('/api/properties', { timeout: 2000 });
-      if (resFallback.data && Array.isArray(resFallback.data) && resFallback.data.length > 0) {
-        return { data: resFallback.data, source: 'backend' };
+      const response = await axios.get(`${url}/properties?_t=${timestamp}`, requestConfig);
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        activeBaseUrl = url;
+        return { data: response.data, source: 'backend' };
       }
-    } catch (e2) {}
-    console.info('Backend API not responding, using local fallback:', error.message);
+    } catch (error) {
+      // Tiếp tục thử endpoint tiếp theo
+    }
   }
+
+  // Fallback an toàn chỉ khi toàn bộ kết nối backend thất bại
   return { data: localProperties, source: 'local' };
 };
 
@@ -39,7 +52,7 @@ export const fetchProperties = async () => {
  */
 export const registerUser = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/register`, data);
+    const response = await axios.post(`${activeBaseUrl}/register`, data);
     return response.data;
   } catch (error) {
     const message = error.response?.data?.message || 'Đăng ký tài khoản không thành công!';
@@ -56,7 +69,7 @@ export const loginUser = async (credentials) => {
   const validPass = ['Admin@123456', 'admin', 'admin123', '123456'].includes(credentials.password);
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/login`, credentials, { timeout: 4000 });
+    const response = await axios.post(`${activeBaseUrl}/login`, credentials, { timeout: 4000 });
     if (response.data && response.data.status === 'success') {
       return response.data;
     }
@@ -92,7 +105,7 @@ export const loginUser = async (credentials) => {
  */
 export const logoutUser = async () => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/logout`);
+    const response = await axios.post(`${activeBaseUrl}/logout`);
     return response.data;
   } catch (error) {
     return { status: 'success' };
@@ -104,7 +117,7 @@ export const logoutUser = async () => {
  */
 export const getMe = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/me`);
+    const response = await axios.get(`${activeBaseUrl}/me`);
     return response.data;
   } catch (error) {
     return null;
@@ -116,7 +129,7 @@ export const getMe = async () => {
  */
 export const updateProfile = async (profileData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/profile`, profileData);
+    const response = await axios.post(`${activeBaseUrl}/profile`, profileData);
     return response.data;
   } catch (error) {
     const message = error.response?.data?.message || 'Cập nhật hồ sơ thất bại!';
@@ -129,7 +142,7 @@ export const updateProfile = async (profileData) => {
  */
 export const changePassword = async (passwordData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/change-password`, passwordData);
+    const response = await axios.post(`${activeBaseUrl}/change-password`, passwordData);
     return response.data;
   } catch (error) {
     const message = error.response?.data?.message || 'Đổi mật khẩu thất bại!';
@@ -142,9 +155,63 @@ export const changePassword = async (passwordData) => {
  */
 export const triggerDatabaseMigration = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/run-migrate`, { timeout: 15000 });
+    const response = await axios.get(`${activeBaseUrl}/run-migrate`, { timeout: 15000 });
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || 'Không thể kết nối với máy chủ Backend Laravel.');
   }
 };
+
+/**
+ * Ghi nhận lịch sử xem bất động sản vào backend (Chức năng số 20)
+ */
+export const recordViewHistory = async (property) => {
+  try {
+    const response = await axios.post(`${activeBaseUrl}/history`, {
+      property: property,
+      property_id: property.id || 0,
+      code: property.code || '',
+    }, { timeout: 3000 });
+    return response.data;
+  } catch (error) {
+    // Non-blocking fallback for offline/local use
+    return { status: 'fallback_local' };
+  }
+};
+
+/**
+ * Lấy lịch sử xem bất động sản từ backend
+ */
+export const fetchViewHistory = async () => {
+  try {
+    const response = await axios.get(`${activeBaseUrl}/history`, { timeout: 4000 });
+    if (Array.isArray(response.data)) {
+      return response.data.map(item => {
+        const prop = item.property_data || {};
+        return {
+          ...prop,
+          viewed_at: item.created_at || prop.viewed_at || new Date().toISOString()
+        };
+      });
+    }
+    return [];
+  } catch (error) {
+    return [];
+  }
+};
+
+/**
+ * Xóa một mục hoặc toàn bộ lịch sử xem bất động sản
+ */
+export const clearViewHistoryApi = async (code = null) => {
+  try {
+    const response = await axios.delete(`${activeBaseUrl}/history`, {
+      data: { code },
+      timeout: 3000
+    });
+    return response.data;
+  } catch (error) {
+    return { status: 'fallback_local' };
+  }
+};
+

@@ -10,8 +10,9 @@ import ContactModal from './components/ContactModal';
 import CompareDrawer from './components/CompareDrawer';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
+import RecentViewsModal from './components/RecentViewsModal';
 import Footer from './components/Footer';
-import { fetchProperties, getMe, logoutUser } from './services/api';
+import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
 
 export default function App() {
@@ -96,6 +97,27 @@ export default function App() {
   useEffect(() => {
     loadData();
     checkAuth();
+
+    // Đồng bộ lịch sử xem bất động sản từ backend nếu có (Chức năng 20)
+    fetchViewHistory()
+      .then((serverViews) => {
+        if (serverViews && serverViews.length > 0) {
+          setRecentViews((prev) => {
+            const map = new Map();
+            [...prev, ...serverViews].forEach((item) => {
+              if (item?.code && !map.has(item.code)) {
+                map.set(item.code, item);
+              }
+            });
+            const merged = Array.from(map.values()).slice(0, 30);
+            try {
+              localStorage.setItem('3tv_recent_views', JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Save Favorites to LocalStorage
@@ -135,10 +157,13 @@ export default function App() {
 
   const handleSelectProperty = (prop) => {
     setSelectedProperty(prop);
-    // Lưu vào lịch sử xem
+    const nowIso = new Date().toISOString();
+    const enrichedProp = { ...prop, viewed_at: nowIso };
+
+    // Lưu vào lịch sử xem (Tối đa 30 tin đã xem gần nhất)
     setRecentViews((prev) => {
       const filtered = prev.filter((p) => p.code !== prop.code);
-      const updated = [prop, ...filtered].slice(0, 10);
+      const updated = [enrichedProp, ...filtered].slice(0, 30);
       try {
         localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
       } catch (e) {
@@ -146,6 +171,43 @@ export default function App() {
       }
       return updated;
     });
+
+    // Ghi nhận ngầm lên Backend (Chức năng số 20: Lịch sử xem)
+    recordViewHistory(enrichedProp).catch(() => {});
+  };
+
+  const handleRemoveRecentItem = (code) => {
+    setRecentViews((prev) => {
+      const updated = prev.filter((p) => p.code !== code);
+      try {
+        localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    clearViewHistoryApi(code).catch(() => {});
+  };
+
+  const handleClearRecent = () => {
+    setRecentViews([]);
+    try {
+      localStorage.removeItem('3tv_recent_views');
+    } catch (e) {}
+    clearViewHistoryApi().catch(() => {});
+  };
+
+  const formatRecentTimeAgo = (dateInput) => {
+    if (!dateInput) return 'Gần đây';
+    const now = new Date();
+    const date = new Date(dateInput);
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    if (isNaN(diffInSeconds) || diffInSeconds < 0 || diffInSeconds < 60) return 'Vừa xong';
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}p trước`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h trước`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return 'Hôm qua';
+    return `${diffInDays} ngày trước`;
   };
 
   const handleAuthSuccess = (user) => {
@@ -444,39 +506,87 @@ export default function App() {
           </div>
         )}
 
-        {/* Section: Bất Động Sản Đã Xem Gần Đây (Chức năng số 20) */}
+        {/* Section: Bất Động Sản Đã Xem Gần Đây (Chức năng số 20: Lịch sử xem) */}
         {recentViews.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <h3 className="text-base font-bold text-slate-900">Bất Động Sản Bạn Đã Xem Gần Đây</h3>
-                <span className="text-xs text-slate-400 font-medium">({recentViews.length} tin)</span>
+          <div className="mt-14 pt-8 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center border border-red-100">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">Bất Động Sản Bạn Đã Xem Gần Đây</h3>
+                    <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold">
+                      {recentViews.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Tự động lưu các bất động sản bạn đã mở xem chi tiết</p>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setRecentViews([]);
-                  localStorage.removeItem('3tv_recent_views');
-                }}
-                className="text-xs text-slate-500 hover:text-red-600 transition-colors"
-              >
-                Xóa lịch sử
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowRecentModal(true)}
+                  className="text-xs font-semibold text-slate-700 hover:text-red-600 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>Xem tất cả lịch sử ({recentViews.length})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-slate-300">•</span>
+                <button
+                  onClick={handleClearRecent}
+                  className="text-xs text-slate-500 hover:text-red-600 transition-colors cursor-pointer"
+                >
+                  Xóa lịch sử
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {recentViews.slice(0, 5).map((p) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {recentViews.slice(0, 6).map((p) => (
                 <div 
                   key={p.code} 
                   onClick={() => handleSelectProperty(p)}
-                  className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 p-2 cursor-pointer transition-all hover:shadow-xs group"
+                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 p-2.5 cursor-pointer transition-all hover:shadow-xs group relative flex flex-col justify-between"
                 >
-                  <div className="relative h-24 rounded overflow-hidden mb-2 bg-slate-100">
-                    <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  {/* Remove single item button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveRecentItem(p.code);
+                    }}
+                    className="absolute top-3.5 right-3.5 z-10 w-6 h-6 rounded-full bg-slate-900/60 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-xs"
+                    title="Xóa khỏi lịch sử"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+
+                  <div>
+                    <div className="relative h-24 sm:h-28 rounded-lg overflow-hidden mb-2 bg-slate-100">
+                      <img 
+                        src={p.image} 
+                        alt={p.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                        loading="lazy"
+                      />
+                      <span className={`absolute bottom-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded text-white ${
+                        p.purpose === 'rent' ? 'bg-blue-600' : 'bg-red-600'
+                      }`}>
+                        {p.purpose === 'rent' ? 'Thuê' : 'Bán'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] font-bold text-slate-800 truncate mb-0.5">{p.project || 'BĐS'}</p>
+                    <p className="text-xs font-black text-red-600 truncate mb-1">
+                      {p.purpose === 'rent' ? p.price_rent_text : p.price_sale_text}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-bold text-slate-700 truncate">{p.project}</p>
-                  <p className="text-xs font-black text-red-600 truncate">{p.purpose === 'rent' ? p.price_rent_text : p.price_sale_text}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{p.area}m² • {p.district}</p>
+
+                  <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">{p.area}m² • {p.district}</span>
+                    <span className="shrink-0 text-slate-400 font-medium">{formatRecentTimeAgo(p.viewed_at)}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -588,53 +698,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Recent Viewed Modal */}
-      {showRecentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
-          <div className="bg-white rounded-xl p-5 max-w-xl w-full shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-slate-700" />
-                <h3 className="text-base font-bold text-slate-900">Bất Động Sản Đã Xem Gần Đây ({recentViews.length})</h3>
-              </div>
-              <button
-                onClick={() => setShowRecentModal(false)}
-                className="text-xs font-bold px-3 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 py-3 space-y-2.5">
-              {recentViews.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 py-8">Bạn chưa xem bất động sản nào gần đây.</p>
-              ) : (
-                recentViews.map((p) => (
-                  <div key={p.code} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 gap-3">
-                    <img src={p.image} alt={p.title} className="w-16 h-16 rounded object-cover shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-800 truncate">{p.project}</p>
-                      <h4 className="text-xs text-slate-600 truncate">{p.title}</h4>
-                      <p className="text-xs font-black text-red-600 mt-0.5">{p.purpose === 'rent' ? p.price_rent_text : p.price_sale_text}</p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => {
-                          setShowRecentModal(false);
-                          handleSelectProperty(p);
-                        }}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-red-600 text-white rounded text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Xem lại
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Recent Views Modal (Chức năng số 20: Lịch sử xem) */}
+      <RecentViewsModal
+        isOpen={showRecentModal}
+        onClose={() => setShowRecentModal(false)}
+        recentViews={recentViews}
+        onSelectProperty={handleSelectProperty}
+        onRemoveItem={handleRemoveRecentItem}
+        onClearAll={handleClearRecent}
+        onToggleCompare={handleToggleCompare}
+        comparedList={comparedList}
+      />
 
       {/* Compare Floating Drawer */}
       <CompareDrawer
