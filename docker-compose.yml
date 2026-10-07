@@ -8,6 +8,8 @@ services:
     restart: always
     ports:
       - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
     depends_on:
       - backend
 
@@ -28,7 +30,7 @@ services:
       - DB_CONNECTION=mysql
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=baocaocdptw1_db
+      - DB_DATABASE=quanly_bds
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
     command: >
@@ -43,7 +45,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: baocaocdptw1_db
+      MYSQL_DATABASE: quanly_bds
     ports:
       - "3306:3306"
     volumes:
