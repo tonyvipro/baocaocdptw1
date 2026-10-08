@@ -11,30 +11,37 @@ use Illuminate\Http\JsonResponse;
 class AppointmentController extends Controller
 {
     /**
-     * Lấy danh sách lịch hẹn (Cho Frontend Dashboard)
+     * Lấy danh sách lịch hẹn (RESTful API)
+     * Có hỗ trợ Filter, Search, và Pagination
      */
-    public function index(): JsonResponse
+    public function index(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = auth('sanctum')->user();
-        if ($user->role_id === 1) {
-            $appointments = Appointment::orderBy('created_at', 'desc')->get();
-        } else if ($user->role_id === 2) {
-            $appointments = Appointment::where('broker_id', $user->id)->orderBy('created_at', 'desc')->get();
-        } else {
-            $appointments = Appointment::where('customer_id', $user->id)->orderBy('created_at', 'desc')->get();
+        
+        // Gọi query builder thông qua Scope, Eager Load các relations cần thiết
+        $query = Appointment::with(['customer', 'broker', 'property'])
+                            ->filterAppointments($user, $request->all());
+
+        // Nếu request gửi lên 'all=true' (vd: để vẽ Calendar), lấy toàn bộ
+        if ($request->query('all') === 'true') {
+            $appointments = $query->get();
+            return response()->json([
+                'data' => \App\Http\Resources\AppointmentResource::collection($appointments)
+            ]);
         }
 
-        // Bổ sung thông tin
-        $appointments->map(function ($app) {
-            $app->customer_name = clone \App\Models\User::find($app->customer_id)->name ?? 'Khách hàng';
-            $app->customer_phone = clone \App\Models\User::find($app->customer_id)->phone ?? 'N/A';
-            $prop = \App\Models\Property::find($app->property_id);
-            $app->property_title = $prop->title ?? 'BĐS';
-            $app->property_address = $prop->district ?? 'N/A';
-            return $app;
-        });
-
-        return response()->json(['data' => $appointments]);
+        // Mặc định phân trang 15 records
+        $appointments = $query->paginate(15);
+        
+        return response()->json([
+            'data' => \App\Http\Resources\AppointmentResource::collection($appointments->items()),
+            'meta' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page' => $appointments->lastPage(),
+                'per_page' => $appointments->perPage(),
+                'total' => $appointments->total(),
+            ]
+        ]);
     }
 
     /**
