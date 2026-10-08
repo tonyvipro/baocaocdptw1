@@ -31,4 +31,13 @@ class Property extends Model
     {
         return $this->hasMany(Appointment::class);
     }
+
+    /**
+     * Đánh dấu BĐS đã bán/cho thuê thành công (Tự động chuyển status = 0 hoặc tương ứng)
+     */
+    public function markAsSoldOrRented()
+    {
+        $this->status = 0; // Giả sử 0 là trạng thái ngừng giao dịch/Đã bán. Tùy thuộc vào design ban đầu.
+        $this->save();
+    }
 }
