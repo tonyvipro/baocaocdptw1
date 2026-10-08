@@ -150,16 +150,25 @@ function AppointmentsManager() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [searchTerm, statusFilter]);
 
   const fetchAppointments = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('3tv_token') || '';
-      const res = await fetch('http://localhost:8080/api/appointments', {
+      
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter !== '') params.append('status', statusFilter);
+
+      const res = await fetch(`http://localhost:8080/api/appointments?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       if (!res.ok) throw new Error('API chưa sẵn sàng.');
@@ -210,12 +219,32 @@ function AppointmentsManager() {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-      <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+      <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-slate-50 shrink-0 gap-4">
         <h3 className="font-bold text-slate-800 text-base">Danh sách lịch hẹn</h3>
-        <button onClick={fetchAppointments} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : ''}`} />
-          Làm mới
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <input 
+            type="text" 
+            placeholder="Tìm KH hoặc Môi giới..." 
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+          <select 
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-40"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="0">Chờ xác nhận</option>
+            <option value="1">Đã xác nhận</option>
+            <option value="2">Hoàn thành</option>
+            <option value="3">Đã hủy</option>
+          </select>
+          <button onClick={fetchAppointments} className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100 transition-colors w-full sm:w-auto">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : ''}`} />
+            Làm mới
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 p-4 sm:p-5 overflow-y-auto">

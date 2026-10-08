@@ -20,6 +20,76 @@ class Appointment extends Model
     ];
 
     /**
+     * Quan hệ với Customer (User)
+     */
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id')->select(['id', 'name', 'phone']);
+    }
+
+    /**
+     * Quan hệ với Broker (User)
+     */
+    public function broker()
+    {
+        return $this->belongsTo(User::class, 'broker_id')->select(['id', 'name', 'phone']);
+    }
+
+    /**
+     * Quan hệ với Property
+     */
+    public function property()
+    {
+        return $this->belongsTo(Property::class, 'property_id')->select(['id', 'title', 'district', 'price_sale', 'price_rent', 'area']);
+    }
+
+    /**
+     * Scope lọc danh sách lịch hẹn
+     */
+    public function scopeFilterAppointments($query, $user, $filters)
+    {
+        // Phân luồng dữ liệu (Authorization Scope)
+        if ($user->role_id === 2) {
+            $query->where('broker_id', $user->id);
+        } elseif ($user->role_id === 5 || $user->role_id === 3) { // Customer or Owner
+            $query->where('customer_id', $user->id);
+        }
+
+        // Filter: date (YYYY-MM-DD)
+        if (!empty($filters['date'])) {
+            $query->whereDate('appointment_time', $filters['date']);
+        }
+
+        // Filter: month & year (Cho giao diện Calendar)
+        if (!empty($filters['month']) && !empty($filters['year'])) {
+            $query->whereMonth('appointment_time', $filters['month'])
+                  ->whereYear('appointment_time', $filters['year']);
+        }
+
+        // Filter: status
+        if (isset($filters['status']) && $filters['status'] !== '') {
+            $query->where('status', $filters['status']);
+        }
+
+        // Filter: search (Tên Khách hàng hoặc Môi giới)
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('customer', function ($q2) use ($search) {
+                    $q2->where('name', 'like', "%{$search}%");
+                })->orWhereHas('broker', function ($q3) use ($search) {
+                    $q3->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Sắp xếp mặc định
+        $query->orderBy('appointment_time', 'desc');
+
+        return $query;
+    }
+
+    /**
      * Kiểm tra trùng lịch hẹn của môi giới
      * Trả về true nếu bị trùng (đã có lịch), false nếu trống
      */
