@@ -21,7 +21,8 @@ export default function Navbar({
   onOpenProfile,
   onLogout,
   recentCount = 0,
-  openRecent
+  openRecent,
+  onOpenAdmin
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -230,6 +231,19 @@ export default function Navbar({
                       <User className="w-4 h-4 text-slate-400" />
                       <span>Thông tin tài khoản</span>
                     </button>
+
+                    {currentUser && (currentUser.role_id === 1 || currentUser.role_id === 2) && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenAdmin) onOpenAdmin();
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <Database className="w-4 h-4 text-slate-400" />
+                        <span>{currentUser.role_id === 1 ? 'Trang hệ thống' : 'Quản lý lịch hẹn'}</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => {
