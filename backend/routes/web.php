@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/api/appointments', [AppointmentController::class, 'store']);
     Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'confirm']);
     Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
+    Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
 });
 
 // View History API (Chức năng Lịch sử xem BĐS)

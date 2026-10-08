@@ -197,4 +197,63 @@ class AppointmentController extends Controller
             'message' => 'Đã hủy lịch hẹn xem nhà thành công.',
         ], 200);
     }
+
+    /**
+     * Thay đổi lịch hẹn (Reschedule Appointment API)
+     *
+     * @param \App\Http\Requests\RescheduleAppointmentRequest $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function reschedule(\App\Http\Requests\RescheduleAppointmentRequest $request, $id): JsonResponse
+    {
+        $user = auth('sanctum')->user();
+        
+        $appointment = Appointment::findById($id);
+        if (!$appointment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lịch hẹn không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng làm mới lại trang.'
+            ], 404);
+        }
+
+        $isAuthorized = $user->role_id === 1 
+                        || $user->id === $appointment->broker_id 
+                        || $user->id === $appointment->customer_id;
+
+        if (!$isAuthorized) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if (!$appointment->checkStatusForReschedule()) {
+            return response()->json(['message' => 'Không thể đổi lịch hẹn đã hoàn thành hoặc đã bị hủy.'], 400);
+        }
+
+        $newTime = $request->input('new_appointment_time');
+
+        if ($appointment->checkRescheduleDoubleBooking($newTime)) {
+            return response()->json([
+                'message' => 'Thời gian mới bị trùng với lịch trình khác của môi giới phụ trách.'
+            ], 422);
+        }
+
+        $appointment->rescheduleAppointment($newTime, $user->role_id);
+
+        $customer = clone $appointment->getCustomer();
+        $broker = clone $appointment->getBroker();
+
+        if ($user->id === $appointment->customer_id) {
+            if ($broker) {
+                $broker->notify(new \App\Notifications\AppointmentRescheduledNotification($appointment, $user));
+            }
+        } else {
+            if ($customer) {
+                $customer->notify(new \App\Notifications\AppointmentRescheduledNotification($appointment, $user));
+            }
+        }
+
+        return response()->json([
+            'message' => 'Đổi thời gian hẹn xem nhà thành công!',
+        ], 200);
+    }
 }

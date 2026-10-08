@@ -137,4 +137,50 @@ class Appointment extends Model
         $this->note = $this->note ? $this->note . ' | Lý do hủy: ' . $reason : 'Lý do hủy: ' . $reason;
         $this->save();
     }
+
+    /**
+     * Kiểm tra trạng thái có hợp lệ để thay đổi lịch không
+     */
+    public function checkStatusForReschedule()
+    {
+        if ($this->status == 2 || $this->status == 3) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Kiểm tra chống trùng lịch khi dời ngày (cho riêng môi giới)
+     */
+    public function checkRescheduleDoubleBooking($newTime)
+    {
+        $newTimeObj = \Carbon\Carbon::parse($newTime);
+        $timeWindowStart = $newTimeObj->copy()->subHour();
+        $timeWindowEnd = $newTimeObj->copy()->addHour();
+
+        $exists = self::where('broker_id', $this->broker_id)
+            ->where('status', 1)
+            ->where('id', '!=', $this->id)
+            ->whereBetween('appointment_time', [$timeWindowStart, $timeWindowEnd])
+            ->exists();
+
+        return $exists;
+    }
+
+    /**
+     * Thực thi dời lịch và cập nhật trạng thái
+     */
+    public function rescheduleAppointment($newTime, $changerRoleId)
+    {
+        $oldTime = $this->appointment_time;
+        $this->appointment_time = $newTime;
+        
+        // Khách hàng dời -> chờ xác nhận. Môi giới/Admin dời -> đã xác nhận
+        $this->status = ($changerRoleId == 5) ? 0 : 1; 
+        
+        $logText = 'Đã dời lịch từ ' . $oldTime . ' sang ' . $newTime;
+        $this->note = $this->note ? $this->note . ' | ' . $logText : $logText;
+        
+        $this->save();
+    }
 }
