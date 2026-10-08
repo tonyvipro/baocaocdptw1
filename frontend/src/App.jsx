@@ -14,6 +14,7 @@ import RecentViewsModal from './components/RecentViewsModal';
 import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
+import AdminLayout from './pages/admin/AdminLayout';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -32,6 +33,7 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [currentAppMode, setCurrentAppMode] = useState('client'); // 'client' | 'admin'
 
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
@@ -91,6 +93,20 @@ export default function App() {
     if (data?.user) {
       setCurrentUser(data.user);
       localStorage.setItem('3tv_user', JSON.stringify(data.user));
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.warn("Logout error", err);
+    } finally {
+      localStorage.removeItem('3tv_user');
+      localStorage.removeItem('3tv_token');
+      setCurrentUser(null);
+      setCurrentAppMode('client');
+      setShowProfileModal(false);
     }
   };
 
@@ -213,14 +229,12 @@ export default function App() {
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     localStorage.setItem('3tv_user', JSON.stringify(user));
+    if (user.role_id === 1) {
+      setCurrentAppMode('admin');
+    }
   };
 
-  const handleLogout = async () => {
-    await logoutUser();
-    setCurrentUser(null);
-    localStorage.removeItem('3tv_user');
-    setShowProfileModal(false);
-  };
+
 
   // Dropdown Lists Extracted Dynamically
   const projectsList = useMemo(() => {
@@ -362,6 +376,17 @@ export default function App() {
   const rentCount = properties.filter((p) => p.purpose === 'rent').length;
   const saleCount = properties.filter((p) => p.purpose === 'sale').length;
 
+  // Nếu đang ở chế độ admin, render nguyên cụm layout admin
+  if (currentAppMode === 'admin') {
+    return (
+      <AdminLayout 
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onExitAdmin={() => setCurrentAppMode('client')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header / Navbar */}
@@ -384,6 +409,7 @@ export default function App() {
           setShowAuthModal(true);
         }}
         onOpenProfile={() => setShowProfileModal(true)}
+        onOpenAdmin={() => setCurrentAppMode('admin')}
         onLogout={handleLogout}
         recentCount={recentViews.length}
         openRecent={() => setShowRecentModal(true)}

@@ -61,4 +61,46 @@ class Appointment extends Model
     {
         return self::create($data);
     }
+
+    /**
+     * Tìm lịch hẹn theo ID
+     */
+    public static function findById($id)
+    {
+        return self::find($id);
+    }
+
+    /**
+     * Lấy đối tượng khách hàng của lịch hẹn
+     */
+    public function getCustomer()
+    {
+        return \App\Models\User::find($this->customer_id);
+    }
+
+    /**
+     * Kiểm tra trạng thái có hợp lệ để xác nhận không
+     * Trả về true nếu hợp lệ, mảng lỗi nếu không
+     */
+    public function checkStatusForConfirmation()
+    {
+        if ($this->status == 2 || $this->status == 3) {
+            return ['message' => 'Lịch hẹn này đã bị hủy hoặc đã hoàn thành trước đó.'];
+        }
+
+        if ($this->status == 1) {
+            return ['message' => 'Lịch hẹn này đã được xác nhận.'];
+        }
+
+        return true;
+    }
+
+    /**
+     * Đánh dấu lịch hẹn là đã xác nhận
+     */
+    public function markAsConfirmed()
+    {
+        $this->status = 1;
+        $this->save();
+    }
 }
