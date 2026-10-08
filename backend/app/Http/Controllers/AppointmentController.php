@@ -11,6 +11,33 @@ use Illuminate\Http\JsonResponse;
 class AppointmentController extends Controller
 {
     /**
+     * Lấy danh sách lịch hẹn (Cho Frontend Dashboard)
+     */
+    public function index(): JsonResponse
+    {
+        $user = auth('sanctum')->user();
+        if ($user->role_id === 1) {
+            $appointments = Appointment::orderBy('created_at', 'desc')->get();
+        } else if ($user->role_id === 2) {
+            $appointments = Appointment::where('broker_id', $user->id)->orderBy('created_at', 'desc')->get();
+        } else {
+            $appointments = Appointment::where('customer_id', $user->id)->orderBy('created_at', 'desc')->get();
+        }
+
+        // Bổ sung thông tin
+        $appointments->map(function ($app) {
+            $app->customer_name = clone \App\Models\User::find($app->customer_id)->name ?? 'Khách hàng';
+            $app->customer_phone = clone \App\Models\User::find($app->customer_id)->phone ?? 'N/A';
+            $prop = \App\Models\Property::find($app->property_id);
+            $app->property_title = $prop->title ?? 'BĐS';
+            $app->property_address = $prop->district ?? 'N/A';
+            return $app;
+        });
+
+        return response()->json(['data' => $appointments]);
+    }
+
+    /**
      * Tạo lịch hẹn xem nhà mới (Create Appointment API)
      *
      * @param StoreAppointmentRequest $request
@@ -115,6 +142,59 @@ class AppointmentController extends Controller
         // Trả về phản hồi thành công
         return response()->json([
             'message' => 'Xác nhận lịch hẹn thành công!',
+        ], 200);
+    }
+
+    /**
+     * Hủy lịch hẹn (Cancel Appointment API)
+     *
+     * @param \App\Http\Requests\CancelAppointmentRequest $request
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function cancel(\App\Http\Requests\CancelAppointmentRequest $request, $id): JsonResponse
+    {
+        $user = auth('sanctum')->user();
+        
+        $appointment = Appointment::findById($id);
+        if (!$appointment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lịch hẹn không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng làm mới lại trang.'
+            ], 404);
+        }
+
+        $isAuthorized = $user->role_id === 1 
+                        || $user->id === $appointment->broker_id 
+                        || $user->id === $appointment->customer_id;
+
+        if (!$isAuthorized) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $statusCheck = $appointment->checkStatusForCancellation();
+        if ($statusCheck !== true) {
+            return response()->json(['message' => $statusCheck['message']], $statusCheck['status']);
+        }
+
+        $cancelReason = $request->input('cancel_reason');
+        $appointment->cancelAppointment($cancelReason);
+
+        $customer = $appointment->getCustomer();
+        $broker = clone $appointment->getBroker();
+
+        if ($user->id === $appointment->customer_id) {
+            if ($broker) {
+                $broker->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, $user, $cancelReason));
+            }
+        } else {
+            if ($customer) {
+                $customer->notify(new \App\Notifications\AppointmentCancelledNotification($appointment, $user, $cancelReason));
+            }
+        }
+
+        return response()->json([
+            'message' => 'Đã hủy lịch hẹn xem nhà thành công.',
         ], 200);
     }
 }
