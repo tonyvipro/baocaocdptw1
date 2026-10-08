@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText
 } from 'lucide-react';
+import ContractsManager from './ContractsManager';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
   const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
@@ -14,6 +15,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
+      { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
     ];
@@ -130,7 +132,8 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'appointments' && <AppointmentsManager />}
-          {activeMenu !== 'appointments' && (
+          {activeMenu === 'contracts' && <ContractsManager />}
+          {activeMenu !== 'appointments' && activeMenu !== 'contracts' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
