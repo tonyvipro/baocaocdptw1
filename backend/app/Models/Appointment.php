@@ -103,4 +103,38 @@ class Appointment extends Model
         $this->status = 1;
         $this->save();
     }
+
+    /**
+     * Lấy đối tượng môi giới của lịch hẹn
+     */
+    public function getBroker()
+    {
+        return \App\Models\User::find($this->broker_id);
+    }
+
+    /**
+     * Kiểm tra trạng thái và thời gian có hợp lệ để hủy không
+     */
+    public function checkStatusForCancellation()
+    {
+        if ($this->status == 2 || $this->status == 3) {
+            return ['status' => 422, 'message' => 'Lịch hẹn này đã bị hủy hoặc đã hoàn thành trước đó.'];
+        }
+
+        if (now()->greaterThan(\Carbon\Carbon::parse($this->appointment_time))) {
+            return ['status' => 400, 'message' => 'Không thể hủy lịch hẹn đã diễn ra trong quá khứ.'];
+        }
+
+        return true;
+    }
+
+    /**
+     * Thực hiện hủy lịch hẹn
+     */
+    public function cancelAppointment($reason)
+    {
+        $this->status = 3; // 3 là Đã hủy
+        $this->note = $this->note ? $this->note . ' | Lý do hủy: ' . $reason : 'Lý do hủy: ' . $reason;
+        $this->save();
+    }
 }
