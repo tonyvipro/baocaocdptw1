@@ -205,7 +205,7 @@ export default function ContractsManager() {
                         <tr key={c.id} className="hover:bg-slate-50">
                           <td className="px-4 py-3 font-bold text-blue-600">{c.contract_code}</td>
                           <td className="px-4 py-3 text-slate-800 font-medium">{c.contract_name}</td>
-                          <td className="px-4 py-3">{new Date(c.start_date).toLocaleDateString('vi-VN')}</td>
+                          <td className="px-4 py-3">{c.start_date ? new Date(c.start_date).toLocaleDateString('vi-VN') : 'N/A'}</td>
                           <td className="px-4 py-3 font-semibold">{(Number(c.rental_price) || 0).toLocaleString('vi-VN')} {c.currency}</td>
                           <td className="px-4 py-3">{getStatusBadge(c.status)}</td>
                           <td className="px-4 py-3 text-right">
@@ -406,8 +406,8 @@ export default function ContractsManager() {
                   
                   {/* Info Grid */}
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4 bg-slate-50 print:bg-transparent p-4 rounded-lg border border-slate-200">
-                    <div><span className="font-bold">Ngày bắt đầu:</span> {new Date(viewingContract.start_date).toLocaleDateString('vi-VN')}</div>
-                    <div><span className="font-bold">Ngày kết thúc:</span> {new Date(viewingContract.end_date).toLocaleDateString('vi-VN')}</div>
+                    <div><span className="font-bold">Ngày bắt đầu:</span> {viewingContract.start_date ? new Date(viewingContract.start_date).toLocaleDateString('vi-VN') : 'N/A'}</div>
+                    <div><span className="font-bold">Ngày kết thúc:</span> {viewingContract.end_date ? new Date(viewingContract.end_date).toLocaleDateString('vi-VN') : 'N/A'}</div>
                     <div><span className="font-bold">Tiền cọc:</span> {(Number(viewingContract.deposit_amount) || 0).toLocaleString('vi-VN')} {viewingContract.currency}</div>
                     <div><span className="font-bold">Giá thuê/bán:</span> {(Number(viewingContract.rental_price) || 0).toLocaleString('vi-VN')} {viewingContract.currency}</div>
                     <div><span className="font-bold">Trạng thái:</span> {['Nháp/Chờ ký', 'Đang hiệu lực', 'Hết hạn', 'Đã hủy'][viewingContract.status]}</div>
