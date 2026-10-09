@@ -646,6 +646,8 @@ export default function App() {
         onClose={() => setSelectedProperty(null)}
         isFavorite={selectedProperty ? favorites.some((f) => f.code === selectedProperty.code) : false}
         onToggleFavorite={handleToggleFavorite}
+        isCompared={selectedProperty ? comparedList.some((c) => c.code === selectedProperty.code) : false}
+        onToggleCompare={handleToggleCompare}
         onOpenContact={(p) => {
           setContactProperty(p);
           setShowContactModal(true);

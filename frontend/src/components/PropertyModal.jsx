@@ -1,30 +1,61 @@
 import React, { useState } from 'react';
 import { 
   X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
-  Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck
+  Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
+  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check
 } from 'lucide-react';
 
-export default function PropertyModal({ property, onClose, isFavorite, onToggleFavorite, onOpenContact }) {
+export default function PropertyModal({ 
+  property, 
+  onClose, 
+  isFavorite, 
+  onToggleFavorite, 
+  onOpenContact,
+  isCompared,
+  onToggleCompare
+}) {
   const [copied, setCopied] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showMapTab, setShowMapTab] = useState(false);
+
   if (!property) return null;
 
   const isRent = property.purpose === 'rent';
 
+  // Demo gallery image list
+  const galleryImages = [
+    property.image,
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80'
+  ];
+
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    const shareUrl = `${window.location.origin}/?property=${property.code || property.id}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
+  const amenities = [
+    'Hồ bơi vô cực tràn bờ', 'Phòng Gym & Yoga cao cấp',
+    'Công viên cây xanh 5ha', 'Khu vui chơi trẻ em an toàn',
+    'Hầm đỗ xe thông minh', 'Hệ thống an ninh 24/7 & Camera',
+    'TTTM & Siêu thị mini', 'Trường mầm non quốc tế'
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
+        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Top Header Bar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50">
           {/* Breadcrumbs */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500 overflow-hidden truncate">
             <span>Trang chủ</span>
@@ -32,27 +63,45 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
             <span>{isRent ? 'Nhà đất cho thuê' : 'Nhà đất bán'}</span>
             <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
             <span className="font-bold text-slate-800 truncate">{property.project}</span>
-            <span className="text-slate-400 font-mono text-[11px]">#{property.code}</span>
+            <span className="text-slate-400 font-mono text-[11px] bg-slate-200/80 px-1.5 py-0.5 rounded">#{property.code}</span>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0 ml-2">
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <button
               onClick={handleShare}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 transition-colors text-xs font-semibold cursor-pointer relative"
               title="Chia sẻ liên kết"
             >
-              <Share2 className="w-4 h-4" />
+              {copied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Đã sao chép!' : 'Chia sẻ'}</span>
             </button>
+
+            {onToggleCompare && (
+              <button
+                onClick={() => onToggleCompare(property)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+                  isCompared ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                }`}
+                title="So sánh với BĐS khác"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{isCompared ? 'Đang so sánh' : 'So sánh'}</span>
+              </button>
+            )}
+
             <button
               onClick={() => onToggleFavorite(property)}
-              className="p-1.5 rounded-lg text-slate-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                isFavorite ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 hover:text-red-600 hover:bg-red-50/50 border-slate-200'
+              }`}
               title="Lưu tin đăng"
             >
               <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-600 text-red-600' : ''}`} />
             </button>
+
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors ml-1"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-200 transition-colors ml-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -66,69 +115,106 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             
             {/* Main Photo Gallery */}
-            <div className="lg:col-span-7 relative h-64 sm:h-80 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
-              <img
-                src={property.image}
-                alt={property.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-3 left-3 flex gap-2">
-                <span className={`px-2.5 py-1 rounded text-xs font-bold text-white shadow-xs ${
-                  isRent ? 'bg-blue-600' : 'bg-red-600'
-                }`}>
-                  {isRent ? 'CHO THUÊ' : 'BÁN / CHUYỂN NHƯỢNG'}
-                </span>
+            <div className="lg:col-span-7 flex flex-col gap-2.5">
+              <div className="relative h-64 sm:h-80 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group">
+                <img
+                  src={galleryImages[activeImageIndex] || property.image}
+                  alt={property.title}
+                  className="w-full h-full object-cover transition-all duration-300"
+                />
+                <div className="absolute top-3 left-3 flex gap-2">
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-black text-white shadow-md ${
+                    isRent ? 'bg-blue-600' : 'bg-red-600'
+                  }`}>
+                    {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold text-white bg-slate-900/80 backdrop-blur-md">
+                    {property.badge || 'VIP'}
+                  </span>
+                </div>
+
+                <div className="absolute bottom-3 right-3 bg-slate-950/75 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-md font-medium">
+                  {activeImageIndex + 1} / {galleryImages.length} ảnh
+                </div>
               </div>
-              <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded backdrop-blur-xs font-medium">
-                {property.developer} • {property.project}
+
+              {/* Thumbnails strip */}
+              <div className="grid grid-cols-5 gap-2">
+                {galleryImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`relative h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                      activeImageIndex === idx ? 'border-red-600 shadow-md scale-102' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Quick Details & Price Block */}
-            <div className="lg:col-span-5 flex flex-col justify-between space-y-3">
+            {/* Quick Price & Action Box */}
+            <div className="lg:col-span-5 flex flex-col justify-between bg-slate-50 rounded-xl p-5 border border-slate-200">
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug mb-2">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Thông tin niêm yết</span>
+                <h2 className="text-lg font-bold text-slate-900 leading-snug mt-1 mb-2">
                   {property.title}
-                </h1>
+                </h2>
                 
-                <p className="flex items-start gap-1 text-xs text-slate-600 mb-4">
+                <p className="flex items-start gap-1.5 text-xs text-slate-600 mb-4">
                   <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{property.street}, {property.district}, {property.city}</span>
                 </p>
 
-                {/* Price Box */}
-                <div className="p-3.5 rounded-lg bg-red-50/70 border border-red-100 mb-3">
-                  <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider block">
-                    {isRent ? 'Mức giá thuê niêm yết' : 'Mức giá bán niêm yết'}
+                {/* Price Display */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200 mb-4 shadow-sm">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {isRent ? 'Giá thuê niêm yết' : 'Tổng giá trị chuyển nhượng'}
                   </span>
-                  <p className="text-2xl font-black text-red-600 mt-0.5">
-                    {isRent ? property.price_rent_text : property.price_sale_text}
-                  </p>
-                  {property.unit_price && (
-                    <p className="text-xs text-slate-600 mt-0.5 font-medium">Đơn giá: {property.unit_price}</p>
-                  )}
-                  {property.deposit_text && (
-                    <p className="text-xs text-slate-700 mt-2 pt-2 border-t border-red-200/50">
-                      Tiền đặt cọc: <strong className="text-slate-900">{property.deposit_text}</strong>
-                    </p>
-                  )}
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-2xl font-black text-red-600 tracking-tight">
+                      {isRent ? property.price_rent_text : property.price_sale_text}
+                    </span>
+                    {property.unit_price && (
+                      <span className="text-xs font-semibold text-slate-500">({property.unit_price})</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick specs grid */}
+                <div className="grid grid-cols-3 gap-2 text-center text-xs mb-4">
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">Diện tích</span>
+                    <strong className="text-slate-800 text-sm">{property.area} m²</strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">Phòng ngủ</span>
+                    <strong className="text-slate-800 text-sm">{property.bedrooms} PN</strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                    <span className="text-slate-400 text-[10px] block">Vệ sinh</span>
+                    <strong className="text-slate-800 text-sm">{property.bathrooms} WC</strong>
+                  </div>
                 </div>
               </div>
 
-              {/* Agent Contact Box */}
-              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
-                <p className="text-[11px] font-bold text-slate-500 uppercase mb-2">Môi giới phụ trách tin đăng</p>
+              {/* Agent Contact Card */}
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Chuyên viên tư vấn phụ trách</p>
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 flex items-center gap-1">
-                      <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                      <span>{property.owner_name || 'Nguyễn Hoàng Nam'}</span>
-                    </p>
-                    <p className="text-[11px] text-slate-500">Chuyên viên tư vấn dự án</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                      {property.owner_name ? property.owner_name.charAt(0) : 'N'}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{property.owner_name || 'Nguyễn Hoàng Nam'}</p>
+                      <p className="text-[10px] text-slate-500">Chuyên viên 3TV Land</p>
+                    </div>
                   </div>
                   <a
                     href={`tel:${property.owner_phone || '0912888777'}`}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
                   >
                     <Phone className="w-3.5 h-3.5" />
                     <span>{property.owner_phone || '0912.888.777'}</span>
@@ -140,26 +226,27 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
 
           </div>
 
-          {/* Key Specs Table (Real Estate Standards) */}
+          {/* Key Specs Table */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-1 border-b border-slate-200">
-              Đặc Điểm Bất Động Sản
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-1 border-b border-slate-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-red-600" />
+              <span>Đặc Điểm & Thông Số Kỹ Thuật</span>
             </h3>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Diện tích sử dụng</span>
                 <strong className="text-sm text-slate-900 mt-0.5 block">{property.area} m²</strong>
               </div>
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Số phòng ngủ</span>
                 <strong className="text-sm text-slate-900 mt-0.5 block">{property.bedrooms} Phòng</strong>
               </div>
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Số phòng tắm</span>
                 <strong className="text-sm text-slate-900 mt-0.5 block">{property.bathrooms} WC</strong>
               </div>
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Tình trạng pháp lý</span>
                 <strong className="text-xs text-slate-900 mt-0.5 block truncate" title={property.legal}>{property.legal || 'Sổ hồng lâu dài'}</strong>
               </div>
@@ -167,8 +254,8 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
           </div>
 
           {/* Specifications Details Table */}
-          <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 text-xs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+          <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Chủ đầu tư:</span>
                 <strong className="text-slate-900">{property.developer}</strong>
@@ -182,17 +269,32 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
                 <strong className="text-slate-900">{property.type || 'Căn hộ chung cư'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Hướng ban công / cửa:</span>
+                <strong className="text-slate-900">{property.direction || 'Đông Nam'}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Thời gian bàn giao:</span>
                 <strong className="text-slate-900">{property.available_date || 'Dọn vào ở ngay'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Phí dịch vụ / Quản lý:</span>
-                <strong className="text-slate-900">{property.management_fee || 'Theo quy định ban quản lý'}</strong>
+                <strong className="text-slate-900">{property.management_fee || 'Theo ban quản lý'}</strong>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-                <span className="text-slate-500">Thời hạn hợp đồng:</span>
-                <strong className="text-slate-900">{property.rent_period_min || 'Tối thiểu 1 năm'}</strong>
-              </div>
+            </div>
+          </div>
+
+          {/* Amenities & Utilities */}
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2.5 pb-1 border-b border-slate-200">
+              Tiện Ích Nội Khu & Dịch Vụ
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {amenities.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-200/60 text-xs text-emerald-900">
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-medium">{item}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -201,7 +303,7 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 pb-1 border-b border-slate-200">
               Thông Tin Mô Tả Chi Tiết
             </h3>
-            <div className="text-xs text-slate-700 leading-relaxed space-y-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="text-xs text-slate-700 leading-relaxed space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
               <p>
                 {property.furniture ? (
                   <><strong>Tình trạng nội thất: </strong>{property.furniture}</>
@@ -215,21 +317,58 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
             </div>
           </div>
 
+          {/* Map & Location preview */}
+          <div>
+            <div className="flex items-center justify-between mb-2 pb-1 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Map className="w-4 h-4 text-blue-600" />
+                <span>Vị Trí Bản Đồ Bất Động Sản</span>
+              </h3>
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.street}, ${property.district}, ${property.city}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1"
+              >
+                <span>Mở Google Maps</span>
+                <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
+            
+            <div className="relative h-48 sm:h-56 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
+              <iframe
+                title="Bản đồ vị trí"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                style={{ border: 0 }}
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(`${property.district}, ${property.city}, Vietnam`)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                allowFullScreen
+                loading="lazy"
+              />
+              <div className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 shadow-sm flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-red-600" />
+                <span>{property.street}, {property.district}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Modal Footer Bar */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <div>
             {copied && (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded">
-                ✓ Đã sao chép liên kết vào bộ nhớ tạm!
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1 animate-pulse">
+                <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Đã sao chép link liên kết tin đăng!</span>
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
             >
               Đóng lại
             </button>
@@ -238,7 +377,7 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
                 onClose();
                 onOpenContact(property);
               }}
-              className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+              className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
             >
               Đặt Lịch Xem Bất Động Sản
             </button>
