@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 import PropertiesManager from './PropertiesManager';
 import UserManagement from '../UserManagement';
+import StatisticalReport from './StatisticalReport';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
   const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
@@ -20,6 +21,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
+      { id: 'reports', label: 'Báo cáo thống kê', icon: BarChart3, roles: [1] }, // Chỉ admin
     ];
 
     return items.filter(item => item.roles.includes(currentUser?.role_id));
@@ -137,7 +139,8 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
-          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && (
+          {activeMenu === 'reports' && <StatisticalReport />}
+          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

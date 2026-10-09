@@ -215,6 +215,7 @@ class DatabaseSeeder extends Seeder
             PropertySeeder::class,
             AppointmentSeeder::class,
             UserManagementSeeder::class,
+            StatisticalSeeder::class,
         ]);
     }
 }
