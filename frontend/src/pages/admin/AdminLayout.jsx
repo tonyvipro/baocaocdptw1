@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 import PropertiesManager from './PropertiesManager';
+import UserManagement from '../UserManagement';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
   const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
@@ -135,7 +136,8 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
-          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && (
+          {activeMenu === 'users' && <UserManagement />}
+          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
