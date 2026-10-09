@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Property;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () {
     return response()->json([
@@ -163,3 +164,7 @@ Route::get('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'sho
 Route::post('/api/users', [\App\Http\Controllers\UserController::class, 'store']);
 Route::put('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'update']);
 Route::delete('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+
+Route::get('/api/reports/statistics', [App\Http\Controllers\ReportController::class, 'getStatistics']);
+
+Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
