@@ -74,7 +74,8 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
-            ]
+            ],
+            'token' => $user->createToken('auth_token')->plainTextToken
         ], 201);
     }
 
@@ -185,7 +186,8 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
-            ]
+            ],
+            'token' => $user->createToken('auth_token')->plainTextToken
         ]);
     }
 

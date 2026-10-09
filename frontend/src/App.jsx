@@ -226,9 +226,12 @@ export default function App() {
     return `${diffInDays} ngày trước`;
   };
 
-  const handleAuthSuccess = (user) => {
+  const handleAuthSuccess = (user, token) => {
     setCurrentUser(user);
     localStorage.setItem('3tv_user', JSON.stringify(user));
+    if (token) {
+      localStorage.setItem('3tv_token', token);
+    }
     if (user.role_id === 1) {
       setCurrentAppMode('admin');
     }

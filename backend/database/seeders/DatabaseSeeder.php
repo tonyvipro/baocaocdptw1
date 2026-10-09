@@ -213,6 +213,7 @@ class DatabaseSeeder extends Seeder
         // 7. Seed Properties (Spec 4.2.1.5)
         $this->call([
             PropertySeeder::class,
+            AppointmentSeeder::class,
         ]);
     }
 }
