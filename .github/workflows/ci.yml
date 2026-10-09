@@ -22,9 +22,8 @@ jobs:
       - name: Deploy with Docker Compose
         shell: powershell
         run: |
-          git pull origin master
-          docker-compose down
-          docker-compose up -d --build
+          docker compose down
+          docker compose up -d --build
 
       - name: Complete job
         shell: powershell
