@@ -214,6 +214,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PropertySeeder::class,
             AppointmentSeeder::class,
+            UserManagementSeeder::class,
         ]);
     }
 }
