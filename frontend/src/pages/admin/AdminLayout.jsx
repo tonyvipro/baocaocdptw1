@@ -4,6 +4,7 @@ import {
   Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+import PropertiesManager from './PropertiesManager';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
   const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
@@ -131,9 +132,10 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
 
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
-          {activeMenu !== 'appointments' && activeMenu !== 'contracts' && (
+          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
