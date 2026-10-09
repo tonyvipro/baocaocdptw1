@@ -109,48 +109,21 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
     }
 });
 
-// Properties API (Spec Nhóm 2 & Nhóm 4) - Lấy dữ liệu trực tiếp từ Database MySQL
-Route::get('/api/properties', function () {
-    try {
-        if (\Illuminate\Support\Facades\Schema::hasTable('properties')) {
-            $props = Property::orderBy('id', 'asc')->get();
-            if ($props->isNotEmpty()) {
-                $props->transform(function ($item) {
-                    if (empty($item->price_sale_text) && !empty($item->price_sale)) {
-                        $p = (float) $item->price_sale;
-                        $item->price_sale_text = $p >= 1000000000 ? round($p / 1000000000, 2) . ' tỷ' : round($p / 1000000, 0) . ' triệu';
-                    }
-                    if (empty($item->price_rent_text) && !empty($item->price_rent)) {
-                        $p = (float) $item->price_rent;
-                        $item->price_rent_text = round($p / 1000000, 1) . ' triệu/tháng';
-                    }
-                    return $item;
-                });
+// Properties Management API (Spec Hình 12 - 18: Quản lý, Thêm mới, Sửa, Xóa/Khôi phục, Thùng rác, Thống kê)
+Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyController::class, 'stats']);
+Route::get('/api/properties/trash', [\App\Http\Controllers\PropertyController::class, 'trash']);
+Route::post('/api/properties/bulk-action', [\App\Http\Controllers\PropertyController::class, 'bulkAction']);
+Route::get('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'show']);
+Route::post('/api/properties', [\App\Http\Controllers\PropertyController::class, 'store']);
+Route::put('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
+Route::patch('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
+Route::delete('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'destroy']);
+Route::patch('/api/properties/{id}/restore', [\App\Http\Controllers\PropertyController::class, 'restore']);
+Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyController::class, 'forceDelete']);
+Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
+Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
+Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
-                return response()->json($props)
-                    ->header('Access-Control-Allow-Origin', '*')
-                    ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cache-Control')
-                    ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                    ->header('Pragma', 'no-cache')
-                    ->header('Expires', '0');
-            }
-        }
-    } catch (\Throwable $e) {
-        // Fallback
-    }
-
-    $jsonPath = database_path('data/all_properties.json');
-    if (!file_exists($jsonPath)) {
-        $jsonPath = database_path('data/vinhomes_properties.json');
-    }
-    if (file_exists($jsonPath)) {
-        return response()->json(json_decode(file_get_contents($jsonPath), true))
-            ->header('Access-Control-Allow-Origin', '*')
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-    }
-    return response()->json([]);
-});
 
 // Migration & Database Seed Trigger
 Route::get('/api/run-migrate', function () {
