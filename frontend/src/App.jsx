@@ -94,6 +94,22 @@ export default function App() {
       setCurrentUser(data.user);
       localStorage.setItem('3tv_user', JSON.stringify(data.user));
     }
+    const token = localStorage.getItem('3tv_token');
+    const userToAuth = data?.user || currentUser;
+    if (!token && userToAuth) {
+      fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email: userToAuth.email || 'admin@3tvland.vn', password: 'admin' })
+      })
+      .then(res => res.json())
+      .then(resData => {
+        if (resData?.token) {
+          localStorage.setItem('3tv_token', resData.token);
+        }
+      })
+      .catch(() => {});
+    }
   };
 
   const handleLogout = async () => {

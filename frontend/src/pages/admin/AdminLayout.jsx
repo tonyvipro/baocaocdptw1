@@ -171,20 +171,18 @@ function AppointmentsManager() {
       if (searchTerm) params.append('search', searchTerm);
       if (statusFilter !== '') params.append('status', statusFilter);
 
-      const res = await fetch(`http://localhost:8080/api/appointments?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(`/api/appointments?${params.toString()}`, { headers });
+      if (!res.ok) {
+        res = await fetch(`http://localhost:8080/api/appointments?${params.toString()}`, { headers });
+      }
       if (!res.ok) throw new Error('API chưa sẵn sàng.');
       const data = await res.json();
       setAppointments(data.data || []);
     } catch (err) {
-      console.warn("Fallback to Mock Data:", err);
-      // Mock data 
-      setAppointments([
-        { id: 1, customer_name: 'Khách hàng VIP 1', customer_phone: '0901234567', property_title: 'Căn Hộ Landmark 81 - Tầng 40', property_address: 'Bình Thạnh, TP.HCM', appointment_time: '2026-10-12 14:00:00', status: 0, note: 'Cần xem sổ hồng.' },
-        { id: 2, customer_name: 'Nguyễn Văn Đầu Tư', customer_phone: '0987654321', property_title: 'Biệt Thự Đảo Ecopark', property_address: 'Quận 2, TP.HCM', appointment_time: '2026-10-15 09:30:00', status: 1, note: 'Đi cùng thầy phong thủy.' },
-        { id: 3, customer_name: 'Trần Thị Thuê', customer_phone: '0911223344', property_title: 'Shophouse Sala Quận 2', property_address: 'Thủ Thiêm, Quận 2', appointment_time: '2026-10-10 10:00:00', status: 2, note: 'Xem mở quán cafe.' }
-      ]);
+      console.warn("Lỗi tải appointments:", err);
     } finally {
       setLoading(false);
     }
@@ -195,10 +193,19 @@ function AppointmentsManager() {
     setActionLoading(id);
     try {
       const token = localStorage.getItem('3tv_token') || '';
-      const res = await fetch(`http://localhost:8080/api/appointments/${id}/confirm`, {
+      const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(`/api/appointments/${id}/confirm`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        headers
       });
+      if (!res.ok) {
+        res = await fetch(`http://localhost:8080/api/appointments/${id}/confirm`, {
+          method: 'PATCH',
+          headers
+        });
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Lỗi không xác định.');
       alert(data.message || 'Xác nhận thành công!');

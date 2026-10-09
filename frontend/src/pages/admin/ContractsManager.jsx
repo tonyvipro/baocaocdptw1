@@ -52,15 +52,21 @@ export default function ContractsManager() {
       if (payload.deposit_amount === '') delete payload.deposit_amount;
       if (payload.rental_price === '') delete payload.rental_price;
 
-      const res = await fetch('http://localhost:8080/api/contracts', {
+      const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch('/api/contracts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
+        headers,
         body: JSON.stringify(payload)
       });
+      if (!res.ok) {
+        res = await fetch('http://localhost:8080/api/contracts', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+      }
 
       const data = await res.json();
 
@@ -101,9 +107,13 @@ export default function ContractsManager() {
       if (searchTerm) params.append('search', searchTerm);
       if (statusFilter !== '') params.append('status', statusFilter);
 
-      const res = await fetch(`http://localhost:8080/api/contracts?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      let res = await fetch(`/api/contracts?${params.toString()}`, { headers });
+      if (!res.ok) {
+        res = await fetch(`http://localhost:8080/api/contracts?${params.toString()}`, { headers });
+      }
       const data = await res.json();
       setContracts(data.data || []);
     } catch (err) {
