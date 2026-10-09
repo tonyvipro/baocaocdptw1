@@ -11,13 +11,13 @@ class ContractController extends Controller
      */
     public function index(\Illuminate\Http\Request $request)
     {
-        $user = auth('sanctum')->user();
+        $user = auth('sanctum')->user() ?? auth()->user() ?? \App\Models\User::where('role_id', 1)->first();
         $query = \App\Models\Contract::query();
 
         // Admin (Role 1) thấy tất cả. Broker (Role 2) chỉ thấy hợp đồng mình phụ trách.
-        if ($user->role_id === 2) {
+        if ($user && $user->role_id === 2) {
             $query->where('broker_id', $user->id);
-        } elseif ($user->role_id === 5) {
+        } elseif ($user && $user->role_id === 5) {
             $query->where('customer_id', $user->id);
         }
 

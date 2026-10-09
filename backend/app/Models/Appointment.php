@@ -49,9 +49,9 @@ class Appointment extends Model
     public function scopeFilterAppointments($query, $user, $filters)
     {
         // Phân luồng dữ liệu (Authorization Scope)
-        if ($user->role_id === 2) {
+        if ($user && $user->role_id === 2) {
             $query->where('broker_id', $user->id);
-        } elseif ($user->role_id === 5 || $user->role_id === 3) { // Customer or Owner
+        } elseif ($user && ($user->role_id === 5 || $user->role_id === 3)) { // Customer or Owner
             $query->where('customer_id', $user->id);
         }
 

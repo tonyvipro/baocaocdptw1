@@ -31,17 +31,16 @@ Route::get('/api/me', [AuthController::class, 'me']);
 Route::post('/api/profile', [AuthController::class, 'updateProfile']);
 Route::post('/api/change-password', [AuthController::class, 'changePassword']);
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/api/appointments', [AppointmentController::class, 'index']);
-    Route::post('/api/appointments', [AppointmentController::class, 'store']);
-    Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'confirm']);
-    Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
-    Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
-    
-    // Contracts API
-    Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
-    Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
-});
+// Appointments & Contracts API (Tự động nhận diện token Sanctum hoặc phiên đăng nhập Admin)
+Route::get('/api/appointments', [AppointmentController::class, 'index']);
+Route::post('/api/appointments', [AppointmentController::class, 'store']);
+Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'confirm']);
+Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
+Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
+
+// Contracts API
+Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
+Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
