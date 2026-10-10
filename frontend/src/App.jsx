@@ -11,6 +11,7 @@ import CompareDrawer from './components/CompareDrawer';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import RecentViewsModal from './components/RecentViewsModal';
+import PostPropertyModal from './components/PostPropertyModal';
 import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
@@ -54,6 +55,7 @@ export default function App() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showRecentModal, setShowRecentModal] = useState(false);
+  const [showPostPropertyModal, setShowPostPropertyModal] = useState(false);
 
   // Favorites (LocalStorage)
   const [favorites, setFavorites] = useState(() => {
@@ -435,6 +437,7 @@ export default function App() {
         onLogout={handleLogout}
         recentCount={recentViews.length}
         openRecent={() => setShowRecentModal(true)}
+        onOpenPostProperty={() => setShowPostPropertyModal(true)}
       />
 
       {/* Hero & Search Section */}
@@ -691,6 +694,16 @@ export default function App() {
           localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
         }}
         onLogout={handleLogout}
+      />
+
+      {/* Modal Đăng Tin */}
+      <PostPropertyModal
+        isOpen={showPostPropertyModal}
+        onClose={() => {
+          setShowPostPropertyModal(false);
+          loadData();
+        }}
+        currentUser={currentUser}
       />
 
       {/* Favorites Modal */}

@@ -22,7 +22,8 @@ export default function Navbar({
   onLogout,
   recentCount = 0,
   openRecent,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenPostProperty
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -189,10 +190,10 @@ export default function Navbar({
                 if (!currentUser) {
                   onOpenAuth('login');
                 } else {
-                  alert('Chức năng Đăng tin dành cho Môi giới/Chủ nhà đang được hoàn thiện trong phiên bản tiếp theo!');
+                  if (onOpenPostProperty) onOpenPostProperty();
                 }
               }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Đăng Tin</span>
