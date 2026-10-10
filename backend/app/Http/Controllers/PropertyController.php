@@ -59,6 +59,11 @@ class PropertyController extends Controller
             $query->where('purpose', $request->input('purpose'));
         }
 
+        // Lọc theo người đăng (Môi giới / Chủ nhà xem tin của mình)
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
         // 5. Lọc theo Tỉnh/Thành hoặc Khu vực
         if ($request->filled('city') && $request->input('city') !== 'all') {
             $query->where('city', $request->input('city'));

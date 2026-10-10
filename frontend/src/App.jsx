@@ -12,6 +12,7 @@ import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import RecentViewsModal from './components/RecentViewsModal';
 import PostPropertyModal from './components/PostPropertyModal';
+import UserListingsModal from './components/UserListingsModal';
 import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
@@ -56,6 +57,7 @@ export default function App() {
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showRecentModal, setShowRecentModal] = useState(false);
   const [showPostPropertyModal, setShowPostPropertyModal] = useState(false);
+  const [showUserListingsModal, setShowUserListingsModal] = useState(false);
 
   // Favorites (LocalStorage)
   const [favorites, setFavorites] = useState(() => {
@@ -438,6 +440,7 @@ export default function App() {
         recentCount={recentViews.length}
         openRecent={() => setShowRecentModal(true)}
         onOpenPostProperty={() => setShowPostPropertyModal(true)}
+        onOpenUserListings={() => setShowUserListingsModal(true)}
       />
 
       {/* Hero & Search Section */}
@@ -704,6 +707,17 @@ export default function App() {
           loadData();
         }}
         currentUser={currentUser}
+      />
+
+      {/* Modal Quản Lý Tin Đăng (Cho Môi giới / Chủ nhà) */}
+      <UserListingsModal
+        isOpen={showUserListingsModal}
+        onClose={() => setShowUserListingsModal(false)}
+        currentUser={currentUser}
+        onOpenPostProperty={() => {
+          setShowUserListingsModal(false);
+          setShowPostPropertyModal(true);
+        }}
       />
 
       {/* Favorites Modal */}

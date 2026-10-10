@@ -23,7 +23,8 @@ export default function Navbar({
   recentCount = 0,
   openRecent,
   onOpenAdmin,
-  onOpenPostProperty
+  onOpenPostProperty,
+  onOpenUserListings
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -232,6 +233,19 @@ export default function Navbar({
                       <User className="w-4 h-4 text-slate-400" />
                       <span>Thông tin tài khoản</span>
                     </button>
+
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenUserListings) onOpenUserListings();
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        <span>Quản lý tin đăng</span>
+                      </button>
+                    )}
 
                     {currentUser && (currentUser.role_id === 1 || currentUser.role_id === 2) && (
                       <button
