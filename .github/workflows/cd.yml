@@ -1,0 +1,27 @@
+name: Laravel CD
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Set up job
+        shell: powershell
+        run: Write-Host "Starting automated deployment on local server..."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pull latest code and restart Docker
+        shell: powershell
+        run: |
+          docker compose down
+          docker compose up -d --build
+
+      - name: Complete job
+        shell: powershell
+        run: Write-Host "Deployment completed successfully!"

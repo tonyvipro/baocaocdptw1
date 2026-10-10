@@ -1,0 +1,30 @@
+
+name: Laravel CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-and-deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Set up job
+        shell: powershell
+        run: Write-Host "Starting deployment workflow..."
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy with Docker Compose
+        shell: powershell
+        run: |
+          docker compose down
+          docker compose up -d --build
+
+      - name: Complete job
+        shell: powershell
+        run: Write-Host "Deployment completed successfully!"
