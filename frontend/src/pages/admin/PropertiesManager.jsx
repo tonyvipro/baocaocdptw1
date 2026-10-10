@@ -413,7 +413,7 @@ export default function PropertiesManager() {
         </div>
       </div>
 
-      {/* Quick Dashboard Cards (Hình 12) */}
+      {/* Quick Dashboard Cards  */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
@@ -467,24 +467,24 @@ export default function PropertiesManager() {
       </div>
 
       {/* ========================================================= */}
-      {/* TAB 1: DANH SÁCH BẤT ĐỘNG SẢN (HÌNH 12 & HÌNH 14)          */}
+      {/* DANH SÁCH BẤT ĐỘNG SẢN           */}
       {/* ========================================================= */}
       {activeTab === 'list' && (
         <div className="space-y-4">
           
           {/* Filter & Search Toolbar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="bg-white/90 backdrop-blur-xl p-5 rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/20 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
               
               {/* Search input */}
-              <div className="lg:col-span-2 relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <div className="lg:col-span-2 relative group">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-blue-600 transition-colors" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Nhập Địa chỉ, Mã BĐS, Tiêu đề..."
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs font-medium rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                 />
               </div>
 
@@ -580,33 +580,33 @@ export default function PropertiesManager() {
             )}
           </div>
 
-          {/* Properties Table (Hình 12 & 14) */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          {/* Properties Table */}
+          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-2xl shadow-slate-200/40 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px] tracking-wider">
-                    <th className="py-3.5 px-4 w-10">
+                  <tr className="bg-slate-900 text-white uppercase font-black text-[10px] tracking-widest">
+                    <th className="py-4 px-5 w-10 border-b border-slate-800">
                       <button 
                         type="button" 
                         onClick={() => toggleSelectAll(false)}
-                        className="text-slate-400 hover:text-slate-700"
+                        className="text-slate-400 hover:text-white transition-colors cursor-pointer"
                       >
                         {selectedIds.length > 0 && selectedIds.length === properties.length ? (
-                          <CheckSquare className="w-4 h-4 text-red-600" />
+                          <CheckSquare className="w-4 h-4 text-blue-400" />
                         ) : (
                           <Square className="w-4 h-4" />
                         )}
                       </button>
                     </th>
-                    <th className="py-3.5 px-3 w-16">Mã BĐS</th>
-                    <th className="py-3.5 px-3 w-20">Ảnh</th>
-                    <th className="py-3.5 px-4 min-w-[220px]">Bất Động Sản & Địa Chỉ</th>
-                    <th className="py-3.5 px-3 min-w-[130px]">Loại & Diện tích</th>
-                    <th className="py-3.5 px-3 min-w-[120px]">Mức Giá</th>
-                    <th className="py-3.5 px-3 min-w-[120px]">Trạng Thái</th>
-                    <th className="py-3.5 px-3 min-w-[110px]">Phụ trách</th>
-                    <th className="py-3.5 px-4 text-right min-w-[160px]">Hành Động</th>
+                    <th className="py-4 px-3 w-16 border-b border-slate-800">Mã BĐS</th>
+                    <th className="py-4 px-3 w-20 border-b border-slate-800">Ảnh</th>
+                    <th className="py-4 px-4 min-w-[220px] border-b border-slate-800">Bất Động Sản & Địa Chỉ</th>
+                    <th className="py-4 px-3 min-w-[130px] border-b border-slate-800">Loại & Diện tích</th>
+                    <th className="py-4 px-3 min-w-[120px] border-b border-slate-800">Mức Giá</th>
+                    <th className="py-4 px-3 min-w-[120px] border-b border-slate-800">Trạng Thái</th>
+                    <th className="py-4 px-3 min-w-[110px] border-b border-slate-800">Phụ trách</th>
+                    <th className="py-4 px-5 text-right min-w-[160px] border-b border-slate-800">Hành Động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -628,34 +628,34 @@ export default function PropertiesManager() {
                     properties.map((prop) => (
                       <tr 
                         key={prop.id} 
-                        className={`hover:bg-slate-50/70 transition-colors ${
-                          selectedIds.includes(prop.id) ? 'bg-red-50/30' : ''
+                        className={`group hover:bg-blue-50/40 transition-all duration-300 ${
+                          selectedIds.includes(prop.id) ? 'bg-blue-50/60' : ''
                         }`}
                       >
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-5 border-b border-slate-50/50">
                           <button 
                             type="button"
                             onClick={() => toggleSelect(prop.id, false)}
-                            className="text-slate-400 hover:text-slate-700"
+                            className="text-slate-300 hover:text-slate-500 transition-colors cursor-pointer"
                           >
                             {selectedIds.includes(prop.id) ? (
-                              <CheckSquare className="w-4 h-4 text-red-600" />
+                              <CheckSquare className="w-4 h-4 text-blue-600" />
                             ) : (
                               <Square className="w-4 h-4" />
                             )}
                           </button>
                         </td>
 
-                        <td className="py-3 px-3 font-mono font-bold text-slate-500 text-[11px]">
+                        <td className="py-3 px-3 font-mono font-bold text-slate-400 text-[11px] border-b border-slate-50/50 group-hover:text-blue-600 transition-colors">
                           {prop.code || `#${prop.id}`}
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="w-14 h-11 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                        <td className="py-3 px-3 border-b border-slate-50/50">
+                          <div className="w-16 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 shadow-sm group-hover:shadow-md group-hover:border-blue-200 transition-all">
                             <img
                               src={prop.image || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&auto=format&fit=crop&q=80'}
                               alt={prop.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               onError={(e) => {
                                 e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&auto=format&fit=crop&q=80';
                               }}
@@ -663,52 +663,52 @@ export default function PropertiesManager() {
                           </div>
                         </td>
 
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 mb-0.5">
+                        <td className="py-3 px-4 border-b border-slate-50/50">
+                          <div className="flex items-center gap-2 mb-1">
                             {renderPurposeBadge(prop.purpose)}
-                            <div className="font-bold text-slate-800 line-clamp-1 hover:text-red-600 cursor-pointer" onClick={() => setViewingProperty(prop)}>
+                            <div className="font-extrabold text-slate-800 line-clamp-1 group-hover:text-blue-600 cursor-pointer transition-colors" onClick={() => setViewingProperty(prop)}>
                               {prop.title}
                             </div>
                           </div>
-                          <div className="text-[11px] text-slate-400 flex items-center gap-1 line-clamp-1">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1 line-clamp-1 font-medium">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover:text-blue-500 transition-colors" />
                             {prop.address || `${prop.district || ''}, ${prop.city || 'TP.HCM'}`}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-slate-700">{prop.type || 'Căn hộ'}</div>
-                          <div className="text-[11px] text-slate-400">
-                            {prop.area} m² {prop.bedrooms ? `• ${prop.bedrooms} PN` : ''}
+                        <td className="py-3 px-3 border-b border-slate-50/50">
+                          <div className="font-bold text-slate-700">{prop.type || 'Căn hộ'}</div>
+                          <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                            <span className="text-slate-800">{prop.area}</span> m² {prop.bedrooms ? `• ${prop.bedrooms} PN` : ''}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="font-black text-red-600 text-sm">
+                        <td className="py-3 px-3 border-b border-slate-50/50">
+                          <div className="font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-500 text-sm drop-shadow-sm">
                             {prop.price_sale_text || prop.price_rent_text || `${prop.price} đ`}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td className="py-3 px-3 border-b border-slate-50/50">
                           {renderStatusBadge(prop.status)}
                         </td>
 
-                        <td className="py-3 px-3 text-slate-600">
-                          <div className="font-medium truncate max-w-[100px]">
+                        <td className="py-3 px-3 border-b border-slate-50/50">
+                          <div className="font-bold text-slate-700 truncate max-w-[100px]">
                             {prop.user?.name || prop.owner_name || 'Admin'}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                             {prop.owner_phone || '0901234567'}
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="py-3 px-5 text-right border-b border-slate-50/50">
+                          <div className="flex items-center justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                             {/* Nút Xem chi tiết */}
                             <button
                               onClick={() => setViewingProperty(prop)}
                               title="Xem chi tiết"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm transition-all cursor-pointer"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -717,7 +717,7 @@ export default function PropertiesManager() {
                             <button
                               onClick={() => setEditingProperty(prop)}
                               title="Chỉnh sửa thông tin"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                              className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 hover:shadow-sm transition-all cursor-pointer"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -726,7 +726,7 @@ export default function PropertiesManager() {
                             <button
                               onClick={() => handleExtend(prop.id)}
                               title="Gia hạn tin (+30 ngày)"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                              className="p-2 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-purple-50 hover:shadow-sm transition-all cursor-pointer"
                             >
                               <CalendarPlus className="w-4 h-4" />
                             </button>
@@ -735,10 +735,10 @@ export default function PropertiesManager() {
                             <button
                               onClick={() => handleChangeStatus(prop.id, prop.status === 1 ? 4 : 1)}
                               title={prop.status === 1 ? 'Tạm ẩn bài đăng' : 'Bật hiển thị'}
-                              className={`p-1.5 rounded-lg transition-colors ${
+                              className={`p-2 rounded-xl transition-all hover:shadow-sm cursor-pointer ${
                                 prop.status === 1 
-                                  ? 'text-slate-500 hover:text-amber-600 hover:bg-amber-50' 
-                                  : 'text-emerald-600 hover:bg-emerald-50'
+                                  ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' 
+                                  : 'text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50'
                               }`}
                             >
                               {prop.status === 1 ? <Eye className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -748,7 +748,7 @@ export default function PropertiesManager() {
                             <button
                               onClick={() => handleDelete(prop.id, prop.title)}
                               title="Chuyển vào Thùng rác"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 hover:shadow-sm transition-all cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -790,7 +790,7 @@ export default function PropertiesManager() {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 2: TẠO TIN ĐĂNG / THÊM BĐS MỚI (HÌNH 16)               */}
+      {/* TẠO TIN ĐĂNG / THÊM BĐS MỚI                */}
       {/* ========================================================= */}
       {activeTab === 'create' && (
         <CreatePropertyForm 
@@ -805,7 +805,7 @@ export default function PropertiesManager() {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 3: KIỂM DUYỆT BĐS CHỜ DUYỆT (HÌNH 18)                  */}
+      {/* KIỂM DUYỆT BĐS CHỜ DUYỆT                   */}
       {/* ========================================================= */}
       {activeTab === 'review' && (
         <div className="space-y-4">
@@ -874,7 +874,7 @@ export default function PropertiesManager() {
       )}
 
       {/* ========================================================= */}
-      {/* TAB 4: THÙNG RÁC - XÓA / KHÔI PHỤC BĐS (HÌNH 13)           */}
+      {/* THÙNG RÁC - XÓA / KHÔI PHỤC BĐS            */}
       {/* ========================================================= */}
       {activeTab === 'trash' && (
         <div className="space-y-4">
@@ -981,7 +981,7 @@ export default function PropertiesManager() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 1: XEM CHI TIẾT BẤT ĐỘNG SẢN (HÌNH 23)              */}
+      {/* MODAL 1: XEM CHI TIẾT BẤT ĐỘNG SẢN               */}
       {/* ========================================================= */}
       {viewingProperty && (
         <PropertyDetailModal
@@ -995,7 +995,7 @@ export default function PropertiesManager() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 2: CHỈNH SỬA THÔNG TIN BĐS (HÌNH 14)                 */}
+      {/* MODAL 2: CHỈNH SỬA THÔNG TIN BĐS                  */}
       {/* ========================================================= */}
       {editingProperty && (
         <EditPropertyModal
@@ -1015,7 +1015,7 @@ export default function PropertiesManager() {
 }
 
 // -------------------------------------------------------------
-// SUB-COMPONENT: FORM TẠO TIN ĐĂNG / THÊM BĐS MỚI (HÌNH 16)
+// SUB-COMPONENT: FORM TẠO TIN ĐĂNG / THÊM BĐS MỚI 
 // -------------------------------------------------------------
 function CreatePropertyForm({ onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
@@ -1138,7 +1138,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
           <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-red-600" /> TẠO TIN ĐĂNG MỚI (HÌNH 16)
+            <Plus className="w-5 h-5 text-red-600" /> TẠO TIN ĐĂNG MỚI 
           </h2>
           <p className="text-xs text-slate-500">Điền thông tin chi tiết bất động sản để đăng tải lên hệ thống.</p>
         </div>
@@ -1415,7 +1415,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
 }
 
 // -------------------------------------------------------------
-// SUB-COMPONENT: MODAL XEM CHI TIẾT BĐS (HÌNH 23)
+// SUB-COMPONENT: MODAL XEM CHI TIẾT BĐS 
 // -------------------------------------------------------------
 function PropertyDetailModal({ property, onClose, onEdit }) {
   if (!property) return null;
@@ -1519,7 +1519,7 @@ function PropertyDetailModal({ property, onClose, onEdit }) {
 }
 
 // -------------------------------------------------------------
-// SUB-COMPONENT: MODAL CHỈNH SỬA THÔNG TIN BĐS (HÌNH 14)
+// SUB-COMPONENT: MODAL CHỈNH SỬA THÔNG TIN BĐS 
 // -------------------------------------------------------------
 function EditPropertyModal({ property, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -1597,7 +1597,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5 text-amber-500" />
-            <h3 className="font-bold text-sm">CHỈNH SỬA THÔNG TIN BĐS (HÌNH 14)</h3>
+            <h3 className="font-bold text-sm">CHỈNH SỬA THÔNG TIN BĐS </h3>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
             <X className="w-5 h-5" />
