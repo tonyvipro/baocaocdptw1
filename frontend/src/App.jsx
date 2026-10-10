@@ -401,7 +401,10 @@ export default function App() {
       <AdminLayout 
         currentUser={currentUser}
         onLogout={handleLogout}
-        onExitAdmin={() => setCurrentAppMode('client')}
+        onExitAdmin={() => {
+          setCurrentAppMode('client');
+          loadData(); // Tải lại dữ liệu để cập nhật danh sách (xóa BĐS đã vào thùng rác)
+        }}
       />
     );
   }
