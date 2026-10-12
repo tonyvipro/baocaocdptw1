@@ -9,13 +9,35 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
   const [selectedDetail, setSelectedDetail] = useState(null);
 
   const fetchMyProperties = async () => {
-    if (!currentUser) return;
+    let user = currentUser;
+    if (!user) {
+      try {
+        const saved = localStorage.getItem('3tv_user');
+        if (saved) user = JSON.parse(saved);
+      } catch (e) {}
+    }
+
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`/api/properties?user_id=${currentUser.id}&all=true`);
+      const params = new URLSearchParams({ all: 'true' });
+      if (user.id) params.append('user_id', user.id);
+      if (user.phone) params.append('user_phone', user.phone);
+      if (user.name) params.append('user_name', user.name);
+
+      const token = localStorage.getItem('3tv_token');
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/properties?${params.toString()}`, { headers });
       if (!res.ok) throw new Error('Không thể tải danh sách tin đăng');
       const data = await res.json();
-      setMyProperties(data);
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      setMyProperties(list);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,15 +69,15 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
 
   if (!isOpen) return null;
 
-  // Filter properties based on tab
-  const approvedCount = myProperties.filter(p => p.status === 1).length;
-  const pendingCount = myProperties.filter(p => p.status === 0).length;
-  const hiddenCount = myProperties.filter(p => p.status === 4).length;
+  // Filter properties based on tab (dùng Number() để tương thích kiểu dữ liệu)
+  const approvedCount = myProperties.filter(p => Number(p.status) === 1).length;
+  const pendingCount = myProperties.filter(p => Number(p.status) === 0).length;
+  const hiddenCount = myProperties.filter(p => Number(p.status) === 4).length;
 
   const displayedProperties = myProperties.filter(p => {
-    if (filterStatus === 'approved') return p.status === 1;
-    if (filterStatus === 'pending') return p.status === 0;
-    if (filterStatus === 'hidden') return p.status === 4;
+    if (filterStatus === 'approved') return Number(p.status) === 1;
+    if (filterStatus === 'pending') return Number(p.status) === 0;
+    if (filterStatus === 'hidden') return Number(p.status) === 4;
     return true;
   });
 

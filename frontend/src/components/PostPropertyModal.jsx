@@ -75,8 +75,20 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
 
     setLoading(true);
     try {
+      // Lấy user đăng tin
+      let activeUser = currentUser;
+      if (!activeUser) {
+        try {
+          const saved = localStorage.getItem('3tv_user');
+          if (saved) activeUser = JSON.parse(saved);
+        } catch (e) {}
+      }
+
       const payload = {
         ...formData,
+        user_id: activeUser?.id,
+        owner_name: formData.owner_name || activeUser?.name || 'Chủ nhà',
+        owner_phone: formData.owner_phone || activeUser?.phone || '0901234567',
         price: Number(formData.price),
         area: Number(formData.area),
         bedrooms: Number(formData.bedrooms),
