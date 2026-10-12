@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
+}
+
+/* Custom Real Estate Portal Styles */
+.realestate-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+}
+
+.realestate-shadow-hover:hover {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Leaflet Custom Marker & Popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Smooth Image Loading */
+.img-zoom {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.group:hover .img-zoom {
+  transform: scale(1.04);
+}
