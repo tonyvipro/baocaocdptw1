@@ -66,8 +66,32 @@ class PropertyController extends Controller
         }
 
         // Lọc theo người đăng (Môi giới / Chủ nhà xem tin của mình)
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->input('user_id'));
+        if ($request->filled('user_id') || $request->filled('user_phone') || $request->filled('user_name')) {
+            $userId = $request->input('user_id');
+            $userPhone = $request->input('user_phone');
+            $userName = $request->input('user_name');
+            $query->where(function ($q) use ($userId, $userPhone, $userName) {
+                $hasCond = false;
+                if (!empty($userId) && is_numeric($userId)) {
+                    $q->where('user_id', (int) $userId);
+                    $hasCond = true;
+                }
+                if (!empty($userPhone)) {
+                    if ($hasCond) {
+                        $q->orWhere('owner_phone', $userPhone);
+                    } else {
+                        $q->where('owner_phone', $userPhone);
+                        $hasCond = true;
+                    }
+                }
+                if (!empty($userName)) {
+                    if ($hasCond) {
+                        $q->orWhere('owner_name', $userName);
+                    } else {
+                        $q->where('owner_name', $userName);
+                    }
+                }
+            });
         }
 
         // 5. Lọc theo Tỉnh/Thành hoặc Khu vực
@@ -258,8 +282,12 @@ class PropertyController extends Controller
             $code .= '-' . rand(10, 99);
         }
 
-        // Lấy thông tin user đăng
-        $authUser = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
+        // Lấy thông tin user đăng (ưu tiên user_id từ request hoặc auth user)
+        $userId = $request->input('user_id');
+        if (empty($userId) || !is_numeric($userId)) {
+            $authUser = auth('sanctum')->user() ?? auth()->user();
+            $userId = $authUser ? $authUser->id : 1;
+        }
 
         $price = (float) $request->input('price');
         $purpose = $request->input('purpose', 'sale');
@@ -272,7 +300,7 @@ class PropertyController extends Controller
 
         $property = Property::create([
             'code' => $code,
-            'user_id' => $authUser ? $authUser->id : 1,
+            'user_id' => (int) $userId,
             'property_type_id' => $request->input('property_type_id', 1),
             'title' => $title,
             'description' => $request->input('description', ''),
