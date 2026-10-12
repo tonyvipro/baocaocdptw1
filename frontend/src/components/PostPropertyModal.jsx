@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, AlertTriangle, Building2, Save, CheckCircle2 } from 'lucide-react';
+import { X, Plus, AlertTriangle, Building2, Save, CheckCircle2, Clock } from 'lucide-react';
 
 export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
   const [formData, setFormData] = useState({
@@ -83,7 +83,7 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
         bathrooms: Number(formData.bathrooms),
         floors: Number(formData.floors),
         build_year: Number(formData.build_year),
-        status: isDraft ? 0 : 1 // Chờ duyệt hoặc Hiện luôn
+        status: 0 // Bắt buộc chuyển sang Chờ duyệt để Admin thẩm định trước
       };
 
       const token = localStorage.getItem('3tv_token') || '';
@@ -143,11 +143,15 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
         <div className="p-6 sm:p-8 bg-slate-50/50">
           {success ? (
             <div className="py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8" />
+              <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <Clock className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Đăng tin thành công!</h3>
-              <p className="text-sm text-slate-500">Tin đăng của bạn đã được gửi lên hệ thống.</p>
+              <h3 className="text-xl font-black text-slate-800 mb-2">Gửi tin đăng thành công!</h3>
+              <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                Tin đăng của bạn đang ở trạng thái <strong className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Chờ duyệt</strong>.
+                <br />
+                Quản trị viên (Admin) sẽ kiểm duyệt thông tin trước khi tin hiển thị trong Quản lý tin đăng và công khai trên hệ thống.
+              </p>
             </div>
           ) : (
             <form className="space-y-6 text-xs" onSubmit={(e) => handleSubmit(e, false)}>

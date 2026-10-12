@@ -5,6 +5,7 @@ import {
   Layers, Compass, ShieldCheck, Check, Calendar, ArrowRight, ArrowLeft,
   X, CheckSquare, Square, Tag, ExternalLink, CalendarPlus, AlertCircle
 } from 'lucide-react';
+import ListingApprovalsManager from './ListingApprovalsManager';
 
 export default function PropertiesManager() {
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
@@ -96,7 +97,12 @@ export default function PropertiesManager() {
       });
       if (searchTerm) params.append('search', searchTerm);
       if (typeFilter !== 'all') params.append('type', typeFilter);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      } else {
+        // Loại trừ tin chờ duyệt (status = 0) bên danh sách Quản lý BĐS - tin này phải qua Admin duyệt trước
+        params.append('exclude_pending', '1');
+      }
       if (purposeFilter !== 'all') params.append('purpose', purposeFilter);
       if (cityFilter !== 'all') params.append('city', cityFilter);
 
@@ -808,69 +814,7 @@ export default function PropertiesManager() {
       {/* KIỂM DUYỆT BĐS CHỜ DUYỆT                   */}
       {/* ========================================================= */}
       {activeTab === 'review' && (
-        <div className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-800">
-              <strong className="font-bold">Màn hình Kiểm duyệt Tin đăng:</strong> Quản trị viên kiểm tra kỹ nội dung, hình ảnh, tính pháp lý và giá trị của bài đăng trước khi duyệt hiển thị công khai trên website.
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[11px]">
-                  <th className="py-3 px-4">Mã BĐS</th>
-                  <th className="py-3 px-3">Ảnh</th>
-                  <th className="py-3 px-4">Tiêu Đề</th>
-                  <th className="py-3 px-3">Loại</th>
-                  <th className="py-3 px-3">Mức Giá</th>
-                  <th className="py-3 px-3">Người Đăng</th>
-                  <th className="py-3 px-4 text-right">Phê Duyệt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {properties.filter(p => p.status === 0).length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="py-12 text-center text-slate-400">
-                      <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
-                      Hiện tại không có tin đăng nào đang chờ duyệt!
-                    </td>
-                  </tr>
-                ) : (
-                  properties.filter(p => p.status === 0).map(prop => (
-                    <tr key={prop.id} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-500">{prop.code || `#${prop.id}`}</td>
-                      <td className="py-3 px-3">
-                        <img src={prop.image} className="w-12 h-9 rounded object-cover" />
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-800">{prop.title}</td>
-                      <td className="py-3 px-3">{prop.type}</td>
-                      <td className="py-3 px-3 font-bold text-red-600">{prop.price_sale_text || prop.price}</td>
-                      <td className="py-3 px-3">{prop.owner_name || prop.user?.name}</td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleChangeStatus(prop.id, 1)}
-                            className="px-2.5 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700"
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            onClick={() => handleChangeStatus(prop.id, 4)}
-                            className="px-2.5 py-1 rounded bg-rose-100 text-rose-700 font-bold text-[11px] hover:bg-rose-200"
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ListingApprovalsManager />
       )}
 
       {/* ========================================================= */}
