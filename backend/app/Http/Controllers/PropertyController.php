@@ -52,6 +52,12 @@ class PropertyController extends Controller
         // 3. Lọc theo Trạng thái (0: Chờ duyệt, 1: Đang hiển thị, 2: Đã bán/thuê, 3: Hết hạn, 4: Đã ẩn)
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('status', $request->input('status'));
+        } elseif ($request->boolean('exclude_pending')) {
+            // Loại trừ tin đang chờ duyệt (status = 0) bên trang danh sách Quản lý BĐS
+            $query->where('status', '!=', 0);
+        } elseif (!$request->has('admin') && !$request->filled('user_id')) {
+            // Khách vãng lai và trang chủ chỉ xem tin đã được kiểm duyệt và hiển thị (status = 1)
+            $query->where('status', 1);
         }
 
         // 4. Lọc theo Mục đích (sale, rent, project)
@@ -140,13 +146,14 @@ class PropertyController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $total = Property::count();
+        // Tin đang chờ duyệt (status = 0) và tin đã từ chối/ẩn (status = 4) KHÔNG tính vào tổng số BĐS chính thức
+        $total = Property::whereNotIn('status', [0, 4])->count();
         $active = Property::where('status', 1)->count();
         $sold = Property::where('status', 2)->count();
         $pending = Property::where('status', 0)->count();
         $hidden = Property::where('status', 4)->count();
         $trash = Property::onlyTrashed()->count();
-        $totalValue = (float) Property::where('status', '!=', 4)->sum('price');
+        $totalValue = (float) Property::whereNotIn('status', [0, 4])->sum('price');
 
         return response()->json([
             'total' => $total,
@@ -282,7 +289,8 @@ class PropertyController extends Controller
             'legal_status' => $request->input('legal_status', 'Sổ hồng'),
             'build_year' => $request->input('build_year', (int) date('Y')),
             'amenities' => is_array($request->input('amenities')) ? implode(', ', $request->input('amenities')) : $request->input('amenities', ''),
-            'status' => $request->input('status', 1), // Mặc định 1: Đang hiển thị
+            // Đăng tin mới bắt buộc phải ở trạng thái Chờ duyệt (status = 0). Phải qua Admin duyệt mới hiển thị.
+            'status' => ($authUser && $authUser->role_id === 1 && $request->has('status')) ? (int)$request->input('status') : 0,
             'expire_date' => now()->addDays(30),
             'project' => $request->input('project', ''),
             'developer' => $request->input('developer', ''),
@@ -488,6 +496,27 @@ class PropertyController extends Controller
 
         $status = (int) $request->input('status', 1);
         $property->status = $status;
+
+        // Lưu lý do từ chối nếu có
+        if ($request->filled('reason')) {
+            $reason = trim($request->input('reason'));
+            try {
+                if (!Schema::hasColumn('properties', 'rejection_reason')) {
+                    Schema::table('properties', function ($table) {
+                        $table->text('rejection_reason')->nullable();
+                    });
+                }
+                $property->rejection_reason = $reason;
+            } catch (\Throwable $e) {}
+        } elseif ($status === 1) {
+            // Khi được duyệt hiển thị, xóa lý do từ chối cũ nếu có
+            try {
+                if (Schema::hasColumn('properties', 'rejection_reason')) {
+                    $property->rejection_reason = null;
+                }
+            } catch (\Throwable $e) {}
+        }
+
         $property->save();
 
         $statusLabels = [
@@ -495,7 +524,7 @@ class PropertyController extends Controller
             1 => 'Đang hiển thị',
             2 => 'Đã giao dịch (Bán/Thuê)',
             3 => 'Hết hạn',
-            4 => 'Đã ẩn',
+            4 => 'Đã từ chối / Đã ẩn',
         ];
 
         return response()->json([
@@ -536,7 +565,7 @@ class PropertyController extends Controller
     }
 
     /**
-     * Thao tác hàng loạt (Bulk Actions: restore, force_delete, delete, change_status)
+     * Thao tác hàng loạt (Bulk Actions: restore, force_delete, delete, change_status, approve, reject)
      */
     public function bulkAction(Request $request): JsonResponse
     {
@@ -574,6 +603,20 @@ class PropertyController extends Controller
             case 'approve':
                 Property::whereIn('id', $ids)->update(['status' => 1]);
                 $message = 'Đã phê duyệt các tin đăng đã chọn!';
+                break;
+            case 'reject':
+                $reason = trim($request->input('reason', 'Không đạt tiêu chuẩn kiểm duyệt'));
+                try {
+                    if (!Schema::hasColumn('properties', 'rejection_reason')) {
+                        Schema::table('properties', function ($table) {
+                            $table->text('rejection_reason')->nullable();
+                        });
+                    }
+                    Property::whereIn('id', $ids)->update(['status' => 4, 'rejection_reason' => $reason]);
+                } catch (\Throwable $e) {
+                    Property::whereIn('id', $ids)->update(['status' => 4]);
+                }
+                $message = 'Đã từ chối các tin đăng đã chọn!';
                 break;
             default:
                 return response()->json([

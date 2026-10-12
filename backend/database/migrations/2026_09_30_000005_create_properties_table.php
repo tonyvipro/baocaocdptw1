@@ -61,6 +61,7 @@ return new class extends Migration
             $table->string('badge_class', 100)->nullable();
             $table->string('owner_name', 255)->nullable();
             $table->string('owner_phone', 50)->nullable();
+            $table->text('rejection_reason')->nullable();
 
             $table->timestamps();
 

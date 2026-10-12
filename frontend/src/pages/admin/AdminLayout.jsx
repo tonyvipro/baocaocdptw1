@@ -5,17 +5,42 @@ import {
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 import PropertiesManager from './PropertiesManager';
+import ListingApprovalsManager from './ListingApprovalsManager';
 import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
-  const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
+  const [activeMenu, setActiveMenu] = useState('approvals'); // Mặc định mở trang duyệt tin hoặc lịch hẹn
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Tải số lượng tin chờ duyệt cho badge sidebar
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const token = localStorage.getItem('3tv_token') || '';
+        const res = await fetch('/api/properties/stats', {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.pending || 0);
+        }
+      } catch (e) {}
+    };
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // 1. Phân quyền hiển thị Menu bên trái
   const getMenuItems = () => {
     const items = [
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
+      { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
@@ -79,14 +104,21 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
             <button
               key={item.id}
               onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeMenu === item.id 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : 'hover:bg-slate-800 hover:text-white text-slate-400'
               }`}
             >
-              <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
-              {item.label}
+              <div className="flex items-center gap-3">
+                <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
+                <span>{item.label}</span>
+              </div>
+              {item.badgeCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500 text-slate-950 animate-pulse shadow-xs">
+                  {item.badgeCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -135,12 +167,13 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
 
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'approvals' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
