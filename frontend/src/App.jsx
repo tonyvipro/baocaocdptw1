@@ -308,40 +308,106 @@ export default function App() {
       // 5. Developer Filter
       if (selectedDeveloper !== 'all' && prop.developer !== selectedDeveloper) return false;
 
-      // 6. Property Type Filter
-      if (selectedType !== 'all' && prop.type !== selectedType) return false;
+      // 6. Property Type Filter - Tạm hoãn tại branch quyen/Filter_by_price (sẽ kích hoạt khi tạo branch quyen/Filter_by_type)
+      // if (selectedType !== 'all' && prop.type !== selectedType) return false;
 
-      // 7. Bedrooms Filter
-      if (selectedBedrooms !== 'all') {
-        const bedNum = parseInt(selectedBedrooms, 10);
-        if (prop.bedrooms !== bedNum) return false;
-      }
+      // 7. Bedrooms Filter
+      if (selectedBedrooms !== 'all') {
+        const bedNum = parseInt(selectedBedrooms, 10);
+        if (prop.bedrooms !== bedNum) return false;
+      }
 
-      // 8. Price Range Filter
-      if (selectedPriceRange !== 'all') {
-        const priceSale = prop.price_sale ? parseFloat(prop.price_sale) : 0;
-        const priceRent = prop.price_rent ? parseFloat(prop.price_rent) : 0;
+      // 8. Chức năng Lọc Theo Giá (Đặc tả Hình 18 - Branch quyen/Filter_by_price)
+      if (selectedPriceRange && selectedPriceRange !== 'all') {
+        // Lấy giá trị tiền tệ thực tế của BĐS (hỗ trợ cả dữ liệu MySQL API và JSON tĩnh)
+        let pVal = 0;
+        if (prop.price !== undefined && prop.price !== null && !isNaN(prop.price) && Number(prop.price) > 0) {
+          pVal = Number(prop.price);
+        } else if (prop.price_sale !== undefined && prop.price_sale !== null && !isNaN(prop.price_sale) && Number(prop.price_sale) > 0) {
+          pVal = Number(prop.price_sale);
+        } else if (prop.price_rent !== undefined && prop.price_rent !== null && !isNaN(prop.price_rent) && Number(prop.price_rent) > 0) {
+          pVal = Number(prop.price_rent);
+        }
 
-        if (selectedPriceRange === 'under-3b' && priceSale > 3000000000) return false;
-        if (selectedPriceRange === '3b-6b' && (priceSale < 3000000000 || priceSale > 6000000000)) return false;
-        if (selectedPriceRange === '6b-15b' && (priceSale < 6000000000 || priceSale > 15000000000)) return false;
-        if (selectedPriceRange === '15b-30b' && (priceSale < 15000000000 || priceSale > 30000000000)) return false;
-        if (selectedPriceRange === 'above-30b' && priceSale < 30000000000) return false;
+        // 8.1. Lọc theo khoảng giá tùy chỉnh (Custom Min - Max: "custom:min-max")
+        if (selectedPriceRange.startsWith('custom:')) {
+          const parts = selectedPriceRange.replace('custom:', '').split('-');
+          const minP = parseFloat(parts[0]) || 0;
+          const maxP = parseFloat(parts[1]) || Infinity;
+          if (pVal < minP || pVal > maxP) return false;
+        } else {
+          // 8.2. Lọc theo các khoảng giá định sẵn (Bao gồm đặc tả Hình 18: Dưới 10 Tỷ - 30 Tỷ+)
+          switch (selectedPriceRange) {
+            case 'under-1b':
+              if (pVal >= 1000000000) return false;
+              break;
+            case '1b-3b':
+              if (pVal < 1000000000 || pVal > 3000000000) return false;
+              break;
+            case 'under-3b':
+              if (pVal > 3000000000) return false;
+              break;
+            case '3b-5b':
+              if (pVal < 3000000000 || pVal > 5000000000) return false;
+              break;
+            case '3b-6b':
+              if (pVal < 3000000000 || pVal > 6000000000) return false;
+              break;
+            case '5b-10b':
+              if (pVal < 5000000000 || pVal > 10000000000) return false;
+              break;
+            case '6b-15b':
+              if (pVal < 6000000000 || pVal > 15000000000) return false;
+              break;
+            case '10b-20b':
+              if (pVal < 10000000000 || pVal > 20000000000) return false;
+              break;
+            case '10b-30b': // Đặc tả Hình 18 trong báo cáo: Dưới 10 Tỷ - 30 Tỷ+
+              if (pVal < 10000000000 || pVal > 30000000000) return false;
+              break;
+            case '15b-30b':
+              if (pVal < 15000000000 || pVal > 30000000000) return false;
+              break;
+            case '20b-30b':
+              if (pVal < 20000000000 || pVal > 30000000000) return false;
+              break;
+            case 'above-30b':
+              if (pVal < 30000000000) return false;
+              break;
 
-        if (selectedPriceRange === 'rent-under-15m' && priceRent > 15000000) return false;
-        if (selectedPriceRange === 'rent-15m-30m' && (priceRent < 15000000 || priceRent > 30000000)) return false;
-        if (selectedPriceRange === 'rent-above-30m' && priceRent < 30000000) return false;
-      }
+            // Các mức giá cho thuê (Đơn vị VNĐ/tháng)
+            case 'rent-under-5m':
+              if (pVal >= 5000000) return false;
+              break;
+            case 'rent-5m-10m':
+              if (pVal < 5000000 || pVal > 10000000) return false;
+              break;
+            case 'rent-under-15m':
+              if (pVal > 15000000) return false;
+              break;
+            case 'rent-10m-20m':
+              if (pVal < 10000000 || pVal > 20000000) return false;
+              break;
+            case 'rent-15m-30m':
+              if (pVal < 15000000 || pVal > 30000000) return false;
+              break;
+            case 'rent-20m-40m':
+              if (pVal < 20000000 || pVal > 40000000) return false;
+              break;
+            case 'rent-above-30m':
+              if (pVal < 30000000) return false;
+              break;
+            case 'rent-above-40m':
+              if (pVal < 40000000) return false;
+              break;
+            default:
+              break;
+          }
+        }
+      }
 
-      // 9. Area Range Filter
-      if (selectedAreaRange !== 'all') {
-        const area = prop.area || 0;
-        if (selectedAreaRange === 'under-50' && area >= 50) return false;
-        if (selectedAreaRange === '50-80' && (area < 50 || area >= 80)) return false;
-        if (selectedAreaRange === '80-120' && (area < 80 || area >= 120)) return false;
-        if (selectedAreaRange === '120-200' && (area < 120 || area >= 200)) return false;
-        if (selectedAreaRange === 'above-200' && area < 200) return false;
-      }
+      // 9. Area Range Filter - Tạm hoãn tại branch quyen/Filter_by_price (sẽ kích hoạt khi tạo branch quyen/Filter_by_area)
+      // if (selectedAreaRange !== 'all') { ... }
 
       return true;
     }).sort((a, b) => {
@@ -519,6 +585,8 @@ export default function App() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           resetFilters={resetFilters}
+          totalResults={filteredProperties.length}
+          activeTab={activeTab}
         />
 
         {/* Loading State */}

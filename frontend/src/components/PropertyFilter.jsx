@@ -1,73 +1,234 @@
-import React from 'react';
-import { LayoutGrid, List, Map, RotateCcw, ChevronDown, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  DollarSign, Maximize2, Building2, ChevronDown, RotateCcw, 
+  Search, ArrowUpDown, LayoutGrid, List, Map, Sparkles, X, 
+  SlidersHorizontal, Check, Info
+} from 'lucide-react';
 
 export default function PropertyFilter({
-  selectedDeveloper,
-  setSelectedDeveloper,
-  developersList = [],
-  selectedType,
-  setSelectedType,
+  selectedType = 'all',
+  setSelectedType = () => {},
   typesList = [],
-  selectedBedrooms,
-  setSelectedBedrooms,
-  selectedPriceRange,
-  setSelectedPriceRange,
-  selectedAreaRange,
-  setSelectedAreaRange,
-  sortBy,
-  setSortBy,
-  viewMode,
-  setViewMode,
-  resetFilters,
+  selectedPriceRange = 'all',
+  setSelectedPriceRange = () => {},
+  selectedAreaRange = 'all',
+  setSelectedAreaRange = () => {},
+  selectedDeveloper = 'all',
+  setSelectedDeveloper = () => {},
+  developersList = [],
+  selectedBedrooms = 'all',
+  setSelectedBedrooms = () => {},
+  sortBy = 'default',
+  setSortBy = () => {},
+  viewMode = 'grid',
+  setViewMode = () => {},
+  resetFilters = () => {},
+  totalResults = 0,
+  activeTab = 'all', // 'all' | 'sale' | 'rent'
 }) {
-  return (
-    <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-md mb-8 transition-all">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        
-        {/* Filter Dropdowns List */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          
-          {/* Loại BĐS */}
-          <div className="relative">
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
-            >
-              <option value="all">Loại nhà đất: Tất cả</option>
-              {typesList.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
+  // State modal tự nhập khoảng giá tùy chỉnh (Custom Min - Max Price)
+  const [showCustomPriceModal, setShowCustomPriceModal] = useState(false);
+  const [customMinPrice, setCustomMinPrice] = useState('');
+  const [customMaxPrice, setCustomMaxPrice] = useState('');
+  const [customPriceUnit, setCustomPriceUnit] = useState('billion'); // 'billion' (Tỷ) | 'million' (Triệu)
+  
+  // Thông báo tạm thời cho 2 bộ lọc chờ branch mới
+  const [pendingNotice, setPendingNotice] = useState(null);
 
-          {/* Mức Giá */}
+  const showNotice = (msg) => {
+    setPendingNotice(msg);
+    setTimeout(() => setPendingNotice(null), 3500);
+  };
+
+  // Danh mục các khoảng giá chuẩn
+  const priceOptions = [
+    { value: 'all', label: 'Tất cả mức giá' },
+    // Dành cho Mua bán BĐS (Đơn vị Tỷ)
+    { value: 'under-1b', label: 'Dưới 1 Tỷ', group: 'sale' },
+    { value: '1b-3b', label: '1 - 3 Tỷ', group: 'sale' },
+    { value: 'under-3b', label: 'Dưới 3 Tỷ', group: 'sale' },
+    { value: '3b-5b', label: '3 - 5 Tỷ', group: 'sale' },
+    { value: '3b-6b', label: '3 - 6 Tỷ', group: 'sale' },
+    { value: '5b-10b', label: '5 - 10 Tỷ', group: 'sale' },
+    { value: '6b-15b', label: '6 - 15 Tỷ', group: 'sale' },
+    { value: '10b-20b', label: '10 - 20 Tỷ', group: 'sale' },
+    { value: '10b-30b', label: '10 - 30 Tỷ (Đặc tả Hình 18)', group: 'sale' },
+    { value: '20b-30b', label: '20 - 30 Tỷ', group: 'sale' },
+    { value: 'above-30b', label: 'Trên 30 Tỷ', group: 'sale' },
+    // Dành cho Cho thuê BĐS (Đơn vị Triệu/tháng)
+    { value: 'rent-under-5m', label: 'Thuê: Dưới 5 Triệu/tháng', group: 'rent' },
+    { value: 'rent-5m-10m', label: 'Thuê: 5 - 10 Triệu/tháng', group: 'rent' },
+    { value: 'rent-under-15m', label: 'Thuê: Dưới 15 Triệu/tháng', group: 'rent' },
+    { value: 'rent-10m-20m', label: 'Thuê: 10 - 20 Triệu/tháng', group: 'rent' },
+    { value: 'rent-15m-30m', label: 'Thuê: 15 - 30 Triệu/tháng', group: 'rent' },
+    { value: 'rent-20m-40m', label: 'Thuê: 20 - 40 Triệu/tháng', group: 'rent' },
+    { value: 'rent-above-30m', label: 'Thuê: Trên 30 Triệu/tháng', group: 'rent' },
+    { value: 'rent-above-40m', label: 'Thuê: Trên 40 Triệu/tháng', group: 'rent' },
+  ];
+
+  // Quick Chips chọn nhanh mức giá phổ biến
+  const quickPriceChips = [
+    { label: 'Tất cả giá', value: 'all' },
+    { label: '< 3 Tỷ', value: 'under-3b' },
+    { label: '3 - 6 Tỷ', value: '3b-6b' },
+    { label: '6 - 15 Tỷ', value: '6b-15b' },
+    { label: '10 - 30 Tỷ (Hình 18)', value: '10b-30b' },
+    { label: '> 30 Tỷ', value: 'above-30b' },
+    { label: 'Thuê < 15Tr', value: 'rent-under-15m' },
+    { label: 'Thuê 15 - 30Tr', value: 'rent-15m-30m' },
+  ];
+
+  // Xử lý áp dụng khoảng giá tùy chỉnh
+  const handleApplyCustomPrice = (e) => {
+    e.preventDefault();
+    const multiplier = customPriceUnit === 'billion' ? 1000000000 : 1000000;
+    const minVal = customMinPrice ? parseFloat(customMinPrice) * multiplier : 0;
+    const maxVal = customMaxPrice ? parseFloat(customMaxPrice) * multiplier : Infinity;
+    
+    if (minVal > maxVal && maxVal !== Infinity) {
+      alert('Mức giá tối thiểu không thể lớn hơn mức giá tối đa!');
+      return;
+    }
+    
+    setSelectedPriceRange(`custom:${minVal}-${maxVal}`);
+    setShowCustomPriceModal(false);
+  };
+
+  // Helper hiển thị tên nhãn giá đang chọn
+  const getActivePriceLabel = () => {
+    if (!selectedPriceRange || selectedPriceRange === 'all') return null;
+    if (selectedPriceRange.startsWith('custom:')) {
+      const parts = selectedPriceRange.replace('custom:', '').split('-');
+      const min = parseFloat(parts[0]) || 0;
+      const max = parseFloat(parts[1]) || Infinity;
+      const minStr = min >= 1000000000 ? `${(min / 1000000000).toFixed(1)} Tỷ` : `${(min / 1000000).toFixed(0)} Tr`;
+      const maxStr = max === Infinity ? 'Trở lên' : (max >= 1000000000 ? `${(max / 1000000000).toFixed(1)} Tỷ` : `${(max / 1000000).toFixed(0)} Tr`);
+      return `Tùy chỉnh: ${minStr} - ${maxStr}`;
+    }
+    const found = priceOptions.find(o => o.value === selectedPriceRange);
+    return found ? found.label : selectedPriceRange;
+  };
+
+  return (
+    <div className="bg-white/95 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-md mb-8 transition-all font-sans relative">
+      
+      {/* Toast thông báo cho 2 bộ lọc chờ branch */}
+      {pendingNotice && (
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-semibold rounded-full shadow-lg border border-slate-700 animate-fadeIn">
+          <Info className="w-4 h-4 text-amber-400" />
+          <span>{pendingNotice}</span>
+        </div>
+      )}
+
+      {/* Header thanh bộ lọc */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-slate-100 gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold shadow-xs">
+            <SlidersHorizontal className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
+              BỘ LỌC TÌM KIẾM BẤT ĐỘNG SẢN
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200">
+                <DollarSign className="w-3 h-3 text-red-600" />
+                Đang kích hoạt: Lọc Theo Giá (Hình 18)
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Branch: <code className="text-red-600 font-mono font-bold">quyen/Filter_by_price</code> — Tập trung hoàn thiện chức năng Lọc theo giá. Lọc diện tích & Loại BĐS sẽ được kích hoạt tại branch tiếp theo.
+            </p>
+          </div>
+        </div>
+
+        {/* Nút đặt lại lọc giá & toàn bộ bộ lọc */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {selectedPriceRange !== 'all' && (
+            <button
+              onClick={() => setSelectedPriceRange('all')}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-xl text-xs font-bold transition-colors border border-red-200 shadow-2xs"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Bỏ lọc giá
+            </button>
+          )}
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors"
+            title="Đặt lại toàn bộ bộ lọc về mặc định"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Đặt lại tất cả</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3 BỘ LỌC CHÍNH THEO ĐẶC TẢ: LỌC GIÁ, LỌC DIỆN TÍCH, LỌC LOẠI BĐS         */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 mb-4">
+        
+        {/* 1. BỘ LỌC THEO GIÁ (CHỨC NĂNG CHÍNH - ACTIVE) */}
+        <div className="md:col-span-5 relative group">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-red-600 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <DollarSign className="w-3.5 h-3.5 text-red-600" />
+              1. Lọc Theo Mức Giá (Đang hoạt động)
+            </span>
+            <span className="text-[10px] text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 font-bold">
+              Active ⭐
+            </span>
+          </label>
           <div className="relative">
             <select
               value={selectedPriceRange}
               onChange={(e) => setSelectedPriceRange(e.target.value)}
-              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-600 appearance-none cursor-pointer transition-colors shadow-xs"
+              className="w-full pl-9 pr-9 py-2.5 bg-white border-2 border-red-400 hover:border-red-500 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-3 focus:ring-red-500/20 appearance-none cursor-pointer transition-all shadow-xs"
             >
-              <option value="all">Mức giá: Tất cả</option>
-              <option value="under-3b">Dưới 3 Tỷ</option>
-              <option value="3b-6b">3 - 6 Tỷ</option>
-              <option value="6b-15b">6 - 15 Tỷ</option>
-              <option value="15b-30b">15 - 30 Tỷ</option>
-              <option value="above-30b">Trên 30 Tỷ</option>
-              <option value="rent-under-15m">Thuê: Dưới 15 Tr</option>
-              <option value="rent-15m-30m">Thuê: 15 - 30 Tr</option>
-              <option value="rent-above-30m">Thuê: Trên 30 Tr</option>
+              {priceOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <DollarSign className="w-4 h-4 text-red-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-red-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Diện Tích */}
-          <div className="relative">
+          <div className="flex items-center justify-between mt-1 text-[10px]">
+            <button
+              type="button"
+              onClick={() => setShowCustomPriceModal(true)}
+              className="text-red-600 hover:text-red-700 font-bold hover:underline flex items-center gap-1 mt-0.5"
+            >
+              <span>+ Tự nhập khoảng giá (Min - Max)</span>
+            </button>
+            {selectedPriceRange !== 'all' && (
+              <span className="text-slate-500 font-medium">
+                Khoảng: <strong className="text-red-600">{getActivePriceLabel()}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 2. BỘ LỌC THEO DIỆN TÍCH (Chờ branch quyen/Filter_by_area) */}
+        <div className="md:col-span-3 relative opacity-85 hover:opacity-100 transition-opacity">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Maximize2 className="w-3.5 h-3.5 text-blue-600" />
+              2. Lọc Theo Diện Tích
+            </span>
+            <span className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-semibold" title="Chức năng sẽ được hoàn thiện khi tạo branch quyen/Filter_by_area">
+              Chờ branch mới ⏳
+            </span>
+          </label>
+          <div className="relative" onClick={() => showNotice('Bộ lọc diện tích đã sẵn sàng giao diện và sẽ hoạt động khi tạo branch quyen/Filter_by_area.')}>
             <select
               value={selectedAreaRange}
-              onChange={(e) => setSelectedAreaRange(e.target.value)}
-              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
+              onChange={(e) => {
+                setSelectedAreaRange(e.target.value);
+                showNotice('Chức năng Lọc theo diện tích sẽ được kích hoạt tại branch quyen/Filter_by_area.');
+              }}
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer transition-colors"
             >
               <option value="all">Diện tích: Tất cả</option>
               <option value="under-50">Dưới 50 m²</option>
@@ -76,55 +237,121 @@ export default function PropertyFilter({
               <option value="120-200">120 - 200 m²</option>
               <option value="above-200">Trên 200 m²</option>
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Maximize2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
+          <span className="text-[10px] text-slate-400 block mt-1">Sẽ kích hoạt ở branch quyen/Filter_by_area</span>
+        </div>
 
-          {/* Phòng Ngủ */}
-          <div className="relative">
+        {/* 3. BỘ LỌC THEO LOẠI BĐS (Chờ branch quyen/Filter_by_type) */}
+        <div className="md:col-span-4 relative opacity-85 hover:opacity-100 transition-opacity">
+          <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Building2 className="w-3.5 h-3.5 text-purple-600" />
+              3. Lọc Theo Loại BĐS
+            </span>
+            <span className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-semibold" title="Chức năng sẽ được hoàn thiện khi tạo branch quyen/Filter_by_type">
+              Chờ branch mới ⏳
+            </span>
+          </label>
+          <div className="relative" onClick={() => showNotice('Bộ lọc loại BĐS đã sẵn sàng giao diện và sẽ hoạt động khi tạo branch quyen/Filter_by_type.')}>
             <select
-              value={selectedBedrooms}
-              onChange={(e) => setSelectedBedrooms(e.target.value)}
-              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
+              value={selectedType}
+              onChange={(e) => {
+                setSelectedType(e.target.value);
+                showNotice('Chức năng Lọc theo loại BĐS sẽ được kích hoạt tại branch quyen/Filter_by_type.');
+              }}
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer transition-colors"
             >
-              <option value="all">Số phòng ngủ: Tất cả</option>
-              <option value="1">1 Phòng ngủ</option>
-              <option value="2">2 Phòng ngủ</option>
-              <option value="3">3 Phòng ngủ</option>
-              <option value="4">4+ Phòng ngủ</option>
+              <option value="all">Loại nhà đất: Tất cả</option>
+              {typesList.length > 0 ? (
+                typesList.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))
+              ) : (
+                <>
+                  <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
+                  <option value="Nhà phố">Nhà phố / Liền kề</option>
+                  <option value="Biệt thự">Biệt thự / Villa</option>
+                  <option value="Đất nền">Đất nền dự án</option>
+                  <option value="Mặt bằng">Mặt bằng kinh doanh</option>
+                </>
+              )}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
+          <span className="text-[10px] text-slate-400 block mt-1">Sẽ kích hoạt ở branch quyen/Filter_by_type</span>
+        </div>
 
-          {/* Chủ Đầu Tư */}
-          <div className="relative">
-            <select
-              value={selectedDeveloper}
-              onChange={(e) => setSelectedDeveloper(e.target.value)}
-              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
+      </div>
+
+      {/* ========================================================================= */}
+      {/* QUICK PRICE FILTER CHIPS (DẢI CHỌN NHANH MỨC GIÁ PHỔ BIẾN)                 */}
+      {/* ========================================================================= */}
+      <div className="pt-2 pb-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100">
+        <span className="text-[11px] font-bold text-slate-500 mr-1 flex items-center gap-1">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>Khoảng giá nhanh:</span>
+        </span>
+        {quickPriceChips.map((chip) => {
+          const isSelected = selectedPriceRange === chip.value;
+          return (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() => setSelectedPriceRange(chip.value)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                isSelected
+                  ? 'bg-red-600 text-white shadow-xs scale-105'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
+              }`}
             >
-              <option value="all">Chủ đầu tư: Tất cả</option>
-              {developersList.map((dev) => (
-                <option key={dev} value={dev}>{dev}</option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          </div>
+              {chip.label}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* Reset Filters */}
+      {/* ========================================================================= */}
+      {/* THANH THAO TÁC: TÌM KIẾM THEO GIÁ, SẮP XẾP, CHẾ ĐỘ XEM & THỐNG KÊ KẾT QUẢ  */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-3 border-t border-slate-100">
+        
+        {/* Kết quả tìm kiếm theo giá */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Nút Tìm Kiếm Theo Giá (Theo Hình 18 trong báo cáo) */}
           <button
-            onClick={resetFilters}
-            className="flex items-center gap-1.5 px-3 py-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
-            title="Xóa bộ lọc về mặc định"
+            type="button"
+            className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl shadow-xs transition-colors cursor-pointer"
+            title="Áp dụng tìm kiếm theo mức giá đã chọn"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Đặt lại</span>
+            <Search className="w-3.5 h-3.5" />
+            <span>TÌM KIẾM THEO GIÁ</span>
           </button>
 
+          {/* Active Price Badge */}
+          {selectedPriceRange !== 'all' && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-200 animate-fadeIn">
+              <span>Đang lọc: {getActivePriceLabel()}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedPriceRange('all')}
+                className="hover:text-red-900 ml-1 p-0.5 rounded-full hover:bg-red-100"
+                title="Bỏ lọc khoảng giá này"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          <div className="text-xs text-slate-600 font-semibold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span>Tìm thấy: <strong className="text-red-600 font-bold">{totalResults}</strong> bất động sản</span>
+          </div>
         </div>
 
         {/* Sort & View Mode Tools */}
-        <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          
+        <div className="flex items-center justify-between sm:justify-end gap-3">
           {/* Sắp xếp */}
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500 font-semibold whitespace-nowrap flex items-center gap-1">
@@ -134,7 +361,7 @@ export default function PropertyFilter({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="py-2 pl-3 pr-7 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-red-600 cursor-pointer shadow-xs"
+              className="py-1.5 pl-3 pr-7 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-red-600 cursor-pointer shadow-xs"
             >
               <option value="default">Phổ biến nhất</option>
               <option value="newest">Mới đăng nhất</option>
@@ -148,6 +375,7 @@ export default function PropertyFilter({
           {/* Toggle View Mode */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
+              type="button"
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
@@ -157,6 +385,7 @@ export default function PropertyFilter({
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
@@ -166,6 +395,7 @@ export default function PropertyFilter({
               <List className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('map')}
               className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'map' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
@@ -175,10 +405,154 @@ export default function PropertyFilter({
               <Map className="w-4 h-4" />
             </button>
           </div>
-
         </div>
 
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL TỰ NHẬP KHOẢNG GIÁ TÙY CHỌN (CUSTOM PRICE RANGE)                     */}
+      {/* ========================================================================= */}
+      {showCustomPriceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scaleUp">
+            <button
+              type="button"
+              onClick={() => setShowCustomPriceModal(false)}
+              className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+              <DollarSign className="w-5 h-5" />
+              <h4 className="text-base font-extrabold text-slate-900">Tùy Chỉnh Khoảng Giá BĐS</h4>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Nhập giá tối thiểu và tối đa bạn mong muốn để hệ thống lọc chính xác các bất động sản phù hợp.
+            </p>
+
+            <form onSubmit={handleApplyCustomPrice} className="space-y-4">
+              {/* Đơn vị tiền tệ */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Đơn vị tính:</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCustomPriceUnit('billion')}
+                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
+                      customPriceUnit === 'billion'
+                        ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Tỷ VNĐ (Dành cho mua bán)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCustomPriceUnit('million')}
+                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
+                      customPriceUnit === 'million'
+                        ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Triệu VNĐ (Dành cho thuê)
+                  </button>
+                </div>
+              </div>
+
+              {/* Ô nhập Min - Max */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Giá tối thiểu (Từ):</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={customMinPrice}
+                      onChange={(e) => setCustomMinPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-semibold pointer-events-none">
+                      {customPriceUnit === 'billion' ? 'Tỷ' : 'Tr'}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Giá tối đa (Đến):</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={customMaxPrice}
+                      onChange={(e) => setCustomMaxPrice(e.target.value)}
+                      placeholder="Không giới hạn"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-semibold pointer-events-none">
+                      {customPriceUnit === 'billion' ? 'Tỷ' : 'Tr'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gợi ý mức giá nhanh */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5">Gợi ý nhanh:</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {(customPriceUnit === 'billion' ? [
+                    { label: 'Dưới 2 Tỷ', min: 0, max: 2 },
+                    { label: '2 - 5 Tỷ', min: 2, max: 5 },
+                    { label: '5 - 10 Tỷ', min: 5, max: 10 },
+                    { label: '10 - 30 Tỷ', min: 10, max: 30 },
+                    { label: 'Trên 30 Tỷ', min: 30, max: '' },
+                  ] : [
+                    { label: 'Dưới 5 Tr', min: 0, max: 5 },
+                    { label: '5 - 15 Tr', min: 5, max: 15 },
+                    { label: '15 - 30 Tr', min: 15, max: 30 },
+                    { label: 'Trên 30 Tr', min: 30, max: '' },
+                  ]).map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setCustomMinPrice(preset.min ? preset.min.toString() : '');
+                        setCustomMaxPrice(preset.max ? preset.max.toString() : '');
+                      }}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold rounded-lg transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nút hành động */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomPriceModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  Áp dụng bộ lọc giá
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
