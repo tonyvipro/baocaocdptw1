@@ -118,6 +118,7 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
 Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyController::class, 'stats']);
 Route::get('/api/properties/trash', [\App\Http\Controllers\PropertyController::class, 'trash']);
 Route::post('/api/properties/bulk-action', [\App\Http\Controllers\PropertyController::class, 'bulkAction']);
+Route::get('/api/properties/status-logs', [\App\Http\Controllers\PropertyController::class, 'allStatusLogs']);
 Route::get('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'show']);
 Route::post('/api/properties', [\App\Http\Controllers\PropertyController::class, 'store']);
 Route::put('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
@@ -128,6 +129,7 @@ Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyContr
 Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
 Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
 Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\PropertyController::class, 'extensionHistory']);
+Route::get('/api/properties/{id}/status-history', [\App\Http\Controllers\PropertyController::class, 'statusHistory']);
 Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
 

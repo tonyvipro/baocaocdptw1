@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { 
   X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
   Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
-  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus
+  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus, Tag
 } from 'lucide-react';
 import ExtendListingModal from './ExtendListingModal';
+import ChangePropertyStatusModal from './ChangePropertyStatusModal';
 
 export default function PropertyModal({ 
   property, 
@@ -20,6 +21,7 @@ export default function PropertyModal({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showMapTab, setShowMapTab] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   if (!property) return null;
 
@@ -141,12 +143,27 @@ export default function PropertyModal({
                   alt={property.title}
                   className="w-full h-full object-cover transition-all duration-300"
                 />
-                <div className="absolute top-3 left-3 flex gap-2">
+                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
                   <span className={`px-2.5 py-1 rounded-md text-xs font-black text-white shadow-md ${
                     isRent ? 'bg-blue-600' : 'bg-red-600'
                   }`}>
                     {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
                   </span>
+                  {Number(prop.status) === 2 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-blue-600 shadow-md">
+                      ĐÃ GIAO DỊCH
+                    </span>
+                  )}
+                  {Number(prop.status) === 0 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-amber-600 shadow-md">
+                      CHỜ DUYỆT
+                    </span>
+                  )}
+                  {Number(prop.status) === 4 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-rose-600 shadow-md">
+                      TẠM ẨN
+                    </span>
+                  )}
                   <span className="px-2.5 py-1 rounded-md text-xs font-bold text-white bg-slate-900/80 backdrop-blur-md">
                     {property.badge || 'VIP'}
                   </span>
@@ -300,6 +317,20 @@ export default function PropertyModal({
                 <strong className="text-slate-900">{prop.management_fee || 'Theo ban quản lý'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Trạng thái tin:</span>
+                <strong className={`flex items-center gap-1 font-bold ${
+                  Number(prop.status) === 1 ? 'text-emerald-700' :
+                  Number(prop.status) === 2 ? 'text-blue-700' :
+                  Number(prop.status) === 0 ? 'text-amber-700' :
+                  Number(prop.status) === 3 ? 'text-purple-700' : 'text-rose-700'
+                }`}>
+                  {Number(prop.status) === 1 ? '✓ Đang hiển thị' :
+                   Number(prop.status) === 2 ? '✓ Đã giao dịch' :
+                   Number(prop.status) === 0 ? '⏳ Chờ duyệt' :
+                   Number(prop.status) === 3 ? '⚠️ Hết hạn' : '✕ Đã ẩn'}
+                </strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Thời hạn tin đăng:</span>
                 <strong className="text-purple-700 flex items-center gap-1 font-bold">
                   <Calendar className="w-3.5 h-3.5 text-purple-600" />
@@ -395,15 +426,26 @@ export default function PropertyModal({
           </div>
           <div className="flex items-center gap-2">
             {canExtend && (
-              <button
-                type="button"
-                onClick={() => setShowExtendModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
-                title="Gia hạn thời gian hiển thị tin"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                <span>Gia Hạn Tin</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowStatusModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  title="Quản lý trạng thái & Xem lịch sử tin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Trạng Thái Tin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExtendModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  title="Gia hạn thời gian hiển thị tin"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  <span>Gia Hạn Tin</span>
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -429,6 +471,19 @@ export default function PropertyModal({
             isOpen={showExtendModal}
             onClose={() => setShowExtendModal(false)}
             property={prop}
+            onSuccess={(updated) => {
+              setCurrentProp(updated);
+            }}
+          />
+        )}
+
+        {/* Change Status Modal */}
+        {showStatusModal && (
+          <ChangePropertyStatusModal
+            isOpen={showStatusModal}
+            onClose={() => setShowStatusModal(false)}
+            property={prop}
+            currentUser={currentUser}
             onSuccess={(updated) => {
               setCurrentProp(updated);
             }}
