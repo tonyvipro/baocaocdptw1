@@ -406,8 +406,57 @@ export default function App() {
         }
       }
 
-      // 9. Area Range Filter - Tạm hoãn tại branch quyen/Filter_by_price (sẽ kích hoạt khi tạo branch quyen/Filter_by_area)
-      // if (selectedAreaRange !== 'all') { ... }
+      // 9. Chức năng Lọc Theo Diện Tích (Đặc tả Hình 19 - Branch: quyen/Filter_by_area)
+      if (selectedAreaRange && selectedAreaRange !== 'all') {
+        const areaVal = prop.area !== undefined && prop.area !== null && !isNaN(prop.area) ? parseFloat(prop.area) : 0;
+
+        // 9.1. Lọc theo khoảng diện tích tùy chỉnh (Custom Min - Max: "custom-area:min-max")
+        if (selectedAreaRange.startsWith('custom-area:')) {
+          const parts = selectedAreaRange.replace('custom-area:', '').split('-');
+          const minA = parseFloat(parts[0]) || 0;
+          const maxA = parseFloat(parts[1]) || Infinity;
+          if (areaVal < minA || areaVal > maxA) return false;
+        } else {
+          // 9.2. Lọc theo các khoảng diện tích chuẩn (Bao gồm đặc tả Hình 19: 50m2 - 150m2+)
+          switch (selectedAreaRange) {
+            case 'under-30':
+              if (areaVal >= 30) return false;
+              break;
+            case '30-50':
+              if (areaVal < 30 || areaVal > 50) return false;
+              break;
+            case 'under-50':
+              if (areaVal >= 50) return false;
+              break;
+            case '50-80':
+              if (areaVal < 50 || areaVal > 80) return false;
+              break;
+            case '50-150': // Đặc tả Hình 19 trong báo cáo: 50m2 - 150m2+
+              if (areaVal < 50 || areaVal > 150) return false;
+              break;
+            case '80-120':
+              if (areaVal < 80 || areaVal > 120) return false;
+              break;
+            case '120-200':
+              if (areaVal < 120 || areaVal > 200) return false;
+              break;
+            case '200-300':
+              if (areaVal < 200 || areaVal > 300) return false;
+              break;
+            case 'above-150':
+              if (areaVal < 150) return false;
+              break;
+            case 'above-200':
+              if (areaVal < 200) return false;
+              break;
+            case 'above-300':
+              if (areaVal < 300) return false;
+              break;
+            default:
+              break;
+          }
+        }
+      }
 
       return true;
     }).sort((a, b) => {
