@@ -26,6 +26,11 @@ return new class extends Migration
             $table->decimal('deposit_amount', 15, 2)->default(0);
             $table->decimal('rental_price', 15, 2)->default(0);
             $table->tinyInteger('status')->default(0);
+            $table->string('signing_method', 30)->default('ONLINE');
+            $table->string('meeting_location', 255)->nullable();
+            $table->dateTime('meeting_time')->nullable();
+            $table->string('notary_office', 255)->nullable();
+            $table->boolean('is_high_value')->default(false);
             $table->integer('billing_cycle')->default(1);
             $table->date('next_billing_date')->nullable();
             $table->softDeletes();
