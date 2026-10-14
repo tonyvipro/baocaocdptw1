@@ -308,8 +308,40 @@ export default function App() {
       // 5. Developer Filter
       if (selectedDeveloper !== 'all' && prop.developer !== selectedDeveloper) return false;
 
-      // 6. Property Type Filter - Tạm hoãn tại branch quyen/Filter_by_price (sẽ kích hoạt khi tạo branch quyen/Filter_by_type)
-      // if (selectedType !== 'all' && prop.type !== selectedType) return false;
+      // 6. Chức năng Lọc Theo Loại BĐS (Đặc tả Hình 20 - Branch: quyen/Filter_by_type)
+      if (selectedType && selectedType !== 'all') {
+        const propType = (prop.type || '').toLowerCase();
+        switch (selectedType) {
+          case 'can-ho':
+          case 'Căn hộ':
+          case 'Căn hộ cao cấp':
+            if (!propType.includes('căn hộ') && !propType.includes('chung cư') && !propType.includes('apartment')) return false;
+            break;
+          case 'nha-pho':
+          case 'Nhà phố':
+          case 'Nhà phố / Liền kề':
+            if (!propType.includes('nhà phố') && !propType.includes('liền kề') && !propType.includes('nhà riêng') && !propType.includes('townhouse')) return false;
+            break;
+          case 'biet-thu':
+          case 'Biệt thự':
+          case 'Biệt thự nghỉ dưỡng':
+            if (!propType.includes('biệt thự') && !propType.includes('villa')) return false;
+            break;
+          case 'dat-nen':
+          case 'Đất nền':
+          case 'Đất nền dự án':
+            if (!propType.includes('đất nền') && !propType.includes('đất')) return false;
+            break;
+          case 'mat-bang':
+          case 'Mặt bằng':
+          case 'Mặt bằng kinh doanh':
+            if (!propType.includes('mặt bằng') && !propType.includes('shophouse') && !propType.includes('kinh doanh')) return false;
+            break;
+          default:
+            if (prop.type !== selectedType && !propType.includes(selectedType.toLowerCase())) return false;
+            break;
+        }
+      }
 
       // 7. Bedrooms Filter
       if (selectedBedrooms !== 'all') {
