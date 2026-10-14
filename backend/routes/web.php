@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Property;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () {
     return response()->json([
@@ -38,9 +39,13 @@ Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'c
 Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
 Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
 
-// Contracts API
+// Contracts API (Spec Hình 38, 39, 40)
 Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
 Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
+Route::get('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'show']);
+Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update']);
+Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
+Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
@@ -109,48 +114,22 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
     }
 });
 
-// Properties API (Spec Nhóm 2 & Nhóm 4) - Lấy dữ liệu trực tiếp từ Database MySQL
-Route::get('/api/properties', function () {
-    try {
-        if (\Illuminate\Support\Facades\Schema::hasTable('properties')) {
-            $props = Property::orderBy('id', 'asc')->get();
-            if ($props->isNotEmpty()) {
-                $props->transform(function ($item) {
-                    if (empty($item->price_sale_text) && !empty($item->price_sale)) {
-                        $p = (float) $item->price_sale;
-                        $item->price_sale_text = $p >= 1000000000 ? round($p / 1000000000, 2) . ' tỷ' : round($p / 1000000, 0) . ' triệu';
-                    }
-                    if (empty($item->price_rent_text) && !empty($item->price_rent)) {
-                        $p = (float) $item->price_rent;
-                        $item->price_rent_text = round($p / 1000000, 1) . ' triệu/tháng';
-                    }
-                    return $item;
-                });
+// Properties Management API (Spec Hình 12 - 18: Quản lý, Thêm mới, Sửa, Xóa/Khôi phục, Thùng rác, Thống kê)
+Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyController::class, 'stats']);
+Route::get('/api/properties/trash', [\App\Http\Controllers\PropertyController::class, 'trash']);
+Route::post('/api/properties/bulk-action', [\App\Http\Controllers\PropertyController::class, 'bulkAction']);
+Route::get('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'show']);
+Route::post('/api/properties', [\App\Http\Controllers\PropertyController::class, 'store']);
+Route::put('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
+Route::patch('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
+Route::delete('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'destroy']);
+Route::patch('/api/properties/{id}/restore', [\App\Http\Controllers\PropertyController::class, 'restore']);
+Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyController::class, 'forceDelete']);
+Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
+Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
+Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\PropertyController::class, 'extensionHistory']);
+Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
-                return response()->json($props)
-                    ->header('Access-Control-Allow-Origin', '*')
-                    ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Cache-Control')
-                    ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                    ->header('Pragma', 'no-cache')
-                    ->header('Expires', '0');
-            }
-        }
-    } catch (\Throwable $e) {
-        // Fallback
-    }
-
-    $jsonPath = database_path('data/all_properties.json');
-    if (!file_exists($jsonPath)) {
-        $jsonPath = database_path('data/vinhomes_properties.json');
-    }
-    if (file_exists($jsonPath)) {
-        return response()->json(json_decode(file_get_contents($jsonPath), true))
-            ->header('Access-Control-Allow-Origin', '*')
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-    }
-    return response()->json([]);
-});
 
 // Migration & Database Seed Trigger
 Route::get('/api/run-migrate', function () {
@@ -183,3 +162,14 @@ Route::get('/api/run-migrate', function () {
         ], 500);
     }
 });
+
+// User Management API
+Route::get('/api/users', [\App\Http\Controllers\UserController::class, 'index']);
+Route::get('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'show']);
+Route::post('/api/users', [\App\Http\Controllers\UserController::class, 'store']);
+Route::put('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'update']);
+Route::delete('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+
+Route::get('/api/reports/statistics', [App\Http\Controllers\ReportController::class, 'getStatistics']);
+
+Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });

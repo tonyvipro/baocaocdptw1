@@ -22,7 +22,9 @@ export default function Navbar({
   onLogout,
   recentCount = 0,
   openRecent,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenPostProperty,
+  onOpenUserListings
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -189,10 +191,10 @@ export default function Navbar({
                 if (!currentUser) {
                   onOpenAuth('login');
                 } else {
-                  alert('Chức năng Đăng tin dành cho Môi giới/Chủ nhà đang được hoàn thiện trong phiên bản tiếp theo!');
+                  if (onOpenPostProperty) onOpenPostProperty();
                 }
               }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Đăng Tin</span>
@@ -235,6 +237,19 @@ export default function Navbar({
                       <User className="w-4 h-4 text-slate-400" />
                       <span>Thông tin tài khoản</span>
                     </button>
+
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenUserListings) onOpenUserListings();
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        <span>Quản lý tin đăng</span>
+                      </button>
+                    )}
 
                     {currentUser && (currentUser.role_id === 1 || currentUser.role_id === 2) && (
                       <button

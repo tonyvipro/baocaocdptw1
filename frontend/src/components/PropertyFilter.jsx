@@ -1,13 +1,13 @@
 import React from 'react';
-import { LayoutGrid, List, Map, RotateCcw, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, List, Map, RotateCcw, ChevronDown, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 
 export default function PropertyFilter({
   selectedDeveloper,
   setSelectedDeveloper,
-  developersList,
+  developersList = [],
   selectedType,
   setSelectedType,
-  typesList,
+  typesList = [],
   selectedBedrooms,
   setSelectedBedrooms,
   selectedPriceRange,
@@ -21,18 +21,18 @@ export default function PropertyFilter({
   resetFilters,
 }) {
   return (
-    <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs mb-6">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    <div className="bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-md mb-8 transition-all">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         
         {/* Filter Dropdowns List */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           
           {/* Loại BĐS */}
           <div className="relative">
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="pl-3 pr-7 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-600 appearance-none cursor-pointer transition-colors"
+              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
             >
               <option value="all">Loại nhà đất: Tất cả</option>
               {typesList.map((t) => (
@@ -47,7 +47,7 @@ export default function PropertyFilter({
             <select
               value={selectedPriceRange}
               onChange={(e) => setSelectedPriceRange(e.target.value)}
-              className="pl-3 pr-7 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-600 appearance-none cursor-pointer transition-colors"
+              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-600 appearance-none cursor-pointer transition-colors shadow-xs"
             >
               <option value="all">Mức giá: Tất cả</option>
               <option value="under-3b">Dưới 3 Tỷ</option>
@@ -67,7 +67,7 @@ export default function PropertyFilter({
             <select
               value={selectedAreaRange}
               onChange={(e) => setSelectedAreaRange(e.target.value)}
-              className="pl-3 pr-7 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-600 appearance-none cursor-pointer transition-colors"
+              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
             >
               <option value="all">Diện tích: Tất cả</option>
               <option value="under-50">Dưới 50 m²</option>
@@ -84,7 +84,7 @@ export default function PropertyFilter({
             <select
               value={selectedBedrooms}
               onChange={(e) => setSelectedBedrooms(e.target.value)}
-              className="pl-3 pr-7 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-600 appearance-none cursor-pointer transition-colors"
+              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
             >
               <option value="all">Số phòng ngủ: Tất cả</option>
               <option value="1">1 Phòng ngủ</option>
@@ -100,7 +100,7 @@ export default function PropertyFilter({
             <select
               value={selectedDeveloper}
               onChange={(e) => setSelectedDeveloper(e.target.value)}
-              className="pl-3 pr-7 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-red-600 appearance-none cursor-pointer transition-colors"
+              className="pl-3.5 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none cursor-pointer transition-colors shadow-xs"
             >
               <option value="all">Chủ đầu tư: Tất cả</option>
               {developersList.map((dev) => (
@@ -113,7 +113,7 @@ export default function PropertyFilter({
           {/* Reset Filters */}
           <button
             onClick={resetFilters}
-            className="flex items-center gap-1 px-3 py-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
             title="Xóa bộ lọc về mặc định"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -123,15 +123,18 @@ export default function PropertyFilter({
         </div>
 
         {/* Sort & View Mode Tools */}
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+        <div className="flex items-center justify-between sm:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
           
           {/* Sắp xếp */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-500 font-medium whitespace-nowrap">Sắp xếp:</span>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-500 font-semibold whitespace-nowrap flex items-center gap-1">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <span>Sắp xếp:</span>
+            </span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="py-1.5 pl-2.5 pr-6 bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-red-600 cursor-pointer"
+              className="py-2 pl-3 pr-7 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-red-600 cursor-pointer shadow-xs"
             >
               <option value="default">Phổ biến nhất</option>
               <option value="newest">Mới đăng nhất</option>
@@ -143,11 +146,11 @@ export default function PropertyFilter({
           </div>
 
           {/* Toggle View Mode */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md text-xs font-bold transition-colors ${
-                viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Xem dạng lưới"
             >
@@ -155,8 +158,8 @@ export default function PropertyFilter({
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md text-xs font-bold transition-colors ${
-                viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Xem dạng danh sách"
             >
@@ -164,8 +167,8 @@ export default function PropertyFilter({
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`p-1.5 rounded-md text-xs font-bold transition-colors ${
-                viewMode === 'map' ? 'bg-red-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'map' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Xem trên bản đồ"
             >
