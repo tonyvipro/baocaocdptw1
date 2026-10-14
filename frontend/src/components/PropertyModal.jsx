@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { 
   X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
   Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
-  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check
+  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus
 } from 'lucide-react';
+import ExtendListingModal from './ExtendListingModal';
 
 export default function PropertyModal({ 
   property, 
@@ -14,13 +15,31 @@ export default function PropertyModal({
   isCompared,
   onToggleCompare
 }) {
+  const [currentProp, setCurrentProp] = useState(property);
   const [copied, setCopied] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showMapTab, setShowMapTab] = useState(false);
+  const [showExtendModal, setShowExtendModal] = useState(false);
 
   if (!property) return null;
 
-  const isRent = property.purpose === 'rent';
+  const prop = currentProp || property;
+  const isRent = prop.purpose === 'rent';
+
+  // Check if current user is owner or admin
+  let currentUser = null;
+  try {
+    const saved = localStorage.getItem('3tv_user');
+    if (saved) currentUser = JSON.parse(saved);
+  } catch (e) {}
+
+  const canExtend = Boolean(
+    currentUser && (
+      currentUser.role_id === 1 || 
+      currentUser.id === prop.user_id || 
+      (currentUser.phone && currentUser.phone === prop.owner_phone)
+    )
+  );
 
   // Demo gallery image list
   const galleryImages = [
@@ -278,7 +297,16 @@ export default function PropertyModal({
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Phí dịch vụ / Quản lý:</span>
-                <strong className="text-slate-900">{property.management_fee || 'Theo ban quản lý'}</strong>
+                <strong className="text-slate-900">{prop.management_fee || 'Theo ban quản lý'}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Thời hạn tin đăng:</span>
+                <strong className="text-purple-700 flex items-center gap-1 font-bold">
+                  <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                  {prop.expire_date 
+                    ? new Date(prop.expire_date).toLocaleDateString('vi-VN') 
+                    : 'Đang hoạt động'}
+                </strong>
               </div>
             </div>
           </div>
@@ -366,6 +394,17 @@ export default function PropertyModal({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {canExtend && (
+              <button
+                type="button"
+                onClick={() => setShowExtendModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                title="Gia hạn thời gian hiển thị tin"
+              >
+                <CalendarPlus className="w-3.5 h-3.5" />
+                <span>Gia Hạn Tin</span>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
@@ -375,7 +414,7 @@ export default function PropertyModal({
             <button
               onClick={() => {
                 onClose();
-                onOpenContact(property);
+                onOpenContact(prop);
               }}
               className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
             >
@@ -383,6 +422,18 @@ export default function PropertyModal({
             </button>
           </div>
         </div>
+
+        {/* Extend Listing Modal */}
+        {showExtendModal && (
+          <ExtendListingModal
+            isOpen={showExtendModal}
+            onClose={() => setShowExtendModal(false)}
+            property={prop}
+            onSuccess={(updated) => {
+              setCurrentProp(updated);
+            }}
+          />
+        )}
 
       </div>
     </div>

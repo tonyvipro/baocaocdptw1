@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, MapPin, Edit, Trash2, Eye, Calendar, PlusCircle, AlertTriangle, RefreshCw, CheckCircle2, Clock, XCircle, Info } from 'lucide-react';
+import { 
+  X, Building2, MapPin, Edit, Trash2, Eye, Calendar, PlusCircle, 
+  AlertTriangle, RefreshCw, CheckCircle2, Clock, XCircle, Info, CalendarPlus, Sparkles 
+} from 'lucide-react';
+import ExtendListingModal from './ExtendListingModal';
 
 export default function UserListingsModal({ isOpen, onClose, currentUser, onOpenPostProperty }) {
   const [myProperties, setMyProperties] = useState([]);
@@ -7,6 +11,8 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState('approved'); // Mặc định hiển thị tin đã được duyệt
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [extendingProperty, setExtendingProperty] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   const fetchMyProperties = async () => {
     let user = currentUser;
@@ -67,16 +73,44 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
     }
   };
 
+  const handleExtendSuccess = (updatedProperty, message) => {
+    setMyProperties(prev => prev.map(p => p.id === updatedProperty.id ? { ...p, ...updatedProperty } : p));
+    if (selectedDetail && selectedDetail.id === updatedProperty.id) {
+      setSelectedDetail(prev => ({ ...prev, ...updatedProperty }));
+    }
+    setToastMessage(message || 'Gia hạn tin đăng thành công!');
+    setTimeout(() => setToastMessage(null), 4500);
+  };
+
+  const getRemainingDays = (expireDate) => {
+    if (!expireDate) return null;
+    const diff = new Date(expireDate) - new Date();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '---';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
   if (!isOpen) return null;
 
   // Filter properties based on tab (dùng Number() để tương thích kiểu dữ liệu)
   const approvedCount = myProperties.filter(p => Number(p.status) === 1).length;
   const pendingCount = myProperties.filter(p => Number(p.status) === 0).length;
+  const expiredCount = myProperties.filter(p => Number(p.status) === 3).length;
   const hiddenCount = myProperties.filter(p => Number(p.status) === 4).length;
 
   const displayedProperties = myProperties.filter(p => {
     if (filterStatus === 'approved') return Number(p.status) === 1;
     if (filterStatus === 'pending') return Number(p.status) === 0;
+    if (filterStatus === 'expired') return Number(p.status) === 3;
     if (filterStatus === 'hidden') return Number(p.status) === 4;
     return true;
   });
@@ -145,6 +179,23 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
             </button>
 
             <button
+              onClick={() => setFilterStatus('expired')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                filterStatus === 'expired'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <CalendarPlus className="w-3.5 h-3.5" />
+              Hết hạn & Cần gia hạn ({expiredCount})
+              {expiredCount > 0 && (
+                <span className="px-1.5 py-0.2 bg-rose-500 text-white rounded-full text-[9px] font-black animate-pulse">
+                  Mới
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setFilterStatus('all')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 filterStatus === 'all'
@@ -170,6 +221,19 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
             )}
           </div>
         </div>
+
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="mx-6 mt-3 p-3 bg-emerald-600 text-white text-xs font-bold rounded-2xl flex items-center justify-between shadow-lg shadow-emerald-600/20 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{toastMessage}</span>
+            </div>
+            <button onClick={() => setToastMessage(null)} className="hover:opacity-80">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Notice for Pending approval */}
         {filterStatus === 'pending' && (
@@ -274,44 +338,97 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
 
                         {/* Status Column */}
                         <td className="py-3 px-4">
-                          {property.status === 1 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-300 font-bold text-[10px] tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> Hiển thị
-                            </span>
-                          ) : property.status === 0 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-300 font-bold text-[10px] tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse"></span> Chờ Admin duyệt
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-300 font-bold text-[10px] tracking-wide uppercase">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span> Đã từ chối
-                            </span>
-                          )}
+                          {(() => {
+                            const daysLeft = getRemainingDays(property.expire_date);
+                            const isStatusExpired = Number(property.status) === 3 || (daysLeft !== null && daysLeft <= 0 && Number(property.status) !== 0 && Number(property.status) !== 4);
+
+                            if (Number(property.status) === 1 && !isStatusExpired) {
+                              return (
+                                <div>
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-300 font-bold text-[10px] tracking-wide uppercase">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> Đang hiển thị
+                                  </span>
+                                  {property.expire_date && (
+                                    <div className="mt-1 text-[10px] font-medium text-slate-500 flex items-center gap-1">
+                                      {daysLeft <= 5 ? (
+                                        <span className="text-amber-600 font-bold flex items-center gap-0.5">
+                                          <Clock className="w-3 h-3" /> Còn {daysLeft} ngày
+                                        </span>
+                                      ) : (
+                                        <span>Hạn: {formatDate(property.expire_date)}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } else if (Number(property.status) === 0) {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-300 font-bold text-[10px] tracking-wide uppercase">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse"></span> Chờ Admin duyệt
+                                </span>
+                              );
+                            } else if (isStatusExpired) {
+                              return (
+                                <div>
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg border border-purple-300 font-bold text-[10px] tracking-wide uppercase">
+                                    <Calendar className="w-3 h-3 text-purple-600" /> Hết hạn tin
+                                  </span>
+                                  <div className="mt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExtendingProperty(property)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-[10px] font-extrabold shadow-xs transition-all cursor-pointer"
+                                    >
+                                      <CalendarPlus className="w-3 h-3" /> Gia hạn ngay
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-300 font-bold text-[10px] tracking-wide uppercase">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span> Đã từ chối
+                                </span>
+                              );
+                            }
+                          })()}
                         </td>
 
-                        {/* Rejection Reason Column */}
+                        {/* Rejection Reason or Note Column */}
                         <td className="py-3 px-4">
-                          {property.status === 4 ? (
+                          {Number(property.status) === 4 ? (
                             <div className="flex items-start gap-1.5 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs shadow-2xs">
                               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-rose-600" />
                               <span className="font-bold leading-relaxed">
                                 {property.rejection_reason || 'Không đạt tiêu chuẩn kiểm duyệt của ban quản trị.'}
                               </span>
                             </div>
-                          ) : property.status === 0 ? (
+                          ) : Number(property.status) === 0 ? (
                             <span className="text-amber-600 font-medium text-[11px] italic flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5" /> Đang chờ duyệt
                             </span>
+                          ) : Number(property.status) === 3 ? (
+                            <div className="text-[11px] text-purple-800 bg-purple-50/70 p-2 rounded-lg border border-purple-200 font-medium">
+                              Tin đã hết thời hạn hiển thị. Bấm <strong>Gia hạn ngay</strong> để tiếp tục hiển thị trên sàn.
+                            </div>
                           ) : (
                             <span className="text-emerald-600 font-medium text-[11px] flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Đã thông qua
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Đang hoạt động bình thường
                             </span>
                           )}
                         </td>
 
                         {/* Actions */}
                         <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                            {/* Nút Gia hạn tin */}
+                            <button 
+                              onClick={() => setExtendingProperty(property)}
+                              className="w-7 h-7 rounded bg-purple-50 border border-purple-200 text-purple-600 hover:text-white hover:bg-purple-600 hover:border-purple-600 flex items-center justify-center transition-all shadow-xs cursor-pointer"
+                              title="Gia hạn thời gian hiển thị tin"
+                            >
+                              <CalendarPlus className="w-3.5 h-3.5" />
+                            </button>
                             <button 
                               onClick={() => setSelectedDetail(property)}
                               className="w-7 h-7 rounded bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 flex items-center justify-center transition-colors shadow-sm cursor-pointer"
@@ -395,7 +512,17 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    const prop = selectedDetail;
+                    setSelectedDetail(null);
+                    setExtendingProperty(prop);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20 cursor-pointer transition-all"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" /> Gia hạn tin đăng này
+                </button>
                 <button
                   onClick={() => setSelectedDetail(null)}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer"
@@ -405,6 +532,16 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
               </div>
             </div>
           </div>
+        )}
+
+        {/* Extend Listing Modal */}
+        {extendingProperty && (
+          <ExtendListingModal
+            isOpen={Boolean(extendingProperty)}
+            onClose={() => setExtendingProperty(null)}
+            property={extendingProperty}
+            onSuccess={handleExtendSuccess}
+          />
         )}
 
       </div>

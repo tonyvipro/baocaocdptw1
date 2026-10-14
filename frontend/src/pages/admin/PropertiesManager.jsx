@@ -6,6 +6,7 @@ import {
   X, CheckSquare, Square, Tag, ExternalLink, CalendarPlus, AlertCircle
 } from 'lucide-react';
 import ListingApprovalsManager from './ListingApprovalsManager';
+import ExtendListingModal from '../../components/ExtendListingModal';
 
 export default function PropertiesManager() {
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
@@ -16,6 +17,7 @@ export default function PropertiesManager() {
     total: 0,
     active: 0,
     sold: 0,
+    expired: 0,
     pending: 0,
     hidden: 0,
     trash: 0,
@@ -52,6 +54,7 @@ export default function PropertiesManager() {
   // Modals State
   const [viewingProperty, setViewingProperty] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [extendingProperty, setExtendingProperty] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Status Notification popup
@@ -234,7 +237,17 @@ export default function PropertiesManager() {
     }
   };
 
-  // Handle Extend (Gia hạn tin 30 ngày)
+  // Handle Extend Success callback
+  const handleExtendSuccess = (updatedProp, message) => {
+    showToast(message || 'Gia hạn bất động sản thành công!');
+    setProperties(prev => prev.map(p => p.id === updatedProp.id ? { ...p, ...updatedProp } : p));
+    if (viewingProperty && viewingProperty.id === updatedProp.id) {
+      setViewingProperty(prev => ({ ...prev, ...updatedProp }));
+    }
+    fetchStats();
+  };
+
+  // Handle Extend (Gia hạn tin 30 ngày nhanh)
   const handleExtend = async (id) => {
     setActionLoadingId(id);
     try {
@@ -247,6 +260,7 @@ export default function PropertiesManager() {
       if (!res.ok) throw new Error(data.message || 'Gia hạn thất bại.');
       showToast(data.message);
       fetchProperties(pagination.current_page);
+      fetchStats();
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -268,16 +282,20 @@ export default function PropertiesManager() {
       force_delete: 'XÓA VĨNH VIỄN',
       hide: 'tạm ẩn',
       show: 'bật hiển thị',
-      approve: 'phê duyệt'
+      approve: 'phê duyệt',
+      extend: 'gia hạn (+30 ngày) cho'
     }[action] || action;
 
     if (!window.confirm(`Bạn có chắc muốn ${actionText} ${ids.length} bất động sản đã chọn?`)) return;
 
     try {
+      const payload = { action, ids };
+      if (action === 'extend') payload.days = 30;
+
       const res = await fetch('/api/properties/bulk-action', {
         method: 'POST',
         headers: getHeaders(true),
-        body: JSON.stringify({ action, ids })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Thao tác thất bại.');
@@ -534,6 +552,7 @@ export default function PropertiesManager() {
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="1">Đang hiển thị</option>
+                  <option value="3">Hết hạn ({stats.expired || 0})</option>
                   <option value="0">Chờ duyệt</option>
                   <option value="2">Đã giao dịch</option>
                   <option value="4">Đã ẩn</option>
@@ -563,6 +582,13 @@ export default function PropertiesManager() {
                   Đã chọn <strong className="text-red-600">{selectedIds.length}</strong> bất động sản
                 </span>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleBulkAction('extend')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" />
+                    Gia hạn hàng loạt (+30 ngày)
+                  </button>
                   <button
                     onClick={() => handleBulkAction('delete')}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors"
@@ -697,6 +723,12 @@ export default function PropertiesManager() {
 
                         <td className="py-3 px-3 border-b border-slate-50/50">
                           {renderStatusBadge(prop.status)}
+                          {prop.expire_date && (
+                            <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-1">
+                              <Calendar className="w-2.5 h-2.5 text-slate-400" />
+                              <span>Hạn: {new Date(prop.expire_date).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                          )}
                         </td>
 
                         <td className="py-3 px-3 border-b border-slate-50/50">
@@ -730,8 +762,8 @@ export default function PropertiesManager() {
 
                             {/* Nút Gia hạn tin */}
                             <button
-                              onClick={() => handleExtend(prop.id)}
-                              title="Gia hạn tin (+30 ngày)"
+                              onClick={() => setExtendingProperty(prop)}
+                              title="Gia hạn thời gian hiển thị"
                               className="p-2 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-purple-50 hover:shadow-sm transition-all cursor-pointer"
                             >
                               <CalendarPlus className="w-4 h-4" />
@@ -951,6 +983,18 @@ export default function PropertiesManager() {
             fetchProperties(pagination.current_page);
             fetchStats();
           }}
+        />
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: GIA HẠN THỜI HẠN HIỂN THỊ BĐS             */}
+      {/* ========================================================= */}
+      {extendingProperty && (
+        <ExtendListingModal
+          isOpen={Boolean(extendingProperty)}
+          onClose={() => setExtendingProperty(null)}
+          property={extendingProperty}
+          onSuccess={handleExtendSuccess}
         />
       )}
 

@@ -127,6 +127,7 @@ Route::patch('/api/properties/{id}/restore', [\App\Http\Controllers\PropertyCont
 Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyController::class, 'forceDelete']);
 Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
 Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
+Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\PropertyController::class, 'extensionHistory']);
 Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
 

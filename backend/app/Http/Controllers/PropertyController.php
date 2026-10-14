@@ -19,6 +19,14 @@ class PropertyController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Tự động quét và cập nhật các tin đăng đã quá hạn sang trạng thái Hết hạn (status = 3)
+        try {
+            Property::where('status', 1)
+                ->whereNotNull('expire_date')
+                ->where('expire_date', '<', now())
+                ->update(['status' => 3]);
+        } catch (\Throwable $e) {}
+
         $query = Property::with(['user', 'propertyType', 'images']);
 
         // 1. Tìm kiếm (Địa chỉ, Mã BĐS, Tiêu đề, Dự án, Tên người phụ trách)
@@ -170,10 +178,19 @@ class PropertyController extends Controller
      */
     public function stats(): JsonResponse
     {
+        // Tự động quét và cập nhật tin quá hạn
+        try {
+            Property::where('status', 1)
+                ->whereNotNull('expire_date')
+                ->where('expire_date', '<', now())
+                ->update(['status' => 3]);
+        } catch (\Throwable $e) {}
+
         // Tin đang chờ duyệt (status = 0) và tin đã từ chối/ẩn (status = 4) KHÔNG tính vào tổng số BĐS chính thức
         $total = Property::whereNotIn('status', [0, 4])->count();
         $active = Property::where('status', 1)->count();
         $sold = Property::where('status', 2)->count();
+        $expired = Property::where('status', 3)->count();
         $pending = Property::where('status', 0)->count();
         $hidden = Property::where('status', 4)->count();
         $trash = Property::onlyTrashed()->count();
@@ -183,6 +200,7 @@ class PropertyController extends Controller
             'total' => $total,
             'active' => $active,
             'sold' => $sold,
+            'expired' => $expired,
             'pending' => $pending,
             'hidden' => $hidden,
             'trash' => $trash,
@@ -563,7 +581,7 @@ class PropertyController extends Controller
     }
 
     /**
-     * Gia hạn tin đăng (Gia hạn thêm 30 ngày)
+     * Gia hạn tin đăng (Hỗ trợ chọn số ngày: 7, 15, 30, 60, 90 ngày hoặc tùy chọn)
      */
     public function extend(Request $request, $id): JsonResponse
     {
@@ -576,19 +594,106 @@ class PropertyController extends Controller
         }
 
         $days = (int) $request->input('days', 30);
-        $currentExpire = $property->expire_date ? \Carbon\Carbon::parse($property->expire_date) : now();
-        if ($currentExpire->isPast()) {
-            $currentExpire = now();
+        if ($days <= 0) {
+            $days = 30;
         }
 
-        $property->expire_date = $currentExpire->addDays($days);
-        $property->status = 1; // Kích hoạt lại nếu đang hết hạn
+        $oldExpire = $property->expire_date ? \Carbon\Carbon::parse($property->expire_date) : null;
+        
+        // Nếu truyền cụ thể ngày kết thúc mới
+        if ($request->filled('expire_date')) {
+            $newExpire = \Carbon\Carbon::parse($request->input('expire_date'));
+            if ($newExpire->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ngày hết hạn mới phải lớn hơn thời điểm hiện tại!'
+                ], 422);
+            }
+            $days = max(1, (int) now()->diffInDays($newExpire));
+        } else {
+            // Nếu đã quá hạn thì tính từ hiện tại, còn nếu chưa hết hạn thì cộng nối tiếp ngày hết hạn cũ
+            if ($oldExpire && $oldExpire->isFuture()) {
+                $newExpire = $oldExpire->copy()->addDays($days);
+            } else {
+                $newExpire = now()->addDays($days);
+            }
+        }
+
+        $oldStatus = $property->status;
+        $property->expire_date = $newExpire;
+        $property->status = 1; // Kích hoạt lại hiển thị nếu đang hết hạn hoặc ẩn
         $property->save();
+
+        // Ghi lại nhật ký gia hạn vào activity_logs
+        try {
+            $user = auth('sanctum')->user() ?? auth()->user();
+            $userId = $user ? $user->id : ($request->input('user_id') ?? $property->user_id);
+            if (Schema::hasTable('activity_logs')) {
+                DB::table('activity_logs')->insert([
+                    'user_id' => $userId,
+                    'action' => 'EXTEND_PROPERTY',
+                    'table_name' => 'properties',
+                    'record_id' => $property->id,
+                    'old_data' => json_encode([
+                        'expire_date' => $oldExpire ? $oldExpire->toDateTimeString() : null,
+                        'status' => $oldStatus,
+                    ]),
+                    'new_data' => json_encode([
+                        'expire_date' => $newExpire->toDateTimeString(),
+                        'days_extended' => $days,
+                        'status' => 1,
+                        'note' => $request->input('note', 'Gia hạn tin đăng'),
+                        'property_code' => $property->code,
+                        'property_title' => $property->title,
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
 
         return response()->json([
             'success' => true,
-            'message' => "Gia hạn tin đăng thêm {$days} ngày thành công! Hạn mới đến: " . $property->expire_date->format('d/m/Y'),
-            'data' => $property
+            'message' => "Gia hạn tin đăng [{$property->code}] thêm {$days} ngày thành công! Hạn hiển thị mới đến: " . $property->expire_date->format('d/m/Y H:i'),
+            'data' => $property,
+            'new_expire_date' => $property->expire_date->format('d/m/Y H:i'),
+            'days_extended' => $days
+        ]);
+    }
+
+    /**
+     * Lịch sử các lần gia hạn của tin đăng
+     */
+    public function extensionHistory($id): JsonResponse
+    {
+        $property = Property::find($id);
+        if (!$property) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy bất động sản!'
+            ], 404);
+        }
+
+        $logs = [];
+        try {
+            if (Schema::hasTable('activity_logs')) {
+                $logs = DB::table('activity_logs')
+                    ->where('record_id', $id)
+                    ->where('table_name', 'properties')
+                    ->where('action', 'EXTEND_PROPERTY')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($item) {
+                        $item->details = json_decode($item->new_data, true);
+                        return $item;
+                    });
+            }
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs
         ]);
     }
 
@@ -631,6 +736,41 @@ class PropertyController extends Controller
             case 'approve':
                 Property::whereIn('id', $ids)->update(['status' => 1]);
                 $message = 'Đã phê duyệt các tin đăng đã chọn!';
+                break;
+            case 'extend':
+                $days = (int) $request->input('days', 30);
+                if ($days <= 0) $days = 30;
+
+                $targetProps = Property::whereIn('id', $ids)->get();
+                foreach ($targetProps as $prop) {
+                    $cur = $prop->expire_date ? \Carbon\Carbon::parse($prop->expire_date) : now();
+                    if ($cur->isPast()) {
+                        $cur = now();
+                    }
+                    $prop->expire_date = $cur->addDays($days);
+                    $prop->status = 1;
+                    $prop->save();
+
+                    try {
+                        if (Schema::hasTable('activity_logs')) {
+                            DB::table('activity_logs')->insert([
+                                'user_id' => auth('sanctum')->id() ?? 1,
+                                'action' => 'EXTEND_PROPERTY',
+                                'table_name' => 'properties',
+                                'record_id' => $prop->id,
+                                'new_data' => json_encode([
+                                    'expire_date' => $prop->expire_date->toDateTimeString(),
+                                    'days_extended' => $days,
+                                    'bulk' => true,
+                                ]),
+                                'ip_address' => $request->ip(),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+                $message = "Đã gia hạn thành công " . count($targetProps) . " bất động sản thêm {$days} ngày!";
                 break;
             case 'reject':
                 $reason = trim($request->input('reason', 'Không đạt tiêu chuẩn kiểm duyệt'));
