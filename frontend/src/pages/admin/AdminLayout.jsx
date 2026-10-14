@@ -4,8 +4,9 @@ import {
   Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+import { resolveAvatarUrl } from '../../services/api';
 
-export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
+export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
   const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -54,12 +55,27 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
         </div>
 
         {/* User Info */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white shadow-inner">
-            {currentUser?.name?.charAt(0) || 'U'}
+        <div 
+          onClick={onOpenProfile} 
+          className="px-6 py-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer hover:bg-slate-800/60 transition-colors group"
+          title="Nhấn để cập nhật hồ sơ"
+        >
+          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white shadow-inner overflow-hidden border border-slate-600 shrink-0">
+            {currentUser?.avatar ? (
+              <img 
+                src={resolveAvatarUrl(currentUser.avatar)} 
+                alt={currentUser.name} 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            ) : (
+              currentUser?.name?.charAt(0) || 'U'
+            )}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-bold text-white truncate">{currentUser?.name}</p>
+            <p className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{currentUser?.name}</p>
             <p className="text-[11px] text-emerald-400 font-semibold truncate">
               {currentUser?.role_id === 1 ? 'Quản Trị Viên (Admin)' : 'Môi Giới (Broker)'}
             </p>
@@ -126,6 +142,22 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
             <div className="hidden sm:block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               Chế độ Quản Trị Hệ Thống
             </div>
+            {onOpenProfile && (
+              <button 
+                onClick={onOpenProfile}
+                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 text-xs font-semibold text-slate-700"
+                title="Cập nhật hồ sơ & đổi mật khẩu"
+              >
+                <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden border border-slate-300">
+                  {currentUser?.avatar ? (
+                    <img src={resolveAvatarUrl(currentUser.avatar)} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                    currentUser?.name?.charAt(0) || 'A'
+                  )}
+                </div>
+                <span className="hidden md:inline font-bold text-slate-800">{currentUser?.name || 'Admin'}</span>
+              </button>
+            )}
           </div>
         </header>
 

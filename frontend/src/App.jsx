@@ -398,11 +398,24 @@ export default function App() {
   // Nếu đang ở chế độ admin, render nguyên cụm layout admin
   if (currentAppMode === 'admin') {
     return (
-      <AdminLayout 
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        onExitAdmin={() => setCurrentAppMode('client')}
-      />
+      <>
+        <AdminLayout 
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onExitAdmin={() => setCurrentAppMode('client')}
+          onOpenProfile={() => setShowProfileModal(true)}
+        />
+        <UserProfileModal
+          isOpen={showProfileModal}
+          currentUser={currentUser}
+          onClose={() => setShowProfileModal(false)}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
+          }}
+          onLogout={handleLogout}
+        />
+      </>
     );
   }
 
