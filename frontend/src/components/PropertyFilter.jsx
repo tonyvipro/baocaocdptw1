@@ -1,28 +1,28 @@
 import React, { useState } from 'react';
-import { 
-  DollarSign, Maximize2, Building2, ChevronDown, RotateCcw, 
-  Search, ArrowUpDown, LayoutGrid, List, Map, Sparkles, X, 
+import {
+  DollarSign, Maximize2, Building2, ChevronDown, RotateCcw,
+  Search, ArrowUpDown, LayoutGrid, List, Map, Sparkles, X,
   SlidersHorizontal, Check, Info, Layers
 } from 'lucide-react';
 
 export default function PropertyFilter({
   selectedType = 'all',
-  setSelectedType = () => {},
+  setSelectedType = () => { },
   typesList = [],
   selectedPriceRange = 'all',
-  setSelectedPriceRange = () => {},
+  setSelectedPriceRange = () => { },
   selectedAreaRange = 'all',
-  setSelectedAreaRange = () => {},
+  setSelectedAreaRange = () => { },
   selectedDeveloper = 'all',
-  setSelectedDeveloper = () => {},
+  setSelectedDeveloper = () => { },
   developersList = [],
   selectedBedrooms = 'all',
-  setSelectedBedrooms = () => {},
+  setSelectedBedrooms = () => { },
   sortBy = 'default',
-  setSortBy = () => {},
+  setSortBy = () => { },
   viewMode = 'grid',
-  setViewMode = () => {},
-  resetFilters = () => {},
+  setViewMode = () => { },
+  resetFilters = () => { },
   totalResults = 0,
   activeTab = 'all', // 'all' | 'sale' | 'rent'
 }) {
@@ -31,7 +31,7 @@ export default function PropertyFilter({
   const [customMinPrice, setCustomMinPrice] = useState('');
   const [customMaxPrice, setCustomMaxPrice] = useState('');
   const [customPriceUnit, setCustomPriceUnit] = useState('billion'); // 'billion' (Tỷ) | 'million' (Triệu)
-  
+
   // 2. State modal tự nhập khoảng diện tích tùy chỉnh (Custom Min - Max Area)
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false);
   const [customMinArea, setCustomMinArea] = useState('');
@@ -131,12 +131,12 @@ export default function PropertyFilter({
     const multiplier = customPriceUnit === 'billion' ? 1000000000 : 1000000;
     const minVal = customMinPrice ? parseFloat(customMinPrice) * multiplier : 0;
     const maxVal = customMaxPrice ? parseFloat(customMaxPrice) * multiplier : Infinity;
-    
+
     if (minVal > maxVal && maxVal !== Infinity) {
       alert('Mức giá tối thiểu không thể lớn hơn mức giá tối đa!');
       return;
     }
-    
+
     setSelectedPriceRange(`custom:${minVal}-${maxVal}`);
     setShowCustomPriceModal(false);
   };
@@ -146,12 +146,12 @@ export default function PropertyFilter({
     e.preventDefault();
     const minVal = customMinArea ? parseFloat(customMinArea) : 0;
     const maxVal = customMaxArea ? parseFloat(customMaxArea) : Infinity;
-    
+
     if (minVal > maxVal && maxVal !== Infinity) {
       alert('Diện tích tối thiểu không thể lớn hơn diện tích tối đa!');
       return;
     }
-    
+
     setSelectedAreaRange(`custom-area:${minVal}-${maxVal}`);
     setShowCustomAreaModal(false);
   };
@@ -195,7 +195,7 @@ export default function PropertyFilter({
 
   return (
     <div className="bg-white/95 backdrop-blur-md p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-md mb-8 transition-all font-sans relative">
-      
+
       {/* Header thanh bộ lọc */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-slate-100 gap-3">
         <div className="flex items-center gap-2.5">
@@ -203,28 +203,9 @@ export default function PropertyFilter({
             <SlidersHorizontal className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center flex-wrap gap-2">
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight">
-                BỘ LỌC TÌM KIẾM BẤT ĐỘNG SẢN
-              </h3>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
-                  <Building2 className="w-3 h-3 text-purple-600" />
-                  Loại BĐS (Hình 20)
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                  <Maximize2 className="w-3 h-3 text-blue-600" />
-                  Diện Tích (Hình 19)
-                </span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                  <DollarSign className="w-3 h-3 text-red-600" />
-                  Mức Giá (Hình 18)
-                </span>
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Branch: <code className="text-purple-600 font-mono font-bold">quyen/Filter_by_type</code> — Cả 3 bộ lọc cốt lõi (Hình 18, 19, 20) hoạt động đồng bộ và đều nhau.
-            </p>
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight">
+              BỘ LỌC TÌM KIẾM BẤT ĐỘNG SẢN
+            </h3>
           </div>
         </div>
 
@@ -272,8 +253,8 @@ export default function PropertyFilter({
       {/* 3 BỘ LỌC CHÍNH THEO ĐẶC TẢ: LỌC LOẠI BĐS, LỌC DIỆN TÍCH, LỌC GIÁ         */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 mb-4">
-        
-        {/* 1. BỘ LỌC THEO LOẠI BĐS (Hình 20 - Active ⭐) */}
+
+        {/* 1. BỘ LỌC THEO LOẠI BĐS */}
         <div className="md:col-span-4 relative flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5 h-6">
@@ -320,7 +301,7 @@ export default function PropertyFilter({
           </div>
         </div>
 
-        {/* 2. BỘ LỌC THEO DIỆN TÍCH (Hình 19 - Active ⭐) */}
+        {/* 2. BỘ LỌC THEO DIỆN TÍCH */}
         <div className="md:col-span-4 relative flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5 h-6">
@@ -367,7 +348,7 @@ export default function PropertyFilter({
           </div>
         </div>
 
-        {/* 3. BỘ LỌC THEO MỨC GIÁ (Hình 18 - Active ⭐) */}
+        {/* 3. BỘ LỌC THEO MỨC GIÁ */}
         <div className="md:col-span-4 relative flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5 h-6">
@@ -424,27 +405,24 @@ export default function PropertyFilter({
           <button
             type="button"
             onClick={() => setQuickChipMode('type')}
-            className={`px-2 py-1 rounded-md transition-all ${
-              quickChipMode === 'type' ? 'bg-purple-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-2 py-1 rounded-md transition-all ${quickChipMode === 'type' ? 'bg-purple-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             🏢 Chọn nhanh Loại BĐS
           </button>
           <button
             type="button"
             onClick={() => setQuickChipMode('area')}
-            className={`px-2 py-1 rounded-md transition-all ${
-              quickChipMode === 'area' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-2 py-1 rounded-md transition-all ${quickChipMode === 'area' ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             📐 Chọn nhanh Diện Tích
           </button>
           <button
             type="button"
             onClick={() => setQuickChipMode('price')}
-            className={`px-2 py-1 rounded-md transition-all ${
-              quickChipMode === 'price' ? 'bg-red-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className={`px-2 py-1 rounded-md transition-all ${quickChipMode === 'price' ? 'bg-red-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
           >
             💰 Chọn nhanh Giá
           </button>
@@ -460,11 +438,10 @@ export default function PropertyFilter({
                   key={chip.value}
                   type="button"
                   onClick={() => setSelectedType(chip.value)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
                       ? 'bg-purple-600 text-white shadow-xs scale-105'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
-                  }`}
+                    }`}
                 >
                   {chip.label}
                 </button>
@@ -483,11 +460,10 @@ export default function PropertyFilter({
                   key={chip.value}
                   type="button"
                   onClick={() => setSelectedAreaRange(chip.value)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
                       ? 'bg-blue-600 text-white shadow-xs scale-105'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
-                  }`}
+                    }`}
                 >
                   {chip.label}
                 </button>
@@ -506,11 +482,10 @@ export default function PropertyFilter({
                   key={chip.value}
                   type="button"
                   onClick={() => setSelectedPriceRange(chip.value)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    isSelected
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
                       ? 'bg-red-600 text-white shadow-xs scale-105'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
-                  }`}
+                    }`}
                 >
                   {chip.label}
                 </button>
@@ -524,7 +499,7 @@ export default function PropertyFilter({
       {/* THANH THAO TÁC: NÚT TÌM KIẾM, SẮP XẾP, CHẾ ĐỘ XEM & THỐNG KÊ KẾT QUẢ      */}
       {/* ========================================================================= */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-3 border-t border-slate-100">
-        
+
         {/* Kết quả tìm kiếm & Badges */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Nút Tìm Kiếm Theo Loại BĐS (Theo Hình 20 trong báo cáo) */}
@@ -614,9 +589,8 @@ export default function PropertyFilter({
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
               title="Xem dạng lưới"
             >
               <LayoutGrid className="w-4 h-4" />
@@ -624,9 +598,8 @@ export default function PropertyFilter({
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
               title="Xem dạng danh sách"
             >
               <List className="w-4 h-4" />
@@ -634,9 +607,8 @@ export default function PropertyFilter({
             <button
               type="button"
               onClick={() => setViewMode('map')}
-              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'map' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`p-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'map' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
               title="Xem trên bản đồ"
             >
               <Map className="w-4 h-4" />
@@ -787,22 +759,20 @@ export default function PropertyFilter({
                   <button
                     type="button"
                     onClick={() => setCustomPriceUnit('billion')}
-                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
-                      customPriceUnit === 'billion'
+                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${customPriceUnit === 'billion'
                         ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     Tỷ VNĐ (Dành cho mua bán)
                   </button>
                   <button
                     type="button"
                     onClick={() => setCustomPriceUnit('million')}
-                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${
-                      customPriceUnit === 'million'
+                    className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${customPriceUnit === 'million'
                         ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     Triệu VNĐ (Dành cho thuê)
                   </button>
