@@ -4,7 +4,7 @@ import {
   User, LogIn, UserPlus, LogOut, ChevronDown, PlusCircle,
   MapPin, Clock
 } from 'lucide-react';
-import { triggerDatabaseMigration } from '../services/api';
+import { triggerDatabaseMigration, resolveAvatarUrl } from '../services/api';
 
 export default function Navbar({ 
   activeTab, 
@@ -207,8 +207,12 @@ export default function Navbar({
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 rounded-md hover:bg-slate-100 text-xs font-semibold transition-colors border border-slate-200"
                 >
-                  <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase">
-                    {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                  <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden border border-slate-300">
+                    {currentUser.avatar ? (
+                      <img src={resolveAvatarUrl(currentUser.avatar)} alt={currentUser.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      currentUser.name ? currentUser.name.charAt(0) : 'U'
+                    )}
                   </div>
                   <span className="hidden sm:inline text-slate-800 font-bold max-w-[100px] truncate">
                     {currentUser.name || currentUser.username}
