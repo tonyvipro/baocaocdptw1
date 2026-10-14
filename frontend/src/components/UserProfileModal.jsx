@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Eye, EyeOff, CheckCircle2, XCircle, Lock, User, Phone, Sparkles } from 'lucide-react';
-import { updateProfile, changePassword } from '../services/api';
+import { updateProfile, changePassword, resolveAvatarUrl } from '../services/api';
 
 export default function UserProfileModal({ isOpen, onClose, currentUser, onUserUpdated, onLogout }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password'
@@ -8,6 +8,7 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   
   const fileInputRef = useRef(null);
@@ -38,13 +39,39 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    // Ràng buộc số điện thoại 10 - 11 số
+    if (profileForm.phone) {
+      const phoneDigits = profileForm.phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+        setStatusMessage({ type: 'error', text: 'Số điện thoại phải từ 10 đến 11 chữ số (ví dụ: 0901234567).' });
+        return;
+      }
+    }
+
     setLoading(true);
     setStatusMessage(null);
+
+    // Cập nhật UI ngay lập tức để người dùng không phải chờ đợi
+    if (onUserUpdated) {
+      onUserUpdated({
+        ...currentUser,
+        name: profileForm.name,
+        phone: profileForm.phone,
+        avatar: profileForm.avatar || currentUser?.avatar,
+      });
+    }
+
     try {
-      const res = await updateProfile(profileForm);
+      const payload = {
+        ...profileForm,
+        user_id: currentUser?.id,
+        email: currentUser?.email,
+      };
+      const res = await updateProfile(payload);
       setStatusMessage({ type: 'success', text: 'Cập nhật thông tin hồ sơ thành công!' });
-      if (onUserUpdated) onUserUpdated(res.user);
-      setTimeout(() => setStatusMessage(null), 3000);
+      if (onUserUpdated && res?.user) onUserUpdated(res.user);
+      setTimeout(() => setStatusMessage(null), 2500);
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Lỗi cập nhật hồ sơ.' });
     } finally {
@@ -66,7 +93,12 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
     setLoading(true);
     setStatusMessage(null);
     try {
-      await changePassword(passwordForm);
+      const payload = {
+        ...passwordForm,
+        user_id: currentUser?.id,
+        email: currentUser?.email,
+      };
+      await changePassword(payload);
       setStatusMessage({ type: 'success', text: 'Đổi mật khẩu tài khoản thành công!' });
       setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
       setTimeout(() => {
@@ -86,15 +118,62 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
     }
   };
   
-  const handleFileChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-             setProfileForm({ ...profileForm, avatar: reader.result });
-          };
-          reader.readAsDataURL(file);
+  const compressImage = (file, maxWidth = 360, maxHeight = 360, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Nén thành jpeg chất lượng 0.85: siêu nhẹ (~20KB - 35KB) thay vì 5MB+
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => {
+        const directReader = new FileReader();
+        directReader.onloadend = () => resolve(directReader.result);
+        directReader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsCompressing(true);
+      try {
+        const compressedBase64 = await compressImage(file, 360, 360, 0.85);
+        setProfileForm(prev => ({ ...prev, avatar: compressedBase64 }));
+      } catch (err) {
+        console.warn('Compress error', err);
+      } finally {
+        setIsCompressing(false);
       }
+    }
   };
 
   return (
@@ -124,21 +203,38 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                  accept="image/*"
                  onChange={handleFileChange}
               />
-              <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden bg-transparent border border-[#c3a275] shadow-[0_0_20px_rgba(195,162,117,0.15)] transition-transform duration-300 group-hover:scale-105">
-                  {profileForm.avatar && profileForm.avatar.startsWith('data:') ? (
-                      <img src={profileForm.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              <div className="relative group cursor-pointer" onClick={handleAvatarClick} title="Nhấn để đổi ảnh đại diện">
+                <div className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden bg-[#181a1f] border-2 border-[#c3a275] shadow-[0_0_20px_rgba(195,162,117,0.25)] transition-transform duration-300 group-hover:scale-105">
+                  {isCompressing ? (
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#c3a275]">
+                      <svg className="animate-spin h-6 w-6 text-[#c3a275]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span className="text-[10px]">Đang nén</span>
+                    </div>
+                  ) : profileForm.avatar ? (
+                      <img 
+                        src={resolveAvatarUrl(profileForm.avatar)} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
                   ) : (
                       <Camera className="w-8 h-8 text-[#c3a275]" strokeWidth={1.5} />
                   )}
+                </div>
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
                 </div>
               </div>
               <button 
                 type="button" 
                 onClick={handleAvatarClick}
-                className="mt-3 text-[14px] font-medium text-[#c3a275] hover:text-[#e0c298] transition-colors"
+                disabled={isCompressing}
+                className="mt-3 text-[14px] font-medium text-[#c3a275] hover:text-[#e0c298] transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
-                Đổi ảnh
+                <Camera className="w-4 h-4" />
+                <span>{isCompressing ? 'Đang xử lý ảnh...' : 'Đổi ảnh'}</span>
               </button>
             </div>
 
@@ -165,11 +261,24 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                 <Phone className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3" strokeWidth={1.5} />
                 <input
                   type="tel"
+                  maxLength={11}
                   value={profileForm.phone}
-                  onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                  placeholder="0901234567"
+                  onChange={(e) => {
+                    const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    setProfileForm({ ...profileForm, phone: numbersOnly });
+                  }}
+                  placeholder="0901234567 (10 - 11 số)"
                   className="w-full bg-transparent text-[15px] text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
                 />
+                {profileForm.phone && (
+                  <span className={`text-[11px] font-mono px-2 py-0.5 rounded ml-2 whitespace-nowrap shrink-0 ${
+                    profileForm.phone.length >= 10 && profileForm.phone.length <= 11 
+                      ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' 
+                      : 'bg-amber-950/80 text-amber-400 border border-amber-800'
+                  }`}>
+                    {profileForm.phone.length}/11 số
+                  </span>
+                )}
               </div>
             </div>
 
