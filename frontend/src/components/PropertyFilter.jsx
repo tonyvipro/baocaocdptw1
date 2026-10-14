@@ -262,9 +262,6 @@ export default function PropertyFilter({
                 <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                 <span>1. Loại Bất Động Sản</span>
               </span>
-              <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 font-bold whitespace-nowrap shrink-0">
-                Hình 20 ⭐
-              </span>
             </div>
             <div className="relative">
               <select
@@ -309,9 +306,6 @@ export default function PropertyFilter({
                 <Maximize2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                 <span>2. Diện Tích</span>
               </span>
-              <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 font-bold whitespace-nowrap shrink-0">
-                Hình 19 ⭐
-              </span>
             </div>
             <div className="relative">
               <select
@@ -355,9 +349,6 @@ export default function PropertyFilter({
               <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-red-600 truncate">
                 <DollarSign className="w-3.5 h-3.5 text-red-600 shrink-0" />
                 <span>3. Mức Giá</span>
-              </span>
-              <span className="text-[10px] text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200 font-bold whitespace-nowrap shrink-0">
-                Hình 18 ⭐
               </span>
             </div>
             <div className="relative">
@@ -439,8 +430,8 @@ export default function PropertyFilter({
                   type="button"
                   onClick={() => setSelectedType(chip.value)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
-                      ? 'bg-purple-600 text-white shadow-xs scale-105'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
+                    ? 'bg-purple-600 text-white shadow-xs scale-105'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
                     }`}
                 >
                   {chip.label}
@@ -461,8 +452,8 @@ export default function PropertyFilter({
                   type="button"
                   onClick={() => setSelectedAreaRange(chip.value)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
-                      ? 'bg-blue-600 text-white shadow-xs scale-105'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
+                    ? 'bg-blue-600 text-white shadow-xs scale-105'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
                     }`}
                 >
                   {chip.label}
@@ -483,8 +474,8 @@ export default function PropertyFilter({
                   type="button"
                   onClick={() => setSelectedPriceRange(chip.value)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${isSelected
-                      ? 'bg-red-600 text-white shadow-xs scale-105'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
+                    ? 'bg-red-600 text-white shadow-xs scale-105'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80'
                     }`}
                 >
                   {chip.label}
@@ -760,8 +751,8 @@ export default function PropertyFilter({
                     type="button"
                     onClick={() => setCustomPriceUnit('billion')}
                     className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${customPriceUnit === 'billion'
-                        ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                   >
                     Tỷ VNĐ (Dành cho mua bán)
@@ -770,8 +761,8 @@ export default function PropertyFilter({
                     type="button"
                     onClick={() => setCustomPriceUnit('million')}
                     className={`py-2 rounded-xl text-xs font-extrabold border transition-all ${customPriceUnit === 'million'
-                        ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      ? 'bg-red-50 text-red-700 border-red-400 ring-2 ring-red-400/20'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                   >
                     Triệu VNĐ (Dành cho thuê)
