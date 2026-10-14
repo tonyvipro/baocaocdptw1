@@ -37,7 +37,43 @@ class StoreContractRequest extends FormRequest
             'tax_code' => 'nullable|string|max:50',
             'terms' => 'nullable|string',
             'status' => 'nullable|integer|in:0,1,2,3',
+            'signing_method' => 'nullable|string|in:ONLINE,DIRECT_MEETING',
+            'meeting_location' => 'nullable|string|max:255',
+            'meeting_time' => 'nullable|date',
+            'notary_office' => 'nullable|string|max:255',
+            'is_high_value' => 'nullable|boolean',
         ];
+    }
+
+    /**
+     * Ràng buộc nghiệp vụ bổ sung (High-Value Business Logic)
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $price = floatval($this->input('rental_price', 0));
+            $deposit = floatval($this->input('deposit_amount', 0));
+            $signingMethod = $this->input('signing_method', 'ONLINE');
+
+            $isHighValue = \App\Models\Contract::isHighValue($price, $deposit);
+
+            // BĐS giá trị lớn (>= 5 Tỷ) bắt buộc gặp mặt ký trực tiếp & công chứng
+            if ($isHighValue) {
+                if ($signingMethod === 'ONLINE') {
+                    $validator->errors()->add(
+                        'signing_method',
+                        'Bất động sản có giá trị lớn (≥ 5 Tỷ VNĐ) bắt buộc phải gặp mặt ký kết và công chứng trực tiếp theo quy định pháp luật. Vui lòng chọn phương thức "Gặp mặt ký trực tiếp & Công chứng".'
+                    );
+                }
+
+                if (empty($this->input('meeting_location'))) {
+                    $validator->errors()->add(
+                        'meeting_location',
+                        'Đối với giao dịch giá trị lớn, vui lòng nhập địa điểm hẹn gặp mặt (Văn phòng công chứng hoặc trụ sở công ty).'
+                    );
+                }
+            }
+        });
     }
 
     public function messages(): array
@@ -52,6 +88,7 @@ class StoreContractRequest extends FormRequest
             'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
             'end_date.required' => 'Ngày kết thúc là bắt buộc.',
             'end_date.after' => 'Ngày kết thúc hợp đồng phải sau ngày bắt đầu.',
+            'signing_method.in' => 'Phương thức ký kết không hợp lệ.',
         ];
     }
 }

@@ -39,9 +39,13 @@ Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'c
 Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
 Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
 
-// Contracts API
+// Contracts API (Spec Hình 38, 39, 40)
 Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
 Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
+Route::get('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'show']);
+Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update']);
+Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
+Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
