@@ -8,7 +8,7 @@ import ContractsManager from './ContractsManager';
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
 import ListingApprovalsManager from './ListingApprovalsManager';
-import UserManagement from './UserManagement';
+import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
 
 // 2. Giữ hàm AdminLayout với đầy đủ các props (bao gồm cả onOpenProfile)
