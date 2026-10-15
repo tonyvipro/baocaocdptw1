@@ -71,6 +71,9 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
       const res = await updateProfile(payload);
       setStatusMessage({ type: 'success', text: 'Cập nhật thông tin hồ sơ thành công!' });
       if (onUserUpdated && res?.user) onUserUpdated(res.user);
+      import('../services/tabSync').then(({ broadcastDataChange }) => {
+        broadcastDataChange({ entity: 'profile', action: 'update', user: res?.user, timestamp: Date.now() });
+      }).catch(() => {});
       setTimeout(() => setStatusMessage(null), 2500);
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Lỗi cập nhật hồ sơ.' });
@@ -272,9 +275,10 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                 <input
                   type="text"
                   required
+                  maxLength={250}
                   value={profileForm.name}
-                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                  placeholder="Họ và tên của bạn"
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value.slice(0, 250) })}
+                  placeholder="Họ và tên của bạn (Tối đa 250 ký tự)"
                   className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
                 />
               </div>
@@ -349,8 +353,9 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                 <input
                   type={showCurrentPw ? 'text' : 'password'}
                   required
+                  maxLength={250}
                   value={passwordForm.current_password}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value.slice(0, 250) })}
                   placeholder="Mật khẩu hiện tại"
                   className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
                 />
@@ -368,9 +373,10 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                 <input
                   type={showNewPw ? 'text' : 'password'}
                   required
+                  maxLength={250}
                   value={passwordForm.password}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
-                  placeholder="Mật khẩu mới (Tối thiểu 8 ký tự)"
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value.slice(0, 250) })}
+                  placeholder="Mật khẩu mới (Tối thiểu 8 ký tự, tối đa 250)"
                   className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
                 />
                 <button
@@ -387,9 +393,10 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
                 <input
                   type={showConfirmPw ? 'text' : 'password'}
                   required
+                  maxLength={250}
                   value={passwordForm.password_confirmation}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
-                  placeholder="Xác nhận mật khẩu mới"
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value.slice(0, 250) })}
+                  placeholder="Xác nhận mật khẩu mới (Tối đa 250 ký tự)"
                   className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
                 />
                 <button
