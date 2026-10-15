@@ -324,20 +324,23 @@ class AuthController extends Controller
             $avatarInput = $request->avatar;
             if (str_starts_with($avatarInput, 'data:image/')) {
                 try {
-                    if (preg_match('/^data:image\/(\w+);base64,/', $avatarInput, $type)) {
-                        $imgData = substr($avatarInput, strpos($avatarInput, ',') + 1);
-                        $ext = strtolower($type[1]);
-                        if ($ext === 'jpeg') $ext = 'jpg';
-                        $imgData = base64_decode($imgData);
+                    $commaPos = strpos($avatarInput, ',');
+                    if ($commaPos !== false) {
+                        $rawBase64 = substr($avatarInput, $commaPos + 1);
+                        $imgData = base64_decode($rawBase64);
 
                         if ($imgData !== false) {
-                            $uploadDir = public_path('uploads/avatars');
-                            if (!file_exists($uploadDir)) {
-                                @mkdir($uploadDir, 0755, true);
+                            $savedPath = $this->processAndSaveAvatar($imgData, $user->id);
+                            if ($savedPath) {
+                                // Xóa avatar cũ trên đĩa nếu là file cục bộ để tiết kiệm dung lượng
+                                if ($user->avatar && str_starts_with($user->avatar, '/uploads/avatars/')) {
+                                    $oldPath = public_path(ltrim($user->avatar, '/'));
+                                    if (file_exists($oldPath)) {
+                                        @unlink($oldPath);
+                                    }
+                                }
+                                $avatarUrl = $savedPath;
                             }
-                            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $ext;
-                            @file_put_contents($uploadDir . '/' . $filename, $imgData);
-                            $avatarUrl = '/uploads/avatars/' . $filename;
                         }
                     }
                 } catch (\Throwable $e) {}
@@ -422,5 +425,67 @@ class AuthController extends Controller
             'status' => 'success',
             'message' => 'Đổi mật khẩu thành công!'
         ]);
+    }
+
+    /**
+     * Tối ưu hóa kích thước ảnh đại diện (Nén, resize max 320x320 dạng WebP/JPEG thumbnail)
+     */
+    private function processAndSaveAvatar(string $imgData, int $userId): ?string
+    {
+        $uploadDir = public_path('uploads/avatars');
+        if (!file_exists($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = 'avatar_' . $userId . '_' . time() . '.webp';
+        $targetPath = $uploadDir . '/' . $filename;
+
+        // Xử lý nén ảnh qua GD library
+        if (function_exists('imagecreatefromstring')) {
+            $src = @imagecreatefromstring($imgData);
+            if ($src !== false) {
+                $width = imagesx($src);
+                $height = imagesy($src);
+
+                $maxDim = 320;
+                $newWidth = $width;
+                $newHeight = $height;
+
+                if ($width > $maxDim || $height > $maxDim) {
+                    if ($width > $height) {
+                        $newWidth = $maxDim;
+                        $newHeight = (int) round(($height * $maxDim) / $width);
+                    } else {
+                        $newHeight = $maxDim;
+                        $newWidth = (int) round(($width * $maxDim) / $height);
+                    }
+                }
+
+                $dst = imagecreatetruecolor($newWidth, $newHeight);
+                imagealphablending($dst, false);
+                imagesavealpha($dst, true);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                if (function_exists('imagewebp')) {
+                    imagewebp($dst, $targetPath, 82);
+                    imagedestroy($src);
+                    imagedestroy($dst);
+                    return '/uploads/avatars/' . $filename;
+                } elseif (function_exists('imagejpeg')) {
+                    $jpgFilename = 'avatar_' . $userId . '_' . time() . '.jpg';
+                    imagejpeg($dst, $uploadDir . '/' . $jpgFilename, 82);
+                    imagedestroy($src);
+                    imagedestroy($dst);
+                    return '/uploads/avatars/' . $jpgFilename;
+                }
+                imagedestroy($src);
+                imagedestroy($dst);
+            }
+        }
+
+        // Fallback ghi file thông thường nếu GD không khả dụng
+        $rawFile = 'avatar_' . $userId . '_' . time() . '.jpg';
+        @file_put_contents($uploadDir . '/' . $rawFile, $imgData);
+        return '/uploads/avatars/' . $rawFile;
     }
 }

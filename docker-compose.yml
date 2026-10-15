@@ -8,6 +8,9 @@ services:
     restart: always
     ports:
       - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
 
@@ -22,6 +25,8 @@ services:
       - "8080:80"
     volumes:
       - ./backend:/var/www/html
+      - ./backend/public/uploads:/var/www/html/public/uploads
+      - ./backend/storage/app/public:/var/www/html/storage/app/public
     environment:
       - APACHE_DOCUMENT_ROOT=/var/www/html/public
       - APP_KEY=base64:nQmTyAa3vuHvoA3wE+XN3c91AknORJxL6S1ulYPCyBQ=
@@ -32,11 +37,11 @@ services:
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
     command: >
-      bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && chmod -R 777 storage bootstrap/cache 2>/dev/null || true && apache2-foreground"
+      bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && mkdir -p public/uploads/avatars storage/app/public storage/framework/{sessions,views,cache} bootstrap/cache && php artisan storage:link 2>/dev/null || true && chmod -R 777 storage bootstrap/cache public/uploads 2>/dev/null || true && apache2-foreground"
     depends_on:
       - db
 
-  # 3. DATABASE (MySQL)
+  # 3. DATABASE (MySQL Persistent)
   db:
     image: mysql:8.0
     container_name: baocaocdptw1_db
