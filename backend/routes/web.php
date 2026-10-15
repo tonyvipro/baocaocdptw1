@@ -185,5 +185,19 @@ Route::put('/api/categories/{id}', [\App\Http\Controllers\CategoryController::cl
 Route::patch('/api/categories/{id}/status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
 Route::delete('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
+// Broker & Assignment Management API (Hình 29 & 30)
+Route::get('/api/brokers', [\App\Http\Controllers\BrokerController::class, 'indexBrokers']);
+Route::post('/api/brokers', [\App\Http\Controllers\BrokerController::class, 'storeBroker']);
+Route::get('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'showBroker']);
+Route::put('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'updateBroker']);
+Route::delete('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyBroker']);
+
+Route::get('/api/broker-assignments', [\App\Http\Controllers\BrokerController::class, 'indexAssignments']);
+Route::post('/api/broker-assignments', [\App\Http\Controllers\BrokerController::class, 'storeAssignment']);
+Route::get('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'showAssignment']);
+Route::put('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'updateAssignment']);
+Route::patch('/api/broker-assignments/{id}/cancel', [\App\Http\Controllers\BrokerController::class, 'cancelAssignment']);
+Route::delete('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyAssignment']);
+
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
 
