@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 // 1. Gộp tất cả các import cần thiết lại với nhau
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
+import PropertyTypesManager from './PropertyTypesManager';
 import ListingApprovalsManager from './ListingApprovalsManager';
 import ListingStatusManager from './ListingStatusManager';
 import UserManagement from '../UserManagement';
@@ -45,6 +46,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
+      { id: 'property-types', label: 'Phân loại Bất Động Sản', icon: Layers, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
@@ -207,12 +209,13 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'listing-status' && <ListingStatusManager />}
+          {activeMenu === 'property-types' && <PropertyTypesManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
