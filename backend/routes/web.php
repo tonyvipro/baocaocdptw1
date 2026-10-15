@@ -165,8 +165,10 @@ Route::get('/api/run-migrate', function () {
     }
 });
 
-// User Management API
+// User Management & Role Assignment API (Chuẩn Hình 11)
 Route::get('/api/users', [\App\Http\Controllers\UserController::class, 'index']);
+Route::get('/api/roles', [\App\Http\Controllers\UserController::class, 'getRoles']);
+Route::put('/api/users/{id}/assign-role', [\App\Http\Controllers\UserController::class, 'assignRole']);
 Route::get('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'show']);
 Route::post('/api/users', [\App\Http\Controllers\UserController::class, 'store']);
 Route::put('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'update']);
