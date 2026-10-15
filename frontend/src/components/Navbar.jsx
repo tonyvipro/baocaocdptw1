@@ -4,7 +4,7 @@ import {
   User, LogIn, UserPlus, LogOut, ChevronDown, PlusCircle,
   MapPin, Clock
 } from 'lucide-react';
-import { triggerDatabaseMigration } from '../services/api';
+import { triggerDatabaseMigration, resolveAvatarUrl } from '../services/api';
 
 export default function Navbar({ 
   activeTab, 
@@ -22,7 +22,9 @@ export default function Navbar({
   onLogout,
   recentCount = 0,
   openRecent,
-  onOpenAdmin
+  onOpenAdmin,
+  onOpenPostProperty,
+  onOpenUserListings
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -189,10 +191,10 @@ export default function Navbar({
                 if (!currentUser) {
                   onOpenAuth('login');
                 } else {
-                  alert('Chức năng Đăng tin dành cho Môi giới/Chủ nhà đang được hoàn thiện trong phiên bản tiếp theo!');
+                  if (onOpenPostProperty) onOpenPostProperty();
                 }
               }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-600 text-red-600 hover:bg-red-600 hover:text-white text-xs font-bold transition-colors cursor-pointer"
             >
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Đăng Tin</span>
@@ -205,8 +207,12 @@ export default function Navbar({
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 rounded-md hover:bg-slate-100 text-xs font-semibold transition-colors border border-slate-200"
                 >
-                  <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase">
-                    {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                  <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden border border-slate-300">
+                    {currentUser.avatar ? (
+                      <img src={resolveAvatarUrl(currentUser.avatar)} alt={currentUser.name} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      currentUser.name ? currentUser.name.charAt(0) : 'U'
+                    )}
                   </div>
                   <span className="hidden sm:inline text-slate-800 font-bold max-w-[100px] truncate">
                     {currentUser.name || currentUser.username}
@@ -231,6 +237,19 @@ export default function Navbar({
                       <User className="w-4 h-4 text-slate-400" />
                       <span>Thông tin tài khoản</span>
                     </button>
+
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenUserListings) onOpenUserListings();
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                      >
+                        <Building2 className="w-4 h-4 text-slate-400" />
+                        <span>Quản lý tin đăng</span>
+                      </button>
+                    )}
 
                     {currentUser && (currentUser.role_id === 1 || currentUser.role_id === 2) && (
                       <button

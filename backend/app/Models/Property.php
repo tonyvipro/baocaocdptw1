@@ -33,11 +33,11 @@ class Property extends Model
     }
 
     /**
-     * Đánh dấu BĐS đã bán/cho thuê thành công (Tự động chuyển status = 0 hoặc tương ứng)
+     * Đánh dấu BĐS đã bán/cho thuê thành công (Chuyển sang trạng thái 2: Đã giao dịch)
      */
     public function markAsSoldOrRented()
     {
-        $this->status = 0; // Giả sử 0 là trạng thái ngừng giao dịch/Đã bán. Tùy thuộc vào design ban đầu.
+        $this->status = 2; // 2 = Đã giao dịch (Bán/Thuê)
         $this->save();
     }
 }

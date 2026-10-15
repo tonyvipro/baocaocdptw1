@@ -19,6 +19,14 @@ class PropertyController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Tự động quét và cập nhật các tin đăng đã quá hạn sang trạng thái Hết hạn (status = 3)
+        try {
+            Property::where('status', 1)
+                ->whereNotNull('expire_date')
+                ->where('expire_date', '<', now())
+                ->update(['status' => 3]);
+        } catch (\Throwable $e) {}
+
         $query = Property::with(['user', 'propertyType', 'images']);
 
         // 1. Tìm kiếm (Địa chỉ, Mã BĐS, Tiêu đề, Dự án, Tên người phụ trách)
@@ -52,11 +60,46 @@ class PropertyController extends Controller
         // 3. Lọc theo Trạng thái (0: Chờ duyệt, 1: Đang hiển thị, 2: Đã bán/thuê, 3: Hết hạn, 4: Đã ẩn)
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('status', $request->input('status'));
+        } elseif ($request->boolean('exclude_pending')) {
+            // Loại trừ tin đang chờ duyệt (status = 0) bên trang danh sách Quản lý BĐS
+            $query->where('status', '!=', 0);
+        } elseif (!$request->has('admin') && !$request->filled('user_id')) {
+            // Khách vãng lai và trang chủ chỉ xem tin đã được kiểm duyệt và hiển thị (status = 1)
+            $query->where('status', 1);
         }
 
         // 4. Lọc theo Mục đích (sale, rent, project)
         if ($request->filled('purpose') && $request->input('purpose') !== 'all') {
             $query->where('purpose', $request->input('purpose'));
+        }
+
+        // Lọc theo người đăng (Môi giới / Chủ nhà xem tin của mình)
+        if ($request->filled('user_id') || $request->filled('user_phone') || $request->filled('user_name')) {
+            $userId = $request->input('user_id');
+            $userPhone = $request->input('user_phone');
+            $userName = $request->input('user_name');
+            $query->where(function ($q) use ($userId, $userPhone, $userName) {
+                $hasCond = false;
+                if (!empty($userId) && is_numeric($userId)) {
+                    $q->where('user_id', (int) $userId);
+                    $hasCond = true;
+                }
+                if (!empty($userPhone)) {
+                    if ($hasCond) {
+                        $q->orWhere('owner_phone', $userPhone);
+                    } else {
+                        $q->where('owner_phone', $userPhone);
+                        $hasCond = true;
+                    }
+                }
+                if (!empty($userName)) {
+                    if ($hasCond) {
+                        $q->orWhere('owner_name', $userName);
+                    } else {
+                        $q->where('owner_name', $userName);
+                    }
+                }
+            });
         }
 
         // 5. Lọc theo Tỉnh/Thành hoặc Khu vực
@@ -135,18 +178,31 @@ class PropertyController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $total = Property::count();
+        // Tự động quét và cập nhật tin quá hạn
+        try {
+            Property::where('status', 1)
+                ->whereNotNull('expire_date')
+                ->where('expire_date', '<', now())
+                ->update(['status' => 3]);
+        } catch (\Throwable $e) {}
+
+        // Tổng tất cả các tin trên hệ thống (bao gồm cả chờ duyệt và ẩn)
+        $allTotal = Property::count();
+        $total = Property::whereNotIn('status', [0, 4])->count();
         $active = Property::where('status', 1)->count();
         $sold = Property::where('status', 2)->count();
+        $expired = Property::where('status', 3)->count();
         $pending = Property::where('status', 0)->count();
         $hidden = Property::where('status', 4)->count();
         $trash = Property::onlyTrashed()->count();
-        $totalValue = (float) Property::where('status', '!=', 4)->sum('price');
+        $totalValue = (float) Property::whereNotIn('status', [0, 4])->sum('price');
 
         return response()->json([
+            'all_total' => $allTotal,
             'total' => $total,
             'active' => $active,
             'sold' => $sold,
+            'expired' => $expired,
             'pending' => $pending,
             'hidden' => $hidden,
             'trash' => $trash,
@@ -246,8 +302,12 @@ class PropertyController extends Controller
             $code .= '-' . rand(10, 99);
         }
 
-        // Lấy thông tin user đăng
-        $authUser = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
+        // Lấy thông tin user đăng (ưu tiên user_id từ request hoặc auth user)
+        $userId = $request->input('user_id');
+        if (empty($userId) || !is_numeric($userId)) {
+            $authUser = auth('sanctum')->user() ?? auth()->user();
+            $userId = $authUser ? $authUser->id : 1;
+        }
 
         $price = (float) $request->input('price');
         $purpose = $request->input('purpose', 'sale');
@@ -260,7 +320,7 @@ class PropertyController extends Controller
 
         $property = Property::create([
             'code' => $code,
-            'user_id' => $authUser ? $authUser->id : 1,
+            'user_id' => (int) $userId,
             'property_type_id' => $request->input('property_type_id', 1),
             'title' => $title,
             'description' => $request->input('description', ''),
@@ -277,7 +337,8 @@ class PropertyController extends Controller
             'legal_status' => $request->input('legal_status', 'Sổ hồng'),
             'build_year' => $request->input('build_year', (int) date('Y')),
             'amenities' => is_array($request->input('amenities')) ? implode(', ', $request->input('amenities')) : $request->input('amenities', ''),
-            'status' => $request->input('status', 1), // Mặc định 1: Đang hiển thị
+            // Đăng tin mới bắt buộc phải ở trạng thái Chờ duyệt (status = 0). Phải qua Admin duyệt mới hiển thị.
+            'status' => ($authUser && $authUser->role_id === 1 && $request->has('status')) ? (int)$request->input('status') : 0,
             'expire_date' => now()->addDays(30),
             'project' => $request->input('project', ''),
             'developer' => $request->input('developer', ''),
@@ -481,8 +542,41 @@ class PropertyController extends Controller
             ], 404);
         }
 
+        $oldStatus = (int) $property->status;
         $status = (int) $request->input('status', 1);
         $property->status = $status;
+
+        $reason = null;
+        // Lưu lý do / ghi chú nếu có
+        if ($request->filled('reason')) {
+            $reason = trim($request->input('reason'));
+            try {
+                if (!Schema::hasColumn('properties', 'rejection_reason')) {
+                    Schema::table('properties', function ($table) {
+                        $table->text('rejection_reason')->nullable();
+                    });
+                }
+                $property->rejection_reason = $reason;
+            } catch (\Throwable $e) {}
+        } elseif ($status === 1) {
+            // Khi được duyệt hiển thị, xóa lý do từ chối cũ nếu có
+            try {
+                if (Schema::hasColumn('properties', 'rejection_reason')) {
+                    $property->rejection_reason = null;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // Nếu chuyển sang Đang hiển thị (status = 1) và bài đăng chưa có hạn hoặc đã quá hạn, tự động gia hạn 30 ngày
+        if ($status === 1) {
+            $curExpire = $property->expire_date ? \Carbon\Carbon::parse($property->expire_date) : null;
+            if (!$curExpire || $curExpire->isPast()) {
+                $days = (int) $request->input('expire_days', 30);
+                if ($days <= 0) $days = 30;
+                $property->expire_date = now()->addDays($days);
+            }
+        }
+
         $property->save();
 
         $statusLabels = [
@@ -490,8 +584,38 @@ class PropertyController extends Controller
             1 => 'Đang hiển thị',
             2 => 'Đã giao dịch (Bán/Thuê)',
             3 => 'Hết hạn',
-            4 => 'Đã ẩn',
+            4 => 'Đã từ chối / Đã ẩn',
         ];
+
+        // Ghi lại lịch sử đổi trạng thái vào activity_logs
+        try {
+            $user = auth('sanctum')->user() ?? auth()->user();
+            $userId = $user ? $user->id : ($request->input('user_id') ?? 1);
+            if (Schema::hasTable('activity_logs')) {
+                DB::table('activity_logs')->insert([
+                    'user_id' => $userId,
+                    'action' => 'CHANGE_STATUS',
+                    'table_name' => 'properties',
+                    'record_id' => $property->id,
+                    'old_data' => json_encode([
+                        'status' => $oldStatus,
+                        'status_name' => $statusLabels[$oldStatus] ?? (string)$oldStatus,
+                    ]),
+                    'new_data' => json_encode([
+                        'status' => $status,
+                        'status_name' => $statusLabels[$status] ?? (string)$status,
+                        'reason' => $reason,
+                        'note' => $request->input('note', $reason),
+                        'changed_by' => $user ? $user->name : ($request->input('user_name') ?? 'Ban Quản Trị'),
+                        'property_code' => $property->code,
+                        'property_title' => $property->title,
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
 
         return response()->json([
             'success' => true,
@@ -501,7 +625,138 @@ class PropertyController extends Controller
     }
 
     /**
-     * Gia hạn tin đăng (Gia hạn thêm 30 ngày)
+     * Lịch sử chuyển đổi trạng thái của tin đăng
+     */
+    public function statusHistory($id): JsonResponse
+    {
+        $property = Property::find($id);
+        if (!$property) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy bất động sản!'
+            ], 404);
+        }
+
+        $logs = [];
+        try {
+            if (Schema::hasTable('activity_logs')) {
+                $statusLabels = [
+                    0 => 'Chờ duyệt',
+                    1 => 'Đang hiển thị',
+                    2 => 'Đã giao dịch (Bán/Thuê)',
+                    3 => 'Hết hạn',
+                    4 => 'Đã từ chối / Đã ẩn',
+                ];
+
+                $logs = DB::table('activity_logs')
+                    ->where('record_id', $id)
+                    ->where('table_name', 'properties')
+                    ->whereIn('action', ['CHANGE_STATUS', 'EXTEND_PROPERTY'])
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($item) use ($statusLabels) {
+                        $item->old_data = json_decode($item->old_data, true);
+                        $item->new_data = json_decode($item->new_data, true);
+
+                        // Đảm bảo tên trạng thái chuẩn
+                        if (isset($item->old_data['status']) && !isset($item->old_data['status_name'])) {
+                            $item->old_data['status_name'] = $statusLabels[(int)$item->old_data['status']] ?? 'Không xác định';
+                        }
+                        if (isset($item->new_data['status']) && !isset($item->new_data['status_name'])) {
+                            $item->new_data['status_name'] = $statusLabels[(int)$item->new_data['status']] ?? 'Không xác định';
+                        }
+
+                        $item->formatted_time = \Carbon\Carbon::parse($item->created_at)->format('H:i:s d/m/Y');
+                        $item->relative_time = \Carbon\Carbon::parse($item->created_at)->diffForHumans();
+                        return $item;
+                    });
+            }
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Danh sách toàn bộ nhật ký thay đổi trạng thái và gia hạn tin trên hệ thống
+     */
+    public function allStatusLogs(Request $request): JsonResponse
+    {
+        $limit = (int) $request->input('limit', 50);
+        if ($limit <= 0 || $limit > 100) {
+            $limit = 50;
+        }
+
+        $logs = [];
+        try {
+            if (Schema::hasTable('activity_logs')) {
+                $statusLabels = [
+                    0 => 'Chờ duyệt',
+                    1 => 'Đang hiển thị',
+                    2 => 'Đã giao dịch (Bán/Thuê)',
+                    3 => 'Hết hạn',
+                    4 => 'Đã từ chối / Đã ẩn',
+                ];
+
+                $query = DB::table('activity_logs')
+                    ->where('table_name', 'properties')
+                    ->whereIn('action', ['CHANGE_STATUS', 'EXTEND_PROPERTY']);
+
+                if ($request->filled('record_id')) {
+                    $query->where('record_id', $request->input('record_id'));
+                }
+
+                $logs = $query->orderBy('created_at', 'desc')
+                    ->limit($limit)
+                    ->get()
+                    ->map(function ($item) use ($statusLabels) {
+                        $item->old_data = json_decode($item->old_data, true);
+                        $item->new_data = json_decode($item->new_data, true);
+
+                        // Đảm bảo tên trạng thái chuẩn
+                        if (isset($item->old_data['status']) && !isset($item->old_data['status_name'])) {
+                            $item->old_data['status_name'] = $statusLabels[(int)$item->old_data['status']] ?? 'Không xác định';
+                        }
+                        if (isset($item->new_data['status']) && !isset($item->new_data['status_name'])) {
+                            $item->new_data['status_name'] = $statusLabels[(int)$item->new_data['status']] ?? 'Không xác định';
+                        }
+
+                        // Lấy thêm thông tin BĐS nếu thiếu trong log
+                        if ((!isset($item->new_data['property_title']) || empty($item->new_data['property_title'])) && $item->record_id) {
+                            $prop = DB::table('properties')->where('id', $item->record_id)->first(['title', 'code']);
+                            if ($prop) {
+                                if (!is_array($item->new_data)) $item->new_data = [];
+                                $item->new_data['property_title'] = $prop->title;
+                                $item->new_data['property_code'] = $prop->code;
+                            }
+                        }
+
+                        // Lấy tên người thực hiện nếu thiếu
+                        if ((!isset($item->new_data['changed_by']) || empty($item->new_data['changed_by'])) && $item->user_id) {
+                            $u = DB::table('users')->where('id', $item->user_id)->first(['name']);
+                            if ($u) {
+                                if (!is_array($item->new_data)) $item->new_data = [];
+                                $item->new_data['changed_by'] = $u->name;
+                            }
+                        }
+
+                        $item->formatted_time = \Carbon\Carbon::parse($item->created_at)->format('H:i:s d/m/Y');
+                        $item->relative_time = \Carbon\Carbon::parse($item->created_at)->diffForHumans();
+                        return $item;
+                    });
+            }
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Gia hạn tin đăng (Hỗ trợ chọn số ngày: 7, 15, 30, 60, 90 ngày hoặc tùy chọn)
      */
     public function extend(Request $request, $id): JsonResponse
     {
@@ -514,24 +769,111 @@ class PropertyController extends Controller
         }
 
         $days = (int) $request->input('days', 30);
-        $currentExpire = $property->expire_date ? \Carbon\Carbon::parse($property->expire_date) : now();
-        if ($currentExpire->isPast()) {
-            $currentExpire = now();
+        if ($days <= 0) {
+            $days = 30;
         }
 
-        $property->expire_date = $currentExpire->addDays($days);
-        $property->status = 1; // Kích hoạt lại nếu đang hết hạn
+        $oldExpire = $property->expire_date ? \Carbon\Carbon::parse($property->expire_date) : null;
+        
+        // Nếu truyền cụ thể ngày kết thúc mới
+        if ($request->filled('expire_date')) {
+            $newExpire = \Carbon\Carbon::parse($request->input('expire_date'));
+            if ($newExpire->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ngày hết hạn mới phải lớn hơn thời điểm hiện tại!'
+                ], 422);
+            }
+            $days = max(1, (int) now()->diffInDays($newExpire));
+        } else {
+            // Nếu đã quá hạn thì tính từ hiện tại, còn nếu chưa hết hạn thì cộng nối tiếp ngày hết hạn cũ
+            if ($oldExpire && $oldExpire->isFuture()) {
+                $newExpire = $oldExpire->copy()->addDays($days);
+            } else {
+                $newExpire = now()->addDays($days);
+            }
+        }
+
+        $oldStatus = $property->status;
+        $property->expire_date = $newExpire;
+        $property->status = 1; // Kích hoạt lại hiển thị nếu đang hết hạn hoặc ẩn
         $property->save();
+
+        // Ghi lại nhật ký gia hạn vào activity_logs
+        try {
+            $user = auth('sanctum')->user() ?? auth()->user();
+            $userId = $user ? $user->id : ($request->input('user_id') ?? $property->user_id);
+            if (Schema::hasTable('activity_logs')) {
+                DB::table('activity_logs')->insert([
+                    'user_id' => $userId,
+                    'action' => 'EXTEND_PROPERTY',
+                    'table_name' => 'properties',
+                    'record_id' => $property->id,
+                    'old_data' => json_encode([
+                        'expire_date' => $oldExpire ? $oldExpire->toDateTimeString() : null,
+                        'status' => $oldStatus,
+                    ]),
+                    'new_data' => json_encode([
+                        'expire_date' => $newExpire->toDateTimeString(),
+                        'days_extended' => $days,
+                        'status' => 1,
+                        'note' => $request->input('note', 'Gia hạn tin đăng'),
+                        'property_code' => $property->code,
+                        'property_title' => $property->title,
+                    ]),
+                    'ip_address' => $request->ip(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {}
 
         return response()->json([
             'success' => true,
-            'message' => "Gia hạn tin đăng thêm {$days} ngày thành công! Hạn mới đến: " . $property->expire_date->format('d/m/Y'),
-            'data' => $property
+            'message' => "Gia hạn tin đăng [{$property->code}] thêm {$days} ngày thành công! Hạn hiển thị mới đến: " . $property->expire_date->format('d/m/Y H:i'),
+            'data' => $property,
+            'new_expire_date' => $property->expire_date->format('d/m/Y H:i'),
+            'days_extended' => $days
         ]);
     }
 
     /**
-     * Thao tác hàng loạt (Bulk Actions: restore, force_delete, delete, change_status)
+     * Lịch sử các lần gia hạn của tin đăng
+     */
+    public function extensionHistory($id): JsonResponse
+    {
+        $property = Property::find($id);
+        if (!$property) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy bất động sản!'
+            ], 404);
+        }
+
+        $logs = [];
+        try {
+            if (Schema::hasTable('activity_logs')) {
+                $logs = DB::table('activity_logs')
+                    ->where('record_id', $id)
+                    ->where('table_name', 'properties')
+                    ->where('action', 'EXTEND_PROPERTY')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($item) {
+                        $item->details = json_decode($item->new_data, true);
+                        return $item;
+                    });
+            }
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs
+        ]);
+    }
+
+    /**
+     * Thao tác hàng loạt (Bulk Actions: restore, force_delete, delete, change_status, approve, reject)
      */
     public function bulkAction(Request $request): JsonResponse
     {
@@ -569,6 +911,132 @@ class PropertyController extends Controller
             case 'approve':
                 Property::whereIn('id', $ids)->update(['status' => 1]);
                 $message = 'Đã phê duyệt các tin đăng đã chọn!';
+                break;
+            case 'mark_sold':
+                Property::whereIn('id', $ids)->update(['status' => 2]);
+                $message = 'Đã đánh dấu Đã giao dịch (Bán/Thuê) cho các bất động sản đã chọn!';
+                break;
+            case 'change_status':
+                $newStatus = (int) $request->input('status', 1);
+                $reason = $request->input('reason', null);
+                $statusLabels = [
+                    0 => 'Chờ duyệt',
+                    1 => 'Đang hiển thị',
+                    2 => 'Đã giao dịch (Bán/Thuê)',
+                    3 => 'Hết hạn',
+                    4 => 'Đã từ chối / Đã ẩn',
+                ];
+
+                $targetProps = Property::whereIn('id', $ids)->get();
+                $user = auth('sanctum')->user() ?? auth()->user();
+                $changedByName = $user ? $user->name : ($request->input('user_name') ?? 'Ban Quản Trị');
+
+                foreach ($targetProps as $prop) {
+                    $oldStatus = (int) $prop->status;
+                    $prop->status = $newStatus;
+
+                    if ($newStatus === 4 && $reason) {
+                        try {
+                            if (!Schema::hasColumn('properties', 'rejection_reason')) {
+                                Schema::table('properties', function ($table) {
+                                    $table->text('rejection_reason')->nullable();
+                                });
+                            }
+                            $prop->rejection_reason = $reason;
+                        } catch (\Throwable $e) {}
+                    } elseif ($newStatus === 1) {
+                        try {
+                            if (Schema::hasColumn('properties', 'rejection_reason')) {
+                                $prop->rejection_reason = null;
+                            }
+                        } catch (\Throwable $e) {}
+                        $cur = $prop->expire_date ? \Carbon\Carbon::parse($prop->expire_date) : null;
+                        if (!$cur || $cur->isPast()) {
+                            $prop->expire_date = now()->addDays(30);
+                        }
+                    }
+
+                    $prop->save();
+
+                    // Log activity
+                    try {
+                        if (Schema::hasTable('activity_logs')) {
+                            DB::table('activity_logs')->insert([
+                                'user_id' => $user ? $user->id : 1,
+                                'action' => 'CHANGE_STATUS',
+                                'table_name' => 'properties',
+                                'record_id' => $prop->id,
+                                'old_data' => json_encode([
+                                    'status' => $oldStatus,
+                                    'status_name' => $statusLabels[$oldStatus] ?? (string)$oldStatus,
+                                ]),
+                                'new_data' => json_encode([
+                                    'status' => $newStatus,
+                                    'status_name' => $statusLabels[$newStatus] ?? (string)$newStatus,
+                                    'reason' => $reason,
+                                    'bulk' => true,
+                                    'changed_by' => $changedByName,
+                                    'property_code' => $prop->code,
+                                    'property_title' => $prop->title,
+                                ]),
+                                'ip_address' => $request->ip(),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
+                $message = 'Đã cập nhật trạng thái ' . count($targetProps) . ' bất động sản sang: ' . ($statusLabels[$newStatus] ?? $newStatus);
+                break;
+            case 'extend':
+                $days = (int) $request->input('days', 30);
+                if ($days <= 0) $days = 30;
+
+                $targetProps = Property::whereIn('id', $ids)->get();
+                foreach ($targetProps as $prop) {
+                    $cur = $prop->expire_date ? \Carbon\Carbon::parse($prop->expire_date) : now();
+                    if ($cur->isPast()) {
+                        $cur = now();
+                    }
+                    $prop->expire_date = $cur->addDays($days);
+                    $prop->status = 1;
+                    $prop->save();
+
+                    try {
+                        if (Schema::hasTable('activity_logs')) {
+                            DB::table('activity_logs')->insert([
+                                'user_id' => auth('sanctum')->id() ?? 1,
+                                'action' => 'EXTEND_PROPERTY',
+                                'table_name' => 'properties',
+                                'record_id' => $prop->id,
+                                'new_data' => json_encode([
+                                    'expire_date' => $prop->expire_date->toDateTimeString(),
+                                    'days_extended' => $days,
+                                    'bulk' => true,
+                                ]),
+                                'ip_address' => $request->ip(),
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+                $message = "Đã gia hạn thành công " . count($targetProps) . " bất động sản thêm {$days} ngày!";
+                break;
+            case 'reject':
+                $reason = trim($request->input('reason', 'Không đạt tiêu chuẩn kiểm duyệt'));
+                try {
+                    if (!Schema::hasColumn('properties', 'rejection_reason')) {
+                        Schema::table('properties', function ($table) {
+                            $table->text('rejection_reason')->nullable();
+                        });
+                    }
+                    Property::whereIn('id', $ids)->update(['status' => 4, 'rejection_reason' => $reason]);
+                } catch (\Throwable $e) {
+                    Property::whereIn('id', $ids)->update(['status' => 4]);
+                }
+                $message = 'Đã từ chối các tin đăng đã chọn!';
                 break;
             default:
                 return response()->json([

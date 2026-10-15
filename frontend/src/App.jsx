@@ -11,6 +11,8 @@ import CompareDrawer from './components/CompareDrawer';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import RecentViewsModal from './components/RecentViewsModal';
+import PostPropertyModal from './components/PostPropertyModal';
+import UserListingsModal from './components/UserListingsModal';
 import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
@@ -54,6 +56,8 @@ export default function App() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showRecentModal, setShowRecentModal] = useState(false);
+  const [showPostPropertyModal, setShowPostPropertyModal] = useState(false);
+  const [showUserListingsModal, setShowUserListingsModal] = useState(false);
 
   // Favorites (LocalStorage)
   const [favorites, setFavorites] = useState(() => {
@@ -102,13 +106,13 @@ export default function App() {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ email: userToAuth.email || 'admin@3tvland.vn', password: 'admin' })
       })
-      .then(res => res.json())
-      .then(resData => {
-        if (resData?.token) {
-          localStorage.setItem('3tv_token', resData.token);
-        }
-      })
-      .catch(() => {});
+        .then(res => res.json())
+        .then(resData => {
+          if (resData?.token) {
+            localStorage.setItem('3tv_token', resData.token);
+          }
+        })
+        .catch(() => { });
     }
   };
 
@@ -144,12 +148,12 @@ export default function App() {
             const merged = Array.from(map.values()).slice(0, 30);
             try {
               localStorage.setItem('3tv_recent_views', JSON.stringify(merged));
-            } catch (e) {}
+            } catch (e) { }
             return merged;
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Save Favorites to LocalStorage
@@ -205,7 +209,7 @@ export default function App() {
     });
 
     // Ghi nhận ngầm lên Backend (Chức năng số 20: Lịch sử xem)
-    recordViewHistory(enrichedProp).catch(() => {});
+    recordViewHistory(enrichedProp).catch(() => { });
   };
 
   const handleRemoveRecentItem = (code) => {
@@ -213,18 +217,18 @@ export default function App() {
       const updated = prev.filter((p) => p.code !== code);
       try {
         localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
-    clearViewHistoryApi(code).catch(() => {});
+    clearViewHistoryApi(code).catch(() => { });
   };
 
   const handleClearRecent = () => {
     setRecentViews([]);
     try {
       localStorage.removeItem('3tv_recent_views');
-    } catch (e) {}
-    clearViewHistoryApi().catch(() => {});
+    } catch (e) { }
+    clearViewHistoryApi().catch(() => { });
   };
 
   const formatRecentTimeAgo = (dateInput) => {
@@ -304,8 +308,40 @@ export default function App() {
       // 5. Developer Filter
       if (selectedDeveloper !== 'all' && prop.developer !== selectedDeveloper) return false;
 
-      // 6. Property Type Filter
-      if (selectedType !== 'all' && prop.type !== selectedType) return false;
+      // 6. Chức năng Lọc Theo Loại BĐS (Đặc tả Hình 20 - Branch: quyen/Filter_by_type)
+      if (selectedType && selectedType !== 'all') {
+        const propType = (prop.type || '').toLowerCase();
+        switch (selectedType) {
+          case 'can-ho':
+          case 'Căn hộ':
+          case 'Căn hộ cao cấp':
+            if (!propType.includes('căn hộ') && !propType.includes('chung cư') && !propType.includes('apartment')) return false;
+            break;
+          case 'nha-pho':
+          case 'Nhà phố':
+          case 'Nhà phố / Liền kề':
+            if (!propType.includes('nhà phố') && !propType.includes('liền kề') && !propType.includes('nhà riêng') && !propType.includes('townhouse')) return false;
+            break;
+          case 'biet-thu':
+          case 'Biệt thự':
+          case 'Biệt thự nghỉ dưỡng':
+            if (!propType.includes('biệt thự') && !propType.includes('villa')) return false;
+            break;
+          case 'dat-nen':
+          case 'Đất nền':
+          case 'Đất nền dự án':
+            if (!propType.includes('đất nền') && !propType.includes('đất')) return false;
+            break;
+          case 'mat-bang':
+          case 'Mặt bằng':
+          case 'Mặt bằng kinh doanh':
+            if (!propType.includes('mặt bằng') && !propType.includes('shophouse') && !propType.includes('kinh doanh')) return false;
+            break;
+          default:
+            if (prop.type !== selectedType && !propType.includes(selectedType.toLowerCase())) return false;
+            break;
+        }
+      }
 
       // 7. Bedrooms Filter
       if (selectedBedrooms !== 'all') {
@@ -313,30 +349,145 @@ export default function App() {
         if (prop.bedrooms !== bedNum) return false;
       }
 
-      // 8. Price Range Filter
-      if (selectedPriceRange !== 'all') {
-        const priceSale = prop.price_sale ? parseFloat(prop.price_sale) : 0;
-        const priceRent = prop.price_rent ? parseFloat(prop.price_rent) : 0;
+      // 8. Chức năng Lọc Theo Giá (Đặc tả Hình 18 - Branch quyen/Filter_by_price)
+      if (selectedPriceRange && selectedPriceRange !== 'all') {
+        // Lấy giá trị tiền tệ thực tế của BĐS (hỗ trợ cả dữ liệu MySQL API và JSON tĩnh)
+        let pVal = 0;
+        if (prop.price !== undefined && prop.price !== null && !isNaN(prop.price) && Number(prop.price) > 0) {
+          pVal = Number(prop.price);
+        } else if (prop.price_sale !== undefined && prop.price_sale !== null && !isNaN(prop.price_sale) && Number(prop.price_sale) > 0) {
+          pVal = Number(prop.price_sale);
+        } else if (prop.price_rent !== undefined && prop.price_rent !== null && !isNaN(prop.price_rent) && Number(prop.price_rent) > 0) {
+          pVal = Number(prop.price_rent);
+        }
 
-        if (selectedPriceRange === 'under-3b' && priceSale > 3000000000) return false;
-        if (selectedPriceRange === '3b-6b' && (priceSale < 3000000000 || priceSale > 6000000000)) return false;
-        if (selectedPriceRange === '6b-15b' && (priceSale < 6000000000 || priceSale > 15000000000)) return false;
-        if (selectedPriceRange === '15b-30b' && (priceSale < 15000000000 || priceSale > 30000000000)) return false;
-        if (selectedPriceRange === 'above-30b' && priceSale < 30000000000) return false;
+        // 8.1. Lọc theo khoảng giá tùy chỉnh (Custom Min - Max: "custom:min-max")
+        if (selectedPriceRange.startsWith('custom:')) {
+          const parts = selectedPriceRange.replace('custom:', '').split('-');
+          const minP = parseFloat(parts[0]) || 0;
+          const maxP = parseFloat(parts[1]) || Infinity;
+          if (pVal < minP || pVal > maxP) return false;
+        } else {
+          // 8.2. Lọc theo các khoảng giá định sẵn (Bao gồm đặc tả Hình 18: Dưới 10 Tỷ - 30 Tỷ+)
+          switch (selectedPriceRange) {
+            case 'under-1b':
+              if (pVal >= 1000000000) return false;
+              break;
+            case '1b-3b':
+              if (pVal < 1000000000 || pVal > 3000000000) return false;
+              break;
+            case 'under-3b':
+              if (pVal > 3000000000) return false;
+              break;
+            case '3b-5b':
+              if (pVal < 3000000000 || pVal > 5000000000) return false;
+              break;
+            case '3b-6b':
+              if (pVal < 3000000000 || pVal > 6000000000) return false;
+              break;
+            case '5b-10b':
+              if (pVal < 5000000000 || pVal > 10000000000) return false;
+              break;
+            case '6b-15b':
+              if (pVal < 6000000000 || pVal > 15000000000) return false;
+              break;
+            case '10b-20b':
+              if (pVal < 10000000000 || pVal > 20000000000) return false;
+              break;
+            case '10b-30b': // Đặc tả Hình 18 trong báo cáo: Dưới 10 Tỷ - 30 Tỷ+
+              if (pVal < 10000000000 || pVal > 30000000000) return false;
+              break;
+            case '15b-30b':
+              if (pVal < 15000000000 || pVal > 30000000000) return false;
+              break;
+            case '20b-30b':
+              if (pVal < 20000000000 || pVal > 30000000000) return false;
+              break;
+            case 'above-30b':
+              if (pVal < 30000000000) return false;
+              break;
 
-        if (selectedPriceRange === 'rent-under-15m' && priceRent > 15000000) return false;
-        if (selectedPriceRange === 'rent-15m-30m' && (priceRent < 15000000 || priceRent > 30000000)) return false;
-        if (selectedPriceRange === 'rent-above-30m' && priceRent < 30000000) return false;
+            // Các mức giá cho thuê (Đơn vị VNĐ/tháng)
+            case 'rent-under-5m':
+              if (pVal >= 5000000) return false;
+              break;
+            case 'rent-5m-10m':
+              if (pVal < 5000000 || pVal > 10000000) return false;
+              break;
+            case 'rent-under-15m':
+              if (pVal > 15000000) return false;
+              break;
+            case 'rent-10m-20m':
+              if (pVal < 10000000 || pVal > 20000000) return false;
+              break;
+            case 'rent-15m-30m':
+              if (pVal < 15000000 || pVal > 30000000) return false;
+              break;
+            case 'rent-20m-40m':
+              if (pVal < 20000000 || pVal > 40000000) return false;
+              break;
+            case 'rent-above-30m':
+              if (pVal < 30000000) return false;
+              break;
+            case 'rent-above-40m':
+              if (pVal < 40000000) return false;
+              break;
+            default:
+              break;
+          }
+        }
       }
 
-      // 9. Area Range Filter
-      if (selectedAreaRange !== 'all') {
-        const area = prop.area || 0;
-        if (selectedAreaRange === 'under-50' && area >= 50) return false;
-        if (selectedAreaRange === '50-80' && (area < 50 || area >= 80)) return false;
-        if (selectedAreaRange === '80-120' && (area < 80 || area >= 120)) return false;
-        if (selectedAreaRange === '120-200' && (area < 120 || area >= 200)) return false;
-        if (selectedAreaRange === 'above-200' && area < 200) return false;
+      // 9. Chức năng Lọc Theo Diện Tích (Đặc tả Hình 19 - Branch: quyen/Filter_by_area)
+      if (selectedAreaRange && selectedAreaRange !== 'all') {
+        const areaVal = prop.area !== undefined && prop.area !== null && !isNaN(prop.area) ? parseFloat(prop.area) : 0;
+
+        // 9.1. Lọc theo khoảng diện tích tùy chỉnh (Custom Min - Max: "custom-area:min-max")
+        if (selectedAreaRange.startsWith('custom-area:')) {
+          const parts = selectedAreaRange.replace('custom-area:', '').split('-');
+          const minA = parseFloat(parts[0]) || 0;
+          const maxA = parseFloat(parts[1]) || Infinity;
+          if (areaVal < minA || areaVal > maxA) return false;
+        } else {
+          // 9.2. Lọc theo các khoảng diện tích chuẩn (Bao gồm đặc tả Hình 19: 50m2 - 150m2+)
+          switch (selectedAreaRange) {
+            case 'under-30':
+              if (areaVal >= 30) return false;
+              break;
+            case '30-50':
+              if (areaVal < 30 || areaVal > 50) return false;
+              break;
+            case 'under-50':
+              if (areaVal >= 50) return false;
+              break;
+            case '50-80':
+              if (areaVal < 50 || areaVal > 80) return false;
+              break;
+            case '50-150': // Đặc tả Hình 19 trong báo cáo: 50m2 - 150m2+
+              if (areaVal < 50 || areaVal > 150) return false;
+              break;
+            case '80-120':
+              if (areaVal < 80 || areaVal > 120) return false;
+              break;
+            case '120-200':
+              if (areaVal < 120 || areaVal > 200) return false;
+              break;
+            case '200-300':
+              if (areaVal < 200 || areaVal > 300) return false;
+              break;
+            case 'above-150':
+              if (areaVal < 150) return false;
+              break;
+            case 'above-200':
+              if (areaVal < 200) return false;
+              break;
+            case 'above-300':
+              if (areaVal < 300) return false;
+              break;
+            default:
+              break;
+          }
+        }
       }
 
       return true;
@@ -398,11 +549,27 @@ export default function App() {
   // Nếu đang ở chế độ admin, render nguyên cụm layout admin
   if (currentAppMode === 'admin') {
     return (
-      <AdminLayout 
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        onExitAdmin={() => setCurrentAppMode('client')}
-      />
+      <>
+        <AdminLayout
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onExitAdmin={() => {
+            setCurrentAppMode('client');
+            loadData(); // Tải lại dữ liệu từ master
+          }}
+          onOpenProfile={() => setShowProfileModal(true)} // Giữ từ nhánh Giang
+        />
+        <UserProfileModal
+          isOpen={showProfileModal}
+          currentUser={currentUser}
+          onClose={() => setShowProfileModal(false)}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
+          }}
+          onLogout={handleLogout}
+        />
+      </>
     );
   }
 
@@ -415,7 +582,7 @@ export default function App() {
         favoriteCount={favorites.length}
         openFavorites={() => setShowFavoritesModal(true)}
         compareCount={comparedList.length}
-        openCompare={() => {}}
+        openCompare={() => { }}
         openContactModal={() => {
           setContactProperty(null);
           setShowContactModal(true);
@@ -432,6 +599,8 @@ export default function App() {
         onLogout={handleLogout}
         recentCount={recentViews.length}
         openRecent={() => setShowRecentModal(true)}
+        onOpenPostProperty={() => setShowPostPropertyModal(true)}
+        onOpenUserListings={() => setShowUserListingsModal(true)}
       />
 
       {/* Hero & Search Section */}
@@ -461,7 +630,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main id="listing-section" className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        
+
         {/* Section Heading & Breadcrumbs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200">
           <div>
@@ -497,6 +666,8 @@ export default function App() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           resetFilters={resetFilters}
+          totalResults={filteredProperties.length}
+          activeTab={activeTab}
         />
 
         {/* Loading State */}
@@ -590,8 +761,8 @@ export default function App() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {recentViews.slice(0, 6).map((p) => (
-                <div 
-                  key={p.code} 
+                <div
+                  key={p.code}
                   onClick={() => handleSelectProperty(p)}
                   className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 p-2.5 cursor-pointer transition-all hover:shadow-xs group relative flex flex-col justify-between"
                 >
@@ -609,15 +780,14 @@ export default function App() {
 
                   <div>
                     <div className="relative h-24 sm:h-28 rounded-lg overflow-hidden mb-2 bg-slate-100">
-                      <img 
-                        src={p.image} 
-                        alt={p.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
-                      <span className={`absolute bottom-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded text-white ${
-                        p.purpose === 'rent' ? 'bg-blue-600' : 'bg-red-600'
-                      }`}>
+                      <span className={`absolute bottom-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded text-white ${p.purpose === 'rent' ? 'bg-blue-600' : 'bg-red-600'
+                        }`}>
                         {p.purpose === 'rent' ? 'Thuê' : 'Bán'}
                       </span>
                     </div>
@@ -646,6 +816,8 @@ export default function App() {
         onClose={() => setSelectedProperty(null)}
         isFavorite={selectedProperty ? favorites.some((f) => f.code === selectedProperty.code) : false}
         onToggleFavorite={handleToggleFavorite}
+        isCompared={selectedProperty ? comparedList.some((c) => c.code === selectedProperty.code) : false}
+        onToggleCompare={handleToggleCompare}
         onOpenContact={(p) => {
           setContactProperty(p);
           setShowContactModal(true);
@@ -686,6 +858,27 @@ export default function App() {
           localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
         }}
         onLogout={handleLogout}
+      />
+
+      {/* Modal Đăng Tin */}
+      <PostPropertyModal
+        isOpen={showPostPropertyModal}
+        onClose={() => {
+          setShowPostPropertyModal(false);
+          loadData();
+        }}
+        currentUser={currentUser}
+      />
+
+      {/* Modal Quản Lý Tin Đăng (Cho Môi giới / Chủ nhà) */}
+      <UserListingsModal
+        isOpen={showUserListingsModal}
+        onClose={() => setShowUserListingsModal(false)}
+        currentUser={currentUser}
+        onOpenPostProperty={() => {
+          setShowUserListingsModal(false);
+          setShowPostPropertyModal(true);
+        }}
       />
 
       {/* Favorites Modal */}

@@ -1,21 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+// 1. Gộp tất cả các import cần thiết lại với nhau
+import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
+import ListingApprovalsManager from './ListingApprovalsManager';
+import ListingStatusManager from './ListingStatusManager';
 import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
 
-export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
-  const [activeMenu, setActiveMenu] = useState('appointments'); // Mặc định mở trang lịch hẹn
+export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
+  const [activeMenu, setActiveMenu] = useState(() => localStorage.getItem('3tv_admin_active_menu') || 'approvals');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Tải số lượng tin chờ duyệt cho badge sidebar
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const token = localStorage.getItem('3tv_token') || '';
+        const res = await fetch('/api/properties/stats', {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.pending || 0);
+        }
+      } catch (e) {}
+    };
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // 1. Phân quyền hiển thị Menu bên trái
   const getMenuItems = () => {
     const items = [
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
+      { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
+      { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
@@ -58,12 +87,27 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
         </div>
 
         {/* User Info */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white shadow-inner">
-            {currentUser?.name?.charAt(0) || 'U'}
+        <div 
+          onClick={onOpenProfile} 
+          className="px-6 py-5 border-b border-slate-800 flex items-center gap-3 cursor-pointer hover:bg-slate-800/60 transition-colors group"
+          title="Nhấn để cập nhật hồ sơ"
+        >
+          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white shadow-inner overflow-hidden border border-slate-600 shrink-0">
+            {currentUser?.avatar ? (
+              <img 
+                src={resolveAvatarUrl(currentUser.avatar)} 
+                alt={currentUser.name} 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            ) : (
+              currentUser?.name?.charAt(0) || 'U'
+            )}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-bold text-white truncate">{currentUser?.name}</p>
+            <p className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{currentUser?.name}</p>
             <p className="text-[11px] text-emerald-400 font-semibold truncate">
               {currentUser?.role_id === 1 ? 'Quản Trị Viên (Admin)' : 'Môi Giới (Broker)'}
             </p>
@@ -78,15 +122,25 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
           {menuItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              onClick={() => {
+                setActiveMenu(item.id);
+                localStorage.setItem('3tv_admin_active_menu', item.id);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeMenu === item.id 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : 'hover:bg-slate-800 hover:text-white text-slate-400'
               }`}
             >
-              <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
-              {item.label}
+              <div className="flex items-center gap-3">
+                <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
+                <span>{item.label}</span>
+              </div>
+              {item.badgeCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500 text-slate-950 animate-pulse shadow-xs">
+                  {item.badgeCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -130,17 +184,35 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin }) {
             <div className="hidden sm:block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               Chế độ Quản Trị Hệ Thống
             </div>
+            {onOpenProfile && (
+              <button 
+                onClick={onOpenProfile}
+                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200 text-xs font-semibold text-slate-700"
+                title="Cập nhật hồ sơ & đổi mật khẩu"
+              >
+                <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase overflow-hidden border border-slate-300">
+                  {currentUser?.avatar ? (
+                    <img src={resolveAvatarUrl(currentUser.avatar)} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                    currentUser?.name?.charAt(0) || 'A'
+                  )}
+                </div>
+                <span className="hidden md:inline font-bold text-slate-800">{currentUser?.name || 'Admin'}</span>
+              </button>
+            )}
           </div>
         </header>
 
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {activeMenu === 'approvals' && <ListingApprovalsManager />}
+          {activeMenu === 'listing-status' && <ListingStatusManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

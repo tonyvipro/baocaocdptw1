@@ -39,9 +39,13 @@ Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'c
 Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
 Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
 
-// Contracts API
+// Contracts API (Spec Hình 38, 39, 40)
 Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
 Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
+Route::get('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'show']);
+Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update']);
+Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
+Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
@@ -114,6 +118,7 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
 Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyController::class, 'stats']);
 Route::get('/api/properties/trash', [\App\Http\Controllers\PropertyController::class, 'trash']);
 Route::post('/api/properties/bulk-action', [\App\Http\Controllers\PropertyController::class, 'bulkAction']);
+Route::get('/api/properties/status-logs', [\App\Http\Controllers\PropertyController::class, 'allStatusLogs']);
 Route::get('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'show']);
 Route::post('/api/properties', [\App\Http\Controllers\PropertyController::class, 'store']);
 Route::put('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
@@ -123,6 +128,8 @@ Route::patch('/api/properties/{id}/restore', [\App\Http\Controllers\PropertyCont
 Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyController::class, 'forceDelete']);
 Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
 Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
+Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\PropertyController::class, 'extensionHistory']);
+Route::get('/api/properties/{id}/status-history', [\App\Http\Controllers\PropertyController::class, 'statusHistory']);
 Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
 
