@@ -102,9 +102,10 @@ export default function HeroSection({
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/80" />
                 <input
                   type="text"
+                  maxLength={250}
                   value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="Nhập tên dự án, đường, mã căn..."
+                  onChange={(e) => setSearchKeyword(e.target.value.slice(0, 250))}
+                  placeholder="Nhập tên dự án, đường, mã căn (tối đa 250 ký tự)..."
                   className="w-full pl-9 pr-3 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white placeholder:text-slate-200/70 border border-white/25 focus:border-white/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 transition-all shadow-inner backdrop-blur-[1px]"
                 />
               </div>

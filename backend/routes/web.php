@@ -175,4 +175,13 @@ Route::delete('/api/users/{id}', [\App\Http\Controllers\UserController::class, '
 Route::get('/api/reports/statistics', [App\Http\Controllers\ReportController::class, 'getStatistics']);
 Route::get('/api/dashboard/overview', [\App\Http\Controllers\DashboardController::class, 'getOverview']);
 
+// Category Management API (Hình 50)
+Route::get('/api/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+Route::get('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
+Route::post('/api/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+Route::put('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
+Route::patch('/api/categories/{id}/status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
+Route::delete('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
+
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
+

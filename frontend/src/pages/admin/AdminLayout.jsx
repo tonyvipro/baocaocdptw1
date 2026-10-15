@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 // 1. Gộp tất cả các import cần thiết lại với nhau
@@ -12,6 +12,7 @@ import ListingStatusManager from './ListingStatusManager';
 import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
 import DashboardOverview from './DashboardOverview';
+import CategoryManagement from './CategoryManagement';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
   // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
@@ -87,6 +88,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   const getMenuItems = () => {
     const items = [
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
+      { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
@@ -247,6 +249,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'dashboard' && <DashboardOverview />}
+          {activeMenu === 'categories' && <CategoryManagement />}
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'listing-status' && <ListingStatusManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
@@ -254,7 +257,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'dashboard' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
@@ -355,10 +358,11 @@ function AppointmentsManager() {
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <input 
             type="text" 
+            maxLength={250}
             placeholder="Tìm KH hoặc Môi giới..." 
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value.slice(0, 250))}
           />
           <select 
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-40"
