@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 // 1. Gộp tất cả các import cần thiết lại với nhau
@@ -14,6 +14,7 @@ import StatisticalReport from './StatisticalReport';
 import DashboardOverview from './DashboardOverview';
 import CategoryManagement from './CategoryManagement';
 import RoleAssignment from './RoleAssignment';
+import BrokerManagement from './BrokerManagement';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
   // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
@@ -90,6 +91,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
     const items = [
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
       { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
+      { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
@@ -252,6 +254,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'dashboard' && <DashboardOverview />}
           {activeMenu === 'categories' && <CategoryManagement />}
+          {activeMenu === 'brokers' && <BrokerManagement />}
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'listing-status' && <ListingStatusManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
@@ -260,7 +263,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
+          {activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
