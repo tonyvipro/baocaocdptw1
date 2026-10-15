@@ -33,9 +33,31 @@ export default function App() {
     }
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [currentAppMode, setCurrentAppMode] = useState('client'); // 'client' | 'admin'
+  const [authMode, setAuthMode] = useState('login');
+  // Quản lý trạng thái F5 reload persistence (URL Hash & LocalStorage)
+  const [showProfileModal, setShowProfileModal] = useState(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = new URLSearchParams(window.location.search);
+      return hash.includes('profile') || search.get('modal') === 'profile' || localStorage.getItem('3tv_modal_profile') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [currentAppMode, setCurrentAppMode] = useState(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = new URLSearchParams(window.location.search);
+      const savedMode = localStorage.getItem('3tv_app_mode');
+      if (hash.startsWith('#admin') || search.get('mode') === 'admin' || savedMode === 'admin') {
+        return 'admin';
+      }
+      return 'client';
+    } catch {
+      return 'client';
+    }
+  });
 
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
@@ -124,6 +146,10 @@ export default function App() {
     } finally {
       localStorage.removeItem('3tv_user');
       localStorage.removeItem('3tv_token');
+      localStorage.removeItem('3tv_app_mode');
+      localStorage.removeItem('3tv_admin_active_menu');
+      localStorage.removeItem('3tv_modal_profile');
+      window.location.hash = '';
       setCurrentUser(null);
       setCurrentAppMode('client');
       setShowProfileModal(false);
@@ -164,6 +190,46 @@ export default function App() {
       console.error(e);
     }
   }, [favorites]);
+
+  // Đồng bộ URL hash và localStorage cho currentAppMode & showProfileModal (F5 Reload Persistence)
+  useEffect(() => {
+    try {
+      localStorage.setItem('3tv_app_mode', currentAppMode);
+      if (currentAppMode === 'admin') {
+        const activeTab = localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+        if (!window.location.hash.startsWith('#admin')) {
+          window.location.hash = `#admin/${activeTab}`;
+        }
+      } else {
+        if (window.location.hash.startsWith('#admin')) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+    } catch (e) {}
+  }, [currentAppMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('3tv_modal_profile', showProfileModal ? 'true' : 'false');
+    } catch (e) {}
+  }, [showProfileModal]);
+
+  // Lắng nghe sự kiện hashchange trên window để chuyển mode mượt mà
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#admin')) {
+        setCurrentAppMode('admin');
+      } else if (hash === '' || hash === '#') {
+        const savedMode = localStorage.getItem('3tv_app_mode');
+        if (savedMode === 'client') {
+          setCurrentAppMode('client');
+        }
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const handleToggleFavorite = (prop) => {
     setFavorites((prev) => {
@@ -554,7 +620,9 @@ export default function App() {
           currentUser={currentUser}
           onLogout={handleLogout}
           onExitAdmin={() => {
+            localStorage.setItem('3tv_app_mode', 'client');
             setCurrentAppMode('client');
+            window.location.hash = '';
             loadData(); // Tải lại dữ liệu từ master
           }}
           onOpenProfile={() => setShowProfileModal(true)} // Giữ từ nhánh Giang
@@ -595,7 +663,12 @@ export default function App() {
           setShowAuthModal(true);
         }}
         onOpenProfile={() => setShowProfileModal(true)}
-        onOpenAdmin={() => setCurrentAppMode('admin')}
+        onOpenAdmin={() => {
+          localStorage.setItem('3tv_app_mode', 'admin');
+          const tab = localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+          window.location.hash = `#admin/${tab}`;
+          setCurrentAppMode('admin');
+        }}
         onLogout={handleLogout}
         recentCount={recentViews.length}
         openRecent={() => setShowRecentModal(true)}

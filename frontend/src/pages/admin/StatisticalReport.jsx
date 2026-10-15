@@ -39,23 +39,46 @@ export default function StatisticalReport() {
   const currentDate = new Date().toLocaleDateString('vi-VN');
   const currentTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
+  // Khôi phục trạng thái bộ lọc đã lưu khi người dùng nhấn F5 hoặc tải lại trang
+  const savedFilter = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('3tv_report_filter') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+
   // 1. STATE BỘ LỌC
-  const [reportType, setReportType] = useState('overview'); // overview, finance, operation, tenant
-  const [reportPeriod, setReportPeriod] = useState('this_month'); // this_month, today, this_week, this_quarter, this_year, custom
+  const [reportType, setReportType] = useState(() => savedFilter?.reportType || 'overview');
+  const [reportPeriod, setReportPeriod] = useState(() => savedFilter?.reportPeriod || 'this_month');
   
   // Date State dạng YYYY-MM-DD
-  const [startDate, setStartDate] = useState(() => getInitialDateRange('this_month').start);
-  const [endDate, setEndDate] = useState(() => getInitialDateRange('this_month').end);
+  const [startDate, setStartDate] = useState(() => savedFilter?.startDate || getInitialDateRange('this_month').start);
+  const [endDate, setEndDate] = useState(() => savedFilter?.endDate || getInitialDateRange('this_month').end);
   const [tempStartDate, setTempStartDate] = useState(startDate);
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [showCustomDateModal, setShowCustomDateModal] = useState(false);
 
   // 2. STATE HIỂN THỊ & DỮ LIỆU
   const [loading, setLoading] = useState(true);
-  const [showChart, setShowChart] = useState(false); // Toggle chế độ xem biểu đồ
-  const [chartSubtype, setChartSubtype] = useState('bar'); // bar, line, doughnut
+  const [showChart, setShowChart] = useState(() => savedFilter?.showChart || false);
+  const [chartSubtype, setChartSubtype] = useState(() => savedFilter?.chartSubtype || 'bar');
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef(null);
+
+  // Tự động lưu bộ lọc vào localStorage để duy trì trạng thái khi F5
+  useEffect(() => {
+    try {
+      localStorage.setItem('3tv_report_filter', JSON.stringify({
+        reportType,
+        reportPeriod,
+        startDate,
+        endDate,
+        showChart,
+        chartSubtype
+      }));
+    } catch (e) {}
+  }, [reportType, reportPeriod, startDate, endDate, showChart, chartSubtype]);
 
   const [reportData, setReportData] = useState({
     status: 'success',
