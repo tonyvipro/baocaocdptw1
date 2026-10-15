@@ -11,11 +11,55 @@ import ListingApprovalsManager from './ListingApprovalsManager';
 import ListingStatusManager from './ListingStatusManager';
 import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
+import DashboardOverview from './DashboardOverview';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
-  const [activeMenu, setActiveMenu] = useState(() => localStorage.getItem('3tv_admin_active_menu') || 'approvals');
+  // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
+  const getInitialActiveMenu = () => {
+    try {
+      const hash = window.location.hash || '';
+      const match = hash.match(/#(?:admin\/)?([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  };
+
+  const [activeMenu, setActiveMenu] = useState(getInitialActiveMenu);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Đồng bộ hóa trạng thái activeMenu với URL hash và localStorage
+  const handleSelectMenu = (menuId) => {
+    setActiveMenu(menuId);
+    localStorage.setItem('3tv_admin_active_menu', menuId);
+    if (window.location.hash !== `#admin/${menuId}`) {
+      window.location.hash = `#admin/${menuId}`;
+    }
+  };
+
+  // Lắng nghe sự kiện hashchange để hỗ trợ nút Back/Forward của trình duyệt
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash || '';
+      const match = hash.match(/#(?:admin\/)?([a-zA-Z0-9_-]+)/);
+      if (match && match[1] && match[1] !== activeMenu) {
+        setActiveMenu(match[1]);
+        localStorage.setItem('3tv_admin_active_menu', match[1]);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+
+    // Đảm bảo URL hash đồng bộ với tab ban đầu khi vừa mount
+    if (!window.location.hash.startsWith('#admin/')) {
+      window.location.hash = `#admin/${activeMenu}`;
+    }
+
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [activeMenu]);
 
   // Tải số lượng tin chờ duyệt cho badge sidebar
   useEffect(() => {
@@ -122,10 +166,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {menuItems.map(item => (
             <button
               key={item.id}
-              onClick={() => {
-                setActiveMenu(item.id);
-                localStorage.setItem('3tv_admin_active_menu', item.id);
-              }}
+              onClick={() => handleSelectMenu(item.id)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeMenu === item.id 
                   ? 'bg-blue-600 text-white shadow-md' 
@@ -205,6 +246,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
 
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+          {activeMenu === 'dashboard' && <DashboardOverview />}
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'listing-status' && <ListingStatusManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
@@ -212,7 +254,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'contracts' && <ContractsManager />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'dashboard' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

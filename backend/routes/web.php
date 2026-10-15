@@ -173,5 +173,6 @@ Route::put('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'upd
 Route::delete('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
 
 Route::get('/api/reports/statistics', [App\Http\Controllers\ReportController::class, 'getStatistics']);
+Route::get('/api/dashboard/overview', [\App\Http\Controllers\DashboardController::class, 'getOverview']);
 
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
