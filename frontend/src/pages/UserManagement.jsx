@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Eye, Edit, Trash2, Plus, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { broadcastDataChange, subscribeDataChange } from '../services/tabSync';
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('3tv_token');
@@ -147,11 +148,12 @@ export default function UserManagement() {
 
     try {
       if (modalMode === 'add') {
-        await apiFetch('/api/users', {
+        const res = await apiFetch('/api/users', {
           method: 'POST',
           body: JSON.stringify(formData)
         });
         showMessage('success', 'Thêm người dùng mới thành công.');
+        broadcastDataChange({ entity: 'users', action: 'create', id: res.user?.id, name: formData.name });
       } else if (modalMode === 'edit') {
         const updateData = { ...formData, last_updated_at: currentUser.updated_at };
         if (!updateData.password) delete updateData.password;
@@ -161,6 +163,7 @@ export default function UserManagement() {
           body: JSON.stringify(updateData)
         });
         showMessage('success', 'Cập nhật thông tin thành công.');
+        broadcastDataChange({ entity: 'users', action: 'update', id: currentUser.id, name: formData.name });
       }
       fetchUsers(pagination.current, search);
     } catch (err) {
@@ -203,17 +206,19 @@ export default function UserManagement() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input 
             type="text" 
-            placeholder="Tìm kiếm người dùng..." 
+            maxLength={250}
+            placeholder="Tìm kiếm người dùng (tối đa 250 ký tự)..." 
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent"
+            onChange={(e) => setSearch(e.target.value.slice(0, 250))}
+            className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent text-sm"
           />
         </div>
         <button 
           onClick={openAddModal}
           className="w-full md:w-auto px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase text-sm"
         >
-           THÊM NGƯỜI DÙNG MỚI
+          <Plus className="w-4 h-4" />
+          <span>THÊM NGƯỜI DÙNG MỚI</span>
         </button>
       </div>
 
@@ -320,15 +325,15 @@ export default function UserManagement() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Tên người dùng</label>
-                      <input type="text" maxLength={100} required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
+                      <input type="text" maxLength={250} required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value.slice(0, 250)})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                      <input type="email" maxLength={100} required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
+                      <input type="email" maxLength={250} required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value.slice(0, 250)})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Mật khẩu {modalMode === 'edit' && <span className="text-slate-400 text-xs font-normal">(Bỏ trống nếu không đổi)</span>}</label>
-                      <input type="password" required={modalMode === 'add'} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
+                      <input type="password" maxLength={250} required={modalMode === 'add'} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value.slice(0, 250)})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò</label>

@@ -396,29 +396,95 @@ export default function CategoryManagement() {
         </div>
       )}
 
-      {/* HEADER SECTION: TIÊU ĐỀ & NÚT THÊM MỚI */}
+      {/* HEADER SECTION: TIÊU ĐỀ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-xl">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
-              <Layers className="w-6 h-6" />
-            </span>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Quản Lý Danh Mục
-                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-red-600/20 text-red-400 border border-red-500/30">
-                  Chuẩn Hình 50
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Quản lý các loại hình bất động sản, phân loại dữ liệu và cấu hình hiển thị toàn hệ thống
-              </p>
-            </div>
+        <div className="flex items-center gap-2.5">
+          <span className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
+            <Layers className="w-6 h-6" />
+          </span>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Quản Lý Danh Mục
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Quản lý các loại hình bất động sản, phân loại dữ liệu và cấu hình hiển thị toàn hệ thống
+            </p>
           </div>
         </div>
 
-        {/* Nút Thêm Danh Mục Mới (Khóa khi phát hiện xung đột đa tab) */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800 self-start sm:self-auto">
+          <span>Tổng số danh mục:</span>
+          <span className="font-bold text-white font-mono">{pagination.total || categories.length}</span>
+        </div>
+      </div>
+
+      {/* BANNER CẢNH BÁO XUNG ĐỘT ĐA TAB (YÊU CẦU 9) */}
+      {conflictLocked && (
+        <ConflictWarningBanner
+          conflictEvent={conflictEvent}
+          onReload={handleResolveConflict}
+          entityName="Danh mục bất động sản"
+        />
+      )}
+
+      {/* THANH CÔNG CỤ TÌM KIẾM & NÚT THÊM DANH MỤC (BỐ CỤC GỌN GÀNG NGAY TRÊN BẢNG) */}
+      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-xl">
+        {/* Nhóm Input Tìm kiếm & Lọc trạng thái */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
+          {/* Input Tìm kiếm Real-time (Giới hạn tối đa 250 ký tự) */}
+          <div className="relative w-full sm:w-80 md:w-96">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              maxLength={250}
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Tìm theo ID (CAT-001) hoặc tên danh mục (tối đa 250 ký tự)..."
+              className="w-full pl-9 pr-14 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition"
+            />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {searchTerm && (
+                <button
+                  onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+                  className="text-slate-400 hover:text-white"
+                  title="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <span className="text-[10px] font-mono text-slate-500 bg-slate-800/80 px-1 rounded">
+                {searchTerm.length}/250
+              </span>
+            </div>
+          </div>
+
+          {/* Lọc trạng thái */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
+            <select
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              className="w-full sm:w-auto px-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-red-500 cursor-pointer"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Tạm dừng</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Nhóm Số lượng mỗi trang, Làm mới & Nút [THÊM DANH MỤC MỚI] */}
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+          <select
+            value={perPage}
+            onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            className="px-2.5 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-slate-300 focus:outline-none cursor-pointer"
+          >
+            <option value="8">8 / trang</option>
+            <option value="15">15 / trang</option>
+            <option value="25">25 / trang</option>
+          </select>
+
           <button
             onClick={() => handleResolveConflict()}
             title="Làm mới dữ liệu"
@@ -426,7 +492,8 @@ export default function CategoryManagement() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-red-500' : ''}`} />
           </button>
-          
+
+          {/* Nút Thêm Danh Mục Mới (Khóa khi phát hiện xung đột đa tab) */}
           <button
             onClick={handleOpenCreateModal}
             disabled={conflictLocked}
@@ -440,104 +507,6 @@ export default function CategoryManagement() {
             {conflictLocked ? <Lock className="w-4 h-4 text-amber-400" /> : <Plus className="w-4 h-4" />}
             <span>{conflictLocked ? 'ĐÃ KHÓA THAO TÁC' : 'THÊM DANH MỤC MỚI'}</span>
           </button>
-        </div>
-      </div>
-
-      {/* THẺ TỔNG HỢP NHANH (KPI METRICS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-400">Tổng số danh mục</p>
-            <h3 className="text-2xl font-black text-white mt-1">{summary.total || pagination.total || 0}</h3>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-            <Layers className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-400">Đang hoạt động</p>
-            <h3 className="text-2xl font-black text-emerald-400 mt-1">{summary.active || 0}</h3>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-            <CheckCircle className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-400">Tạm dừng / Ẩn</p>
-            <h3 className="text-2xl font-black text-slate-400 mt-1">{summary.inactive || 0}</h3>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center text-slate-400">
-            <XCircle className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* BANNER CẢNH BÁO XUNG ĐỘT ĐA TAB (YÊU CẦU 9) */}
-      {conflictLocked && (
-        <ConflictWarningBanner
-          conflictEvent={conflictEvent}
-          onReload={handleResolveConflict}
-          entityName="Danh mục bất động sản"
-        />
-      )}
-
-      {/* THANH CÔNG CỤ TÌM KIẾM & BỘ LỌC (SEARCH & FILTER - YÊU CẦU 10: MAXLENGTH 250) */}
-      <div className="bg-slate-900/70 backdrop-blur-md border border-slate-800/90 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Input Tìm kiếm Real-time (Giới hạn tối đa 250 ký tự) */}
-        <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            maxLength={250}
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Tìm theo ID (CAT-001) hoặc tên danh mục (tối đa 250 ký tự)..."
-            className="w-full pl-9 pr-14 py-2.5 bg-slate-950/60 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition"
-          />
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-            {searchTerm && (
-              <button
-                onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-                className="text-slate-400 hover:text-white"
-                title="Xóa tìm kiếm"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-            <span className="text-[10px] font-mono text-slate-500 bg-slate-800/80 px-1 rounded">
-              {searchTerm.length}/250
-            </span>
-          </div>
-        </div>
-
-        {/* Lọc trạng thái & Số lượng mỗi trang */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Filter className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
-            <select
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              className="w-full sm:w-auto px-3 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-red-500 cursor-pointer"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Tạm dừng</option>
-            </select>
-          </div>
-
-          <select
-            value={perPage}
-            onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
-            className="px-2.5 py-2 bg-slate-950/60 border border-slate-700/80 rounded-xl text-xs text-slate-300 focus:outline-none cursor-pointer"
-          >
-            <option value="8">8 / trang</option>
-            <option value="15">15 / trang</option>
-            <option value="25">25 / trang</option>
-          </select>
         </div>
       </div>
 
