@@ -132,6 +132,12 @@ Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\Prop
 Route::get('/api/properties/{id}/status-history', [\App\Http\Controllers\PropertyController::class, 'statusHistory']);
 Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
 
+// Property Types API (Spec Hình 11 - Phân loại Bất Động Sản)
+Route::get('/api/property-types', [\App\Http\Controllers\PropertyTypeController::class, 'index']);
+Route::post('/api/property-types', [\App\Http\Controllers\PropertyTypeController::class, 'store']);
+Route::get('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'show']);
+Route::put('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'update']);
+Route::delete('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'destroy']);
 
 // Migration & Database Seed Trigger
 Route::get('/api/run-migrate', function () {
