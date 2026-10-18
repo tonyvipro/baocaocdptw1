@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { readPropertyList } from './utils/property';
+import { watchCatalog, filterCatalog, availableRecentViews } from './utils/propertyCatalog';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import StatsBar from './components/StatsBar';
@@ -18,6 +20,7 @@ import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide
 export default function App() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [propertyError, setPropertyError] = useState('');
   const [dataSource, setDataSource] = useState('local');
 
   // Auth User State (Spec Nhóm 1 - Tài Khoản)
@@ -57,7 +60,7 @@ export default function App() {
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem('3tv_favorites');
-      return saved ? JSON.parse(saved) : [];
+      return readPropertyList('3tv_favorites');
     } catch {
       return [];
     }
@@ -67,31 +70,52 @@ export default function App() {
   const [recentViews, setRecentViews] = useState(() => {
     try {
       const saved = localStorage.getItem('3tv_recent_views');
-      return saved ? JSON.parse(saved) : [];
+      return readPropertyList('3tv_recent_views');
     } catch {
       return [];
     }
   });
 
+  const visibleHistory = useMemo(() => availableRecentViews(recentViews, properties), [recentViews, properties]);
+
   // Compare List
   const [comparedList, setComparedList] = useState([]);
 
   // Load Properties Data
-  const loadData = async () => {
-    setLoading(true);
-    const result = await fetchProperties();
-    setProperties(result.data || []);
-    setDataSource(result.source);
-    setLoading(false);
+  const loadData = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const result = await fetchProperties();
+      setProperties(result.data);
+      setSelectedProperty(previous => previous ? result.data.find(p => p.code === previous.code) || null : null);
+      setDataSource(result.source);
+      setPropertyError('');
+    } catch (error) {
+      setPropertyError(error.message);
+    } finally { if (!silent) setLoading(false); }
   };
+
+  useEffect(() => watchCatalog(loadData), []);
+  useEffect(() => {
+    const requireLogin = () => { setCurrentUser(null); setAuthMode('login'); setShowAuthModal(true); localStorage.removeItem('3tv_user'); localStorage.removeItem('3tv_token'); };
+    window.addEventListener('3tv:auth-required', requireLogin);
+    return () => window.removeEventListener('3tv:auth-required', requireLogin);
+  }, []);
 
   // Check Current User Auth from Server
   const checkAuth = async () => {
-    const data = await getMe();
-    if (data?.user) {
-      setCurrentUser(data.user);
-      localStorage.setItem('3tv_user', JSON.stringify(data.user));
-    }
+    try {
+      const data = await getMe();
+      if (data?.user) {
+        setCurrentUser(data.user);
+        localStorage.setItem('3tv_user', JSON.stringify(data.user));
+      } else if (currentUser) {
+        setCurrentUser(null);
+        localStorage.removeItem('3tv_user');
+        setAuthMode('login');
+        setShowAuthModal(true);
+      }
+    } catch { /* A temporary network failure is not a successful login. */ }
   };
 
   useEffect(() => {
@@ -245,106 +269,14 @@ export default function App() {
 
   // Filtered & Sorted Properties
   const filteredProperties = useMemo(() => {
-    return properties.filter((prop) => {
-      // 1. Purpose Tab (Tất cả, Cho thuê, Mua bán)
-      if (activeTab !== 'all' && prop.purpose !== activeTab) return false;
+    return filterCatalog(properties, { purpose: activeTab, search: searchKeyword, project: selectedProject, city: selectedCity, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+  }, [properties, activeTab, searchKeyword, selectedProject, selectedCity, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
 
-      // 2. Keyword Search (title, project, street, developer, code)
-      if (searchKeyword.trim() !== '') {
-        const kw = searchKeyword.toLowerCase();
-        const matchTitle = prop.title?.toLowerCase().includes(kw);
-        const matchProject = prop.project?.toLowerCase().includes(kw);
-        const matchStreet = prop.street?.toLowerCase().includes(kw);
-        const matchDev = prop.developer?.toLowerCase().includes(kw);
-        const matchCode = prop.code?.toLowerCase().includes(kw);
-        if (!matchTitle && !matchProject && !matchStreet && !matchDev && !matchCode) {
-          return false;
-        }
-      }
-
-      // 3. Project Filter
-      if (selectedProject !== 'all' && prop.project !== selectedProject) return false;
-
-      // 4. City Filter
-      if (selectedCity !== 'all' && prop.city !== selectedCity) return false;
-
-      // 5. Developer Filter
-      if (selectedDeveloper !== 'all' && prop.developer !== selectedDeveloper) return false;
-
-      // 6. Property Type Filter
-      if (selectedType !== 'all' && prop.type !== selectedType) return false;
-
-      // 7. Bedrooms Filter
-      if (selectedBedrooms !== 'all') {
-        const bedNum = parseInt(selectedBedrooms, 10);
-        if (prop.bedrooms !== bedNum) return false;
-      }
-
-      // 8. Price Range Filter
-      if (selectedPriceRange !== 'all') {
-        const priceSale = prop.price_sale ? parseFloat(prop.price_sale) : 0;
-        const priceRent = prop.price_rent ? parseFloat(prop.price_rent) : 0;
-
-        if (selectedPriceRange === 'under-3b' && priceSale > 3000000000) return false;
-        if (selectedPriceRange === '3b-6b' && (priceSale < 3000000000 || priceSale > 6000000000)) return false;
-        if (selectedPriceRange === '6b-15b' && (priceSale < 6000000000 || priceSale > 15000000000)) return false;
-        if (selectedPriceRange === '15b-30b' && (priceSale < 15000000000 || priceSale > 30000000000)) return false;
-        if (selectedPriceRange === 'above-30b' && priceSale < 30000000000) return false;
-
-        if (selectedPriceRange === 'rent-under-15m' && priceRent > 15000000) return false;
-        if (selectedPriceRange === 'rent-15m-30m' && (priceRent < 15000000 || priceRent > 30000000)) return false;
-        if (selectedPriceRange === 'rent-above-30m' && priceRent < 30000000) return false;
-      }
-
-      // 9. Area Range Filter
-      if (selectedAreaRange !== 'all') {
-        const area = prop.area || 0;
-        if (selectedAreaRange === 'under-50' && area >= 50) return false;
-        if (selectedAreaRange === '50-80' && (area < 50 || area >= 80)) return false;
-        if (selectedAreaRange === '80-120' && (area < 80 || area >= 120)) return false;
-        if (selectedAreaRange === '120-200' && (area < 120 || area >= 200)) return false;
-        if (selectedAreaRange === 'above-200' && area < 200) return false;
-      }
-
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price-asc') {
-        const priceA = a.price_sale || a.price_rent || 0;
-        const priceB = b.price_sale || b.price_rent || 0;
-        return priceA - priceB;
-      }
-      if (sortBy === 'price-desc') {
-        const priceA = a.price_sale || a.price_rent || 0;
-        const priceB = b.price_sale || b.price_rent || 0;
-        return priceB - priceA;
-      }
-      if (sortBy === 'area-asc') {
-        return (a.area || 0) - (b.area || 0);
-      }
-      if (sortBy === 'area-desc') {
-        return (b.area || 0) - (a.area || 0);
-      }
-      if (sortBy === 'newest') {
-        return (b.id || 0) - (a.id || 0);
-      }
-      if (sortBy === 'oldest') {
-        return (a.id || 0) - (b.id || 0);
-      }
-      return 0;
-    });
-  }, [
-    properties,
-    activeTab,
-    searchKeyword,
-    selectedProject,
-    selectedCity,
-    selectedDeveloper,
-    selectedType,
-    selectedBedrooms,
-    selectedPriceRange,
-    selectedAreaRange,
-    sortBy
-  ]);
+  useEffect(() => {
+    const code = new URL(window.location.href).searchParams.get('property');
+    const property = properties.find(p => p.code === code);
+    if (property) handleSelectProperty(property);
+  }, [properties]);
 
   const resetFilters = () => {
     setSearchKeyword('');
@@ -364,6 +296,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {propertyError && <div role="alert" className="p-4 bg-red-50 text-red-700">{propertyError} <button onClick={loadData}>Thử lại</button></div>}
       {/* Header / Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -371,7 +304,7 @@ export default function App() {
         favoriteCount={favorites.length}
         openFavorites={() => setShowFavoritesModal(true)}
         compareCount={comparedList.length}
-        openCompare={() => {}}
+        openCompare={() => document.getElementById('compare-drawer')?.focus()}
         openContactModal={() => {
           setContactProperty(null);
           setShowContactModal(true);
@@ -385,7 +318,7 @@ export default function App() {
         }}
         onOpenProfile={() => setShowProfileModal(true)}
         onLogout={handleLogout}
-        recentCount={recentViews.length}
+        recentCount={visibleHistory.length}
         openRecent={() => setShowRecentModal(true)}
       />
 
@@ -507,7 +440,7 @@ export default function App() {
         )}
 
         {/* Section: Bất Động Sản Đã Xem Gần Đây (Chức năng số 20: Lịch sử xem) */}
-        {recentViews.length > 0 && (
+        {visibleHistory.length > 0 && (
           <div className="mt-14 pt-8 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-2.5">
@@ -518,7 +451,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-slate-900">Bất Động Sản Bạn Đã Xem Gần Đây</h3>
                     <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold">
-                      {recentViews.length}
+                      {visibleHistory.length}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">Tự động lưu các bất động sản bạn đã mở xem chi tiết</p>
@@ -530,7 +463,7 @@ export default function App() {
                   onClick={() => setShowRecentModal(true)}
                   className="text-xs font-semibold text-slate-700 hover:text-red-600 flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>Xem tất cả lịch sử ({recentViews.length})</span>
+                  <span>Xem tất cả lịch sử ({visibleHistory.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-slate-300">•</span>
@@ -544,7 +477,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {recentViews.slice(0, 6).map((p) => (
+              {visibleHistory.slice(0, 6).map((p) => (
                 <div 
                   key={p.code} 
                   onClick={() => handleSelectProperty(p)}
@@ -702,7 +635,7 @@ export default function App() {
       <RecentViewsModal
         isOpen={showRecentModal}
         onClose={() => setShowRecentModal(false)}
-        recentViews={recentViews}
+        recentViews={visibleHistory}
         onSelectProperty={handleSelectProperty}
         onRemoveItem={handleRemoveRecentItem}
         onClearAll={handleClearRecent}

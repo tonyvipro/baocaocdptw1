@@ -1,13 +1,6 @@
 import axios from 'axios';
-import localProperties from '../data/all_properties.json';
-
-const candidateBaseUrls = [
-  '/api',
-  'http://localhost:8080/api',
-  'http://127.0.0.1:8080/api',
-  'http://localhost:8000/api',
-  'http://127.0.0.1:8000/api'
-];
+import { loadCatalog } from '../utils/propertyCatalog';
+import { loginSession, sessionUser } from '../utils/authSession';
 
 let activeBaseUrl = '/api';
 
@@ -20,31 +13,7 @@ axios.defaults.withCredentials = true;
  * Lấy danh sách Bất động sản trực tiếp từ DB Backend (Luôn bypass cache để cập nhật tức thì từ Database)
  */
 export const fetchProperties = async () => {
-  const timestamp = Date.now();
-  const requestConfig = {
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-    },
-    timeout: 3000,
-  };
-
-  // Thử lần lượt các endpoint khả dụng
-  for (const url of candidateBaseUrls) {
-    try {
-      const response = await axios.get(`${url}/properties?_t=${timestamp}`, requestConfig);
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        activeBaseUrl = url;
-        return { data: response.data, source: 'backend' };
-      }
-    } catch (error) {
-      // Tiếp tục thử endpoint tiếp theo
-    }
-  }
-
-  // Fallback an toàn chỉ khi toàn bộ kết nối backend thất bại
-  return { data: localProperties, source: 'local' };
+  return loadCatalog(axios);
 };
 
 /**
@@ -64,40 +33,7 @@ export const registerUser = async (data) => {
  * Đăng nhập (Spec Hình 5)
  */
 export const loginUser = async (credentials) => {
-  const email = credentials.email?.toLowerCase().trim();
-  const isAdminAttempt = (email === 'admin@3tvland.vn' || email === 'admin' || email === 'admin@gmail.com');
-  const validPass = ['Admin@123456', 'admin', 'admin123', '123456'].includes(credentials.password);
-
-  try {
-    const response = await axios.post(`${activeBaseUrl}/login`, credentials, { timeout: 4000 });
-    if (response.data && response.data.status === 'success') {
-      return response.data;
-    }
-  } catch (error) {
-    // Nếu backend chưa kết nối hoặc trả về lỗi, tự động hỗ trợ đăng nhập Admin ngay lập tức
-    if (isAdminAttempt && validPass) {
-      const adminUser = {
-        id: 1,
-        name: 'Nguyễn Quản Trị (Admin)',
-        email: 'admin@3tvland.vn',
-        phone: '0901234567',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-        role: 'Admin',
-        role_id: 1,
-        is_active: 1,
-        dark_mode: 0,
-      };
-      localStorage.setItem('3tv_user', JSON.stringify(adminUser));
-      return {
-        status: 'success',
-        message: 'Đăng nhập Quản Trị Viên thành công!',
-        user: adminUser
-      };
-    }
-
-    const message = error.response?.data?.message || 'Email hoặc mật khẩu không chính xác! Vui lòng kiểm tra lại thông tin.';
-    throw new Error(message);
-  }
+  return loginSession(axios, credentials);
 };
 
 /**
@@ -116,12 +52,7 @@ export const logoutUser = async () => {
  * Lấy thông tin user hiện tại
  */
 export const getMe = async () => {
-  try {
-    const response = await axios.get(`${activeBaseUrl}/me`);
-    return response.data;
-  } catch (error) {
-    return null;
-  }
+  return sessionUser(axios);
 };
 
 /**

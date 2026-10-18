@@ -10,10 +10,16 @@ export default function PropertyModal({ property, onClose, isFavorite, onToggleF
 
   const isRent = property.purpose === 'rent';
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const handleShare = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('property', property.code);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Sao chép liên kết bất động sản:', url.toString());
+    }
   };
 
   return (

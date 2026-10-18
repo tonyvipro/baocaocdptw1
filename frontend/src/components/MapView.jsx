@@ -1,5 +1,6 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { validCoordinates } from '../utils/property';
 import L from 'leaflet';
 import { Eye, MapPin } from 'lucide-react';
 
@@ -14,12 +15,20 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+function FitResults({ properties }) {
+  const map = useMap();
+  useEffect(() => {
+    if (properties.length) map.fitBounds(properties.map(p => [Number(p.lat), Number(p.lng)]), { padding: [35, 35], maxZoom: 15 });
+  }, [map, properties]);
+  return null;
+}
+
 export default function MapView({ properties, onSelectProperty }) {
   // Default center coordinates (TP.HCM)
   const defaultCenter = [10.8231, 106.6297];
 
   const validProperties = properties.filter(
-    (p) => p.lat && p.lng && !isNaN(p.lat) && !isNaN(p.lng)
+    validCoordinates
   );
 
   return (
@@ -30,6 +39,7 @@ export default function MapView({ properties, onSelectProperty }) {
         scrollWheelZoom={true}
         className="w-full h-full rounded-lg z-10"
       >
+        <FitResults properties={validProperties} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
