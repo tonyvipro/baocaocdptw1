@@ -6,7 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "repair:deployed": "node scripts/repair-deployed-catalog.mjs",
+    "test:catalog": "node tests/catalog.test.mjs",
+    "test:catalog:live": "node tests/catalog.test.mjs --live",
+    "test:browser": "node tests/catalog-browser.mjs",
+    "test:property-form": "node tests/property-form-browser.mjs",
+    "test:property-hide": "node tests/property-hide-browser.mjs",
+    "test:history": "node tests/history-browser.mjs",
+    "test:database-refresh": "node tests/database-refresh-browser.mjs",
+    "test:auth-session": "node tests/auth-session.test.mjs",
+    "test:expired-session": "node tests/expired-session-browser.mjs"
   },
   "dependencies": {
     "axios": "^1.7.9",

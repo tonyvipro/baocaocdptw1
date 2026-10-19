@@ -2,219 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Property;
 use App\Models\PropertyType;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PropertyTypeController extends Controller
 {
-    /**
-     * Danh sách phân loại bất động sản (Spec Hình 11 - Phân loại BĐS)
-     */
-    public function index(Request $request)
+    private function authorizeWrite(Request $request): void
     {
-        try {
-            $query = PropertyType::query();
-
-            // Load parent relation if column exists
-            if (Schema::hasColumn('property_types', 'parent_id')) {
-                $query->with('parent:id,name');
-            }
-
-            // Count properties
-            $query->withCount('properties');
-
-            // 1. Tìm kiếm theo tên hoặc mô tả
-            if ($request->filled('search')) {
-                $search = trim($request->search);
-                $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('slug', 'like', "%{$search}%");
-                    if (Schema::hasColumn('property_types', 'description')) {
-                        $q->orWhere('description', 'like', "%{$search}%");
-                    }
-                });
-            }
-
-            // 2. Lọc theo Loại cha (parent_id)
-            if ($request->filled('parent_id') && $request->parent_id !== 'all' && Schema::hasColumn('property_types', 'parent_id')) {
-                if ($request->parent_id === 'root') {
-                    $query->whereNull('parent_id');
-                } else {
-                    $query->where('parent_id', $request->parent_id);
-                }
-            }
-
-            // 3. Lọc theo Trạng thái (status)
-            if ($request->filled('status') && $request->status !== 'all' && Schema::hasColumn('property_types', 'status')) {
-                $query->where('status', (int)$request->status);
-            }
-
-            // Sắp xếp
-            $query->orderBy('id', 'asc');
-
-            // Phân trang
-            $perPage = (int) $request->input('per_page', 10);
-            if ($request->boolean('all')) {
-                $items = $query->get();
-                return response()->json([
-                    'status' => 'success',
-                    'data' => $items,
-                    'total' => $items->count(),
-                ]);
-            }
-
-            $paginated = $query->paginate($perPage);
-
-            // Danh sách danh mục cha khả dụng (dành cho dropdown bộ lọc & form tạo mới)
-            $parents = PropertyType::select('id', 'name')->orderBy('name')->get();
-
-            return response()->json([
-                'status' => 'success',
-                'data' => $paginated->items(),
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
-                'parents' => $parents,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        abort_unless($request->user() && $request->user()->is_active, 401, 'Vui lòng đăng nhập lại.');
+        abort_unless((int) $request->user()->role_id === 1, 403, 'Chỉ quản trị viên được sửa danh mục.');
     }
 
-    /**
-     * Tạo mới một phân loại BĐS
-     */
-    public function store(Request $request)
+    public function index()
     {
-        $validated = $request->validate([
+        $types = PropertyType::withCount('properties')->orderBy('id')->get();
+        $names = $types->pluck('name', 'id');
+        $types->each(fn ($type) => $type->setAttribute('parent_name', $names[$type->parent_id] ?? null));
+        return response()->json(['data' => $types])->header('Cache-Control', 'no-store');
+    }
+
+    public function save(Request $request, ?int $id = null)
+    {
+        $this->authorizeWrite($request);
+        $type = $id ? PropertyType::findOrFail($id) : new PropertyType;
+        $data = $request->validate([
             'name' => 'required|string|max:100',
-            'slug' => 'nullable|string|max:100|unique:property_types,slug',
-            'description' => 'nullable|string',
-            'parent_id' => 'nullable|exists:property_types,id',
-            'status' => 'nullable|in:0,1',
+            'slug' => ['required', 'string', 'max:100', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('property_types')->ignore($id)],
+            'parent_id' => 'nullable|integer|exists:property_types,id',
+            'description' => 'nullable|string|max:10000', 'status' => 'required|boolean',
         ]);
-
-        if (empty($validated['slug'])) {
-            $baseSlug = Str::slug($validated['name']);
-            $slug = $baseSlug;
-            $counter = 1;
-            while (PropertyType::where('slug', $slug)->exists()) {
-                $slug = $baseSlug . '-' . $counter++;
+        $parentId = $data['parent_id'] ?? null;
+        $seen = [];
+        while ($parentId) {
+            abort_if($parentId == $id || isset($seen[$parentId]), 422, 'Danh mục cha tạo vòng lặp.');
+            $seen[$parentId] = true;
+            $parentId = PropertyType::findOrFail($parentId)->parent_id;
+        }
+        DB::transaction(function () use ($type, $data) {
+            $oldName = $type->name;
+            $type->fill($data)->save();
+            if ($oldName && $oldName !== $type->name) {
+                Property::withTrashed()->where('property_type_id', $type->id)->update(['type' => $type->name]);
             }
-            $validated['slug'] = $slug;
-        }
-
-        if (!isset($validated['status'])) {
-            $validated['status'] = 1;
-        }
-
-        $type = PropertyType::create($validated);
-        if (Schema::hasColumn('property_types', 'parent_id')) {
-            $type->load('parent:id,name');
-        }
-        $type->loadCount('properties');
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Tạo danh mục phân loại thành công!',
-            'data' => $type
-        ], 201);
+        });
+        return response()->json(['data' => $type, 'message' => 'Đã lưu danh mục.'], $id ? 200 : 201);
     }
 
-    /**
-     * Chi tiết một danh mục phân loại
-     */
-    public function show($id)
+    public function destroy(Request $request, int $id)
     {
-        $type = PropertyType::withCount('properties')->findOrFail($id);
-        if (Schema::hasColumn('property_types', 'parent_id')) {
-            $type->load('parent:id,name');
-        }
-        return response()->json([
-            'status' => 'success',
-            'data' => $type
-        ]);
-    }
-
-    /**
-     * Cập nhật danh mục phân loại
-     */
-    public function update(Request $request, $id)
-    {
+        $this->authorizeWrite($request);
         $type = PropertyType::findOrFail($id);
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'slug' => "nullable|string|max:100|unique:property_types,slug,{$id}",
-            'description' => 'nullable|string',
-            'parent_id' => [
-                'nullable',
-                'exists:property_types,id',
-                function ($attribute, $value, $fail) use ($id) {
-                    if ($value == $id) {
-                        $fail('Danh mục cha không thể là chính nó.');
-                    }
-                }
-            ],
-            'status' => 'nullable|in:0,1',
-        ]);
-
-        if (empty($validated['slug'])) {
-            $baseSlug = Str::slug($validated['name']);
-            $slug = $baseSlug;
-            $counter = 1;
-            while (PropertyType::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                $slug = $baseSlug . '-' . $counter++;
-            }
-            $validated['slug'] = $slug;
-        }
-
-        $type->update($validated);
-        if (Schema::hasColumn('property_types', 'parent_id')) {
-            $type->load('parent:id,name');
-        }
-        $type->loadCount('properties');
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Cập nhật danh mục phân loại thành công!',
-            'data' => $type
-        ]);
-    }
-
-    /**
-     * Xóa danh mục phân loại
-     */
-    public function destroy($id)
-    {
-        $type = PropertyType::withCount('properties')->findOrFail($id);
-
-        // Kiểm tra xem có BĐS nào đang thuộc loại này không
-        if ($type->properties_count > 0 && !request()->boolean('force')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Không thể xóa! Có {$type->properties_count} bất động sản đang thuộc danh mục này.",
-                'properties_count' => $type->properties_count
-            ], 422);
-        }
-
-        // Chuyển các danh mục con thành cấp gốc (parent_id = null)
-        if (Schema::hasColumn('property_types', 'parent_id')) {
-            PropertyType::where('parent_id', $id)->update(['parent_id' => null]);
-        }
-
+        abort_if(PropertyType::where('parent_id', $id)->exists() || Property::withTrashed()->where('property_type_id', $id)->exists(), 422, 'Danh mục còn danh mục con hoặc bất động sản sử dụng.');
         $type->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Đã xóa danh mục phân loại thành công!'
-        ]);
+        return response()->json(['message' => 'Đã xóa danh mục.']);
     }
 }

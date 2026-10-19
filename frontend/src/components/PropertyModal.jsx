@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
+import {
+  X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle,
   Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
   CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus, Tag
 } from 'lucide-react';
 import ExtendListingModal from './ExtendListingModal';
 import ChangePropertyStatusModal from './ChangePropertyStatusModal';
 
-export default function PropertyModal({ 
-  property, 
-  onClose, 
-  isFavorite, 
-  onToggleFavorite, 
+export default function PropertyModal({
+  property,
+  onClose,
+  isFavorite,
+  onToggleFavorite,
   onOpenContact,
   isCompared,
   onToggleCompare
@@ -37,8 +37,8 @@ export default function PropertyModal({
 
   const canExtend = Boolean(
     currentUser && (
-      currentUser.role_id === 1 || 
-      currentUser.id === prop.user_id || 
+      currentUser.role_id === 1 ||
+      currentUser.id === prop.user_id ||
       (currentUser.phone && currentUser.phone === prop.owner_phone)
     )
   );
@@ -52,12 +52,15 @@ export default function PropertyModal({
     'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80'
   ];
 
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/?property=${property.code || property.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl);
+  const handleShare = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('property', property.code);
+    try {
+      await navigator.clipboard.writeText(url.toString());
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Sao chép liên kết bất động sản:', url.toString());
     }
   };
 
@@ -70,11 +73,11 @@ export default function PropertyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div 
+      <div
         className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50">
           {/* Breadcrumbs */}
@@ -131,10 +134,10 @@ export default function PropertyModal({
 
         {/* Modal Scrollable Body */}
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-6">
-          
+
           {/* Top Gallery & Quick Pricing Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            
+
             {/* Main Photo Gallery */}
             <div className="lg:col-span-7 flex flex-col gap-2.5">
               <div className="relative h-64 sm:h-80 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group">
@@ -197,7 +200,7 @@ export default function PropertyModal({
                 <h2 className="text-lg font-bold text-slate-900 leading-snug mt-1 mb-2">
                   {property.title}
                 </h2>
-                
+
                 <p className="flex items-start gap-1.5 text-xs text-slate-600 mb-4">
                   <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{property.street}, {property.district}, {property.city}</span>
@@ -268,7 +271,7 @@ export default function PropertyModal({
               <Sparkles className="w-4 h-4 text-red-600" />
               <span>Đặc Điểm & Thông Số Kỹ Thuật</span>
             </h3>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Diện tích sử dụng</span>
@@ -334,8 +337,8 @@ export default function PropertyModal({
                 <span className="text-slate-500">Thời hạn tin đăng:</span>
                 <strong className="text-purple-700 flex items-center gap-1 font-bold">
                   <Calendar className="w-3.5 h-3.5 text-purple-600" />
-                  {prop.expire_date 
-                    ? new Date(prop.expire_date).toLocaleDateString('vi-VN') 
+                  {prop.expire_date
+                    ? new Date(prop.expire_date).toLocaleDateString('vi-VN')
                     : 'Đang hoạt động'}
                 </strong>
               </div>
@@ -383,7 +386,7 @@ export default function PropertyModal({
                 <Map className="w-4 h-4 text-blue-600" />
                 <span>Vị Trí Bản Đồ Bất Động Sản</span>
               </h3>
-              <a 
+              <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.street}, ${property.district}, ${property.city}`)}`}
                 target="_blank"
                 rel="noreferrer"
@@ -393,7 +396,7 @@ export default function PropertyModal({
                 <ChevronRight className="w-3 h-3" />
               </a>
             </div>
-            
+
             <div className="relative h-48 sm:h-56 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
               <iframe
                 title="Bản đồ vị trí"

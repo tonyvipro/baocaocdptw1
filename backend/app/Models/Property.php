@@ -12,6 +12,11 @@ class Property extends Model
 
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return ['status' => 'integer', 'bedrooms' => 'integer', 'bathrooms' => 'integer', 'floors' => 'integer', 'area' => 'float'];
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

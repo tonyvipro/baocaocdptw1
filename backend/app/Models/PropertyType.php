@@ -2,32 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PropertyType extends Model
 {
-    use HasFactory;
+    protected $fillable = ['name', 'slug', 'parent_id', 'description', 'status'];
 
-    protected $guarded = [];
-
-    protected $casts = [
-        'status' => 'integer',
-        'parent_id' => 'integer',
-    ];
-
-    public function parent()
+    protected function casts(): array
     {
-        return $this->belongsTo(PropertyType::class, 'parent_id');
-    }
-
-    public function children()
-    {
-        return $this->hasMany(PropertyType::class, 'parent_id');
+        return ['status' => 'integer', 'parent_id' => 'integer'];
     }
 
     public function properties()
     {
-        return $this->hasMany(Property::class, 'property_type_id');
+        return $this->hasMany(Property::class);
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }
