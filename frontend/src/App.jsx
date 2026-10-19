@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { readPropertyList } from './utils/property';
+import { watchCatalog, filterCatalog, availableRecentViews } from './utils/propertyCatalog';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import StatsBar from './components/StatsBar';
@@ -21,6 +23,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 export default function App() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [propertyError, setPropertyError] = useState('');
   const [dataSource, setDataSource] = useState('local');
 
   // Auth User State (Spec Nhóm 1 - Tài Khoản)
@@ -85,7 +88,7 @@ export default function App() {
   const [favorites, setFavorites] = useState(() => {
     try {
       const saved = localStorage.getItem('3tv_favorites');
-      return saved ? JSON.parse(saved) : [];
+      return readPropertyList('3tv_favorites');
     } catch {
       return [];
     }
@@ -95,65 +98,52 @@ export default function App() {
   const [recentViews, setRecentViews] = useState(() => {
     try {
       const saved = localStorage.getItem('3tv_recent_views');
-      return saved ? JSON.parse(saved) : [];
+      return readPropertyList('3tv_recent_views');
     } catch {
       return [];
     }
   });
 
+  const visibleHistory = useMemo(() => availableRecentViews(recentViews, properties), [recentViews, properties]);
+
   // Compare List
   const [comparedList, setComparedList] = useState([]);
 
   // Load Properties Data
-  const loadData = async () => {
-    setLoading(true);
-    const result = await fetchProperties();
-    setProperties(result.data || []);
-    setDataSource(result.source);
-    setLoading(false);
+  const loadData = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const result = await fetchProperties();
+      setProperties(result.data);
+      setSelectedProperty(previous => previous ? result.data.find(p => p.code === previous.code) || null : null);
+      setDataSource(result.source);
+      setPropertyError('');
+    } catch (error) {
+      setPropertyError(error.message);
+    } finally { if (!silent) setLoading(false); }
   };
+
+  useEffect(() => watchCatalog(loadData), []);
+  useEffect(() => {
+    const requireLogin = () => { setCurrentUser(null); setAuthMode('login'); setShowAuthModal(true); localStorage.removeItem('3tv_user'); localStorage.removeItem('3tv_token'); };
+    window.addEventListener('3tv:auth-required', requireLogin);
+    return () => window.removeEventListener('3tv:auth-required', requireLogin);
+  }, []);
 
   // Check Current User Auth from Server
   const checkAuth = async () => {
-    const data = await getMe();
-    if (data?.user) {
-      setCurrentUser(data.user);
-      localStorage.setItem('3tv_user', JSON.stringify(data.user));
-    }
-    const token = localStorage.getItem('3tv_token');
-    const userToAuth = data?.user || currentUser;
-    if (!token && userToAuth) {
-      fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email: userToAuth.email || 'admin@3tvland.vn', password: 'admin' })
-      })
-        .then(res => res.json())
-        .then(resData => {
-          if (resData?.token) {
-            localStorage.setItem('3tv_token', resData.token);
-          }
-        })
-        .catch(() => { });
-    }
-  };
-
-  const handleLogout = async () => {
     try {
-      await logoutUser();
-    } catch (err) {
-      console.warn("Logout error", err);
-    } finally {
-      localStorage.removeItem('3tv_user');
-      localStorage.removeItem('3tv_token');
-      localStorage.removeItem('3tv_app_mode');
-      localStorage.removeItem('3tv_admin_active_menu');
-      localStorage.removeItem('3tv_modal_profile');
-      window.location.hash = '';
-      setCurrentUser(null);
-      setCurrentAppMode('client');
-      setShowProfileModal(false);
-    }
+      const data = await getMe();
+      if (data?.user) {
+        setCurrentUser(data.user);
+        localStorage.setItem('3tv_user', JSON.stringify(data.user));
+      } else if (currentUser) {
+        setCurrentUser(null);
+        localStorage.removeItem('3tv_user');
+        setAuthMode('login');
+        setShowAuthModal(true);
+      }
+    } catch { /* A temporary network failure is not a successful login. */ }
   };
 
   useEffect(() => {
@@ -348,253 +338,14 @@ export default function App() {
 
   // Filtered & Sorted Properties
   const filteredProperties = useMemo(() => {
-    return properties.filter((prop) => {
-      // 1. Purpose Tab (Tất cả, Cho thuê, Mua bán)
-      if (activeTab !== 'all' && prop.purpose !== activeTab) return false;
+    return filterCatalog(properties, { purpose: activeTab, search: searchKeyword, project: selectedProject, city: selectedCity, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+  }, [properties, activeTab, searchKeyword, selectedProject, selectedCity, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
 
-      // 2. Keyword Search (title, project, street, developer, code)
-      if (searchKeyword.trim() !== '') {
-        const kw = searchKeyword.toLowerCase();
-        const matchTitle = prop.title?.toLowerCase().includes(kw);
-        const matchProject = prop.project?.toLowerCase().includes(kw);
-        const matchStreet = prop.street?.toLowerCase().includes(kw);
-        const matchDev = prop.developer?.toLowerCase().includes(kw);
-        const matchCode = prop.code?.toLowerCase().includes(kw);
-        if (!matchTitle && !matchProject && !matchStreet && !matchDev && !matchCode) {
-          return false;
-        }
-      }
-
-      // 3. Project Filter
-      if (selectedProject !== 'all' && prop.project !== selectedProject) return false;
-
-      // 4. City Filter
-      if (selectedCity !== 'all' && prop.city !== selectedCity) return false;
-
-      // 5. Developer Filter
-      if (selectedDeveloper !== 'all' && prop.developer !== selectedDeveloper) return false;
-
-      // 6. Chức năng Lọc Theo Loại BĐS (Đặc tả Hình 20 - Branch: quyen/Filter_by_type)
-      if (selectedType && selectedType !== 'all') {
-        const propType = (prop.type || '').toLowerCase();
-        switch (selectedType) {
-          case 'can-ho':
-          case 'Căn hộ':
-          case 'Căn hộ cao cấp':
-            if (!propType.includes('căn hộ') && !propType.includes('chung cư') && !propType.includes('apartment')) return false;
-            break;
-          case 'nha-pho':
-          case 'Nhà phố':
-          case 'Nhà phố / Liền kề':
-            if (!propType.includes('nhà phố') && !propType.includes('liền kề') && !propType.includes('nhà riêng') && !propType.includes('townhouse')) return false;
-            break;
-          case 'biet-thu':
-          case 'Biệt thự':
-          case 'Biệt thự nghỉ dưỡng':
-            if (!propType.includes('biệt thự') && !propType.includes('villa')) return false;
-            break;
-          case 'dat-nen':
-          case 'Đất nền':
-          case 'Đất nền dự án':
-            if (!propType.includes('đất nền') && !propType.includes('đất')) return false;
-            break;
-          case 'mat-bang':
-          case 'Mặt bằng':
-          case 'Mặt bằng kinh doanh':
-            if (!propType.includes('mặt bằng') && !propType.includes('shophouse') && !propType.includes('kinh doanh')) return false;
-            break;
-          default:
-            if (prop.type !== selectedType && !propType.includes(selectedType.toLowerCase())) return false;
-            break;
-        }
-      }
-
-      // 7. Bedrooms Filter
-      if (selectedBedrooms !== 'all') {
-        const bedNum = parseInt(selectedBedrooms, 10);
-        if (prop.bedrooms !== bedNum) return false;
-      }
-
-      // 8. Chức năng Lọc Theo Giá (Đặc tả Hình 18 - Branch quyen/Filter_by_price)
-      if (selectedPriceRange && selectedPriceRange !== 'all') {
-        // Lấy giá trị tiền tệ thực tế của BĐS (hỗ trợ cả dữ liệu MySQL API và JSON tĩnh)
-        let pVal = 0;
-        if (prop.price !== undefined && prop.price !== null && !isNaN(prop.price) && Number(prop.price) > 0) {
-          pVal = Number(prop.price);
-        } else if (prop.price_sale !== undefined && prop.price_sale !== null && !isNaN(prop.price_sale) && Number(prop.price_sale) > 0) {
-          pVal = Number(prop.price_sale);
-        } else if (prop.price_rent !== undefined && prop.price_rent !== null && !isNaN(prop.price_rent) && Number(prop.price_rent) > 0) {
-          pVal = Number(prop.price_rent);
-        }
-
-        // 8.1. Lọc theo khoảng giá tùy chỉnh (Custom Min - Max: "custom:min-max")
-        if (selectedPriceRange.startsWith('custom:')) {
-          const parts = selectedPriceRange.replace('custom:', '').split('-');
-          const minP = parseFloat(parts[0]) || 0;
-          const maxP = parseFloat(parts[1]) || Infinity;
-          if (pVal < minP || pVal > maxP) return false;
-        } else {
-          // 8.2. Lọc theo các khoảng giá định sẵn (Bao gồm đặc tả Hình 18: Dưới 10 Tỷ - 30 Tỷ+)
-          switch (selectedPriceRange) {
-            case 'under-1b':
-              if (pVal >= 1000000000) return false;
-              break;
-            case '1b-3b':
-              if (pVal < 1000000000 || pVal > 3000000000) return false;
-              break;
-            case 'under-3b':
-              if (pVal > 3000000000) return false;
-              break;
-            case '3b-5b':
-              if (pVal < 3000000000 || pVal > 5000000000) return false;
-              break;
-            case '3b-6b':
-              if (pVal < 3000000000 || pVal > 6000000000) return false;
-              break;
-            case '5b-10b':
-              if (pVal < 5000000000 || pVal > 10000000000) return false;
-              break;
-            case '6b-15b':
-              if (pVal < 6000000000 || pVal > 15000000000) return false;
-              break;
-            case '10b-20b':
-              if (pVal < 10000000000 || pVal > 20000000000) return false;
-              break;
-            case '10b-30b': // Đặc tả Hình 18 trong báo cáo: Dưới 10 Tỷ - 30 Tỷ+
-              if (pVal < 10000000000 || pVal > 30000000000) return false;
-              break;
-            case '15b-30b':
-              if (pVal < 15000000000 || pVal > 30000000000) return false;
-              break;
-            case '20b-30b':
-              if (pVal < 20000000000 || pVal > 30000000000) return false;
-              break;
-            case 'above-30b':
-              if (pVal < 30000000000) return false;
-              break;
-
-            // Các mức giá cho thuê (Đơn vị VNĐ/tháng)
-            case 'rent-under-5m':
-              if (pVal >= 5000000) return false;
-              break;
-            case 'rent-5m-10m':
-              if (pVal < 5000000 || pVal > 10000000) return false;
-              break;
-            case 'rent-under-15m':
-              if (pVal > 15000000) return false;
-              break;
-            case 'rent-10m-20m':
-              if (pVal < 10000000 || pVal > 20000000) return false;
-              break;
-            case 'rent-15m-30m':
-              if (pVal < 15000000 || pVal > 30000000) return false;
-              break;
-            case 'rent-20m-40m':
-              if (pVal < 20000000 || pVal > 40000000) return false;
-              break;
-            case 'rent-above-30m':
-              if (pVal < 30000000) return false;
-              break;
-            case 'rent-above-40m':
-              if (pVal < 40000000) return false;
-              break;
-            default:
-              break;
-          }
-        }
-      }
-
-      // 9. Chức năng Lọc Theo Diện Tích (Đặc tả Hình 19 - Branch: quyen/Filter_by_area)
-      if (selectedAreaRange && selectedAreaRange !== 'all') {
-        const areaVal = prop.area !== undefined && prop.area !== null && !isNaN(prop.area) ? parseFloat(prop.area) : 0;
-
-        // 9.1. Lọc theo khoảng diện tích tùy chỉnh (Custom Min - Max: "custom-area:min-max")
-        if (selectedAreaRange.startsWith('custom-area:')) {
-          const parts = selectedAreaRange.replace('custom-area:', '').split('-');
-          const minA = parseFloat(parts[0]) || 0;
-          const maxA = parseFloat(parts[1]) || Infinity;
-          if (areaVal < minA || areaVal > maxA) return false;
-        } else {
-          // 9.2. Lọc theo các khoảng diện tích chuẩn (Bao gồm đặc tả Hình 19: 50m2 - 150m2+)
-          switch (selectedAreaRange) {
-            case 'under-30':
-              if (areaVal >= 30) return false;
-              break;
-            case '30-50':
-              if (areaVal < 30 || areaVal > 50) return false;
-              break;
-            case 'under-50':
-              if (areaVal >= 50) return false;
-              break;
-            case '50-80':
-              if (areaVal < 50 || areaVal > 80) return false;
-              break;
-            case '50-150': // Đặc tả Hình 19 trong báo cáo: 50m2 - 150m2+
-              if (areaVal < 50 || areaVal > 150) return false;
-              break;
-            case '80-120':
-              if (areaVal < 80 || areaVal > 120) return false;
-              break;
-            case '120-200':
-              if (areaVal < 120 || areaVal > 200) return false;
-              break;
-            case '200-300':
-              if (areaVal < 200 || areaVal > 300) return false;
-              break;
-            case 'above-150':
-              if (areaVal < 150) return false;
-              break;
-            case 'above-200':
-              if (areaVal < 200) return false;
-              break;
-            case 'above-300':
-              if (areaVal < 300) return false;
-              break;
-            default:
-              break;
-          }
-        }
-      }
-
-      return true;
-    }).sort((a, b) => {
-      if (sortBy === 'price-asc') {
-        const priceA = a.price_sale || a.price_rent || 0;
-        const priceB = b.price_sale || b.price_rent || 0;
-        return priceA - priceB;
-      }
-      if (sortBy === 'price-desc') {
-        const priceA = a.price_sale || a.price_rent || 0;
-        const priceB = b.price_sale || b.price_rent || 0;
-        return priceB - priceA;
-      }
-      if (sortBy === 'area-asc') {
-        return (a.area || 0) - (b.area || 0);
-      }
-      if (sortBy === 'area-desc') {
-        return (b.area || 0) - (a.area || 0);
-      }
-      if (sortBy === 'newest') {
-        return (b.id || 0) - (a.id || 0);
-      }
-      if (sortBy === 'oldest') {
-        return (a.id || 0) - (b.id || 0);
-      }
-      return 0;
-    });
-  }, [
-    properties,
-    activeTab,
-    searchKeyword,
-    selectedProject,
-    selectedCity,
-    selectedDeveloper,
-    selectedType,
-    selectedBedrooms,
-    selectedPriceRange,
-    selectedAreaRange,
-    sortBy
-  ]);
+  useEffect(() => {
+    const code = new URL(window.location.href).searchParams.get('property');
+    const property = properties.find(p => p.code === code);
+    if (property) handleSelectProperty(property);
+  }, [properties]);
 
   const resetFilters = () => {
     setSearchKeyword('');
@@ -616,6 +367,12 @@ export default function App() {
   if (currentAppMode === 'admin') {
     return (
       <>
+        <AuthModal
+          isOpen={showAuthModal}
+          initialMode={authMode}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={handleAuthSuccess}
+        />
         <AdminLayout
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -643,6 +400,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      {propertyError && <div role="alert" className="p-4 bg-red-50 text-red-700">{propertyError} <button onClick={loadData}>Thử lại</button></div>}
       {/* Header / Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -650,7 +408,7 @@ export default function App() {
         favoriteCount={favorites.length}
         openFavorites={() => setShowFavoritesModal(true)}
         compareCount={comparedList.length}
-        openCompare={() => { }}
+        openCompare={() => document.getElementById('compare-drawer')?.focus()}
         openContactModal={() => {
           setContactProperty(null);
           setShowContactModal(true);
@@ -670,7 +428,7 @@ export default function App() {
           setCurrentAppMode('admin');
         }}
         onLogout={handleLogout}
-        recentCount={recentViews.length}
+        recentCount={visibleHistory.length}
         openRecent={() => setShowRecentModal(true)}
         onOpenPostProperty={() => setShowPostPropertyModal(true)}
         onOpenUserListings={() => setShowUserListingsModal(true)}
@@ -796,7 +554,7 @@ export default function App() {
         )}
 
         {/* Section: Bất Động Sản Đã Xem Gần Đây (Chức năng số 20: Lịch sử xem) */}
-        {recentViews.length > 0 && (
+        {visibleHistory.length > 0 && (
           <div className="mt-14 pt-8 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-2.5">
@@ -807,7 +565,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-slate-900">Bất Động Sản Bạn Đã Xem Gần Đây</h3>
                     <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold">
-                      {recentViews.length}
+                      {visibleHistory.length}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">Tự động lưu các bất động sản bạn đã mở xem chi tiết</p>
@@ -819,7 +577,7 @@ export default function App() {
                   onClick={() => setShowRecentModal(true)}
                   className="text-xs font-semibold text-slate-700 hover:text-red-600 flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <span>Xem tất cả lịch sử ({recentViews.length})</span>
+                  <span>Xem tất cả lịch sử ({visibleHistory.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-slate-300">•</span>
@@ -833,7 +591,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {recentViews.slice(0, 6).map((p) => (
+              {visibleHistory.slice(0, 6).map((p) => (
                 <div
                   key={p.code}
                   onClick={() => handleSelectProperty(p)}
@@ -1013,7 +771,7 @@ export default function App() {
       <RecentViewsModal
         isOpen={showRecentModal}
         onClose={() => setShowRecentModal(false)}
-        recentViews={recentViews}
+        recentViews={visibleHistory}
         onSelectProperty={handleSelectProperty}
         onRemoveItem={handleRemoveRecentItem}
         onClearAll={handleClearRecent}

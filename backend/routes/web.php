@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Models\Property;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PropertyManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReportController;
 
@@ -52,12 +53,14 @@ Route::get('/api/history', function (\Illuminate\Http\Request $request) {
     try {
         $userId = \Illuminate\Support\Facades\Auth::id();
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
+            $visible = Property::where('status', 1)->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()))->select('id');
             $logs = \Illuminate\Support\Facades\DB::table('activity_logs')
                 ->where('user_id', $userId)
                 ->where('action', 'VIEW')
+                ->whereIn('record_id', $visible)
                 ->orderBy('created_at', 'desc')
-                ->limit(30)
                 ->get()
+                ->unique('record_id')->take(30)->values()
                 ->map(function ($item) {
                     $item->property_data = json_decode($item->new_data, true);
                     return $item;
@@ -69,17 +72,20 @@ Route::get('/api/history', function (\Illuminate\Http\Request $request) {
 });
 
 Route::post('/api/history', function (\Illuminate\Http\Request $request) {
+    $request->validate(['property' => 'required|array', 'property.code' => 'required|string|max:50']);
+    $property = Property::where('code', $request->input('property.code'))->where('status', 1)->firstOrFail();
     try {
         $userId = \Illuminate\Support\Facades\Auth::id();
-        $prop = $request->input('property', []);
-        $propId = $prop['id'] ?? $request->input('property_id', 0);
-        
+        $prop = $property->toArray();
+        $propId = $property->id;
+
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
-            \Illuminate\Support\Facades\DB::table('activity_logs')->insert([
+            \Illuminate\Support\Facades\DB::table('activity_logs')->updateOrInsert([
                 'user_id' => $userId,
                 'action' => 'VIEW',
                 'table_name' => 'properties',
                 'record_id' => $propId ?: 0,
+            ], [
                 'new_data' => json_encode($prop),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
@@ -93,6 +99,7 @@ Route::post('/api/history', function (\Illuminate\Http\Request $request) {
 });
 
 Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
+    $request->validate(['code' => 'nullable|string|max:50']);
     try {
         $userId = \Illuminate\Support\Facades\Auth::id();
         $code = $request->input('code');
@@ -103,7 +110,7 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
                 ->where('action', 'VIEW');
 
             if ($code) {
-                $query->where('new_data', 'like', '%"code":"' . $code . '"%')->delete();
+                $query->where('new_data->code', $code)->delete();
             } else {
                 $query->delete();
             }
@@ -114,47 +121,51 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
     }
 });
 
-// Properties Management API (Spec Hình 12 - 18: Quản lý, Thêm mới, Sửa, Xóa/Khôi phục, Thùng rác, Thống kê)
-Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyController::class, 'stats']);
-Route::get('/api/properties/trash', [\App\Http\Controllers\PropertyController::class, 'trash']);
-Route::post('/api/properties/bulk-action', [\App\Http\Controllers\PropertyController::class, 'bulkAction']);
-Route::get('/api/properties/status-logs', [\App\Http\Controllers\PropertyController::class, 'allStatusLogs']);
-Route::get('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'show']);
-Route::post('/api/properties', [\App\Http\Controllers\PropertyController::class, 'store']);
-Route::put('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
-Route::patch('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'update']);
-Route::delete('/api/properties/{id}', [\App\Http\Controllers\PropertyController::class, 'destroy']);
-Route::patch('/api/properties/{id}/restore', [\App\Http\Controllers\PropertyController::class, 'restore']);
-Route::delete('/api/properties/{id}/force', [\App\Http\Controllers\PropertyController::class, 'forceDelete']);
-Route::patch('/api/properties/{id}/status', [\App\Http\Controllers\PropertyController::class, 'changeStatus']);
-Route::post('/api/properties/{id}/extend', [\App\Http\Controllers\PropertyController::class, 'extend']);
-Route::get('/api/properties/{id}/extension-history', [\App\Http\Controllers\PropertyController::class, 'extensionHistory']);
-Route::get('/api/properties/{id}/status-history', [\App\Http\Controllers\PropertyController::class, 'statusHistory']);
-Route::get('/api/properties', [\App\Http\Controllers\PropertyController::class, 'index']);
-
-// Property Types API (Spec Hình 11 - Phân loại Bất Động Sản)
+// Properties API (Spec Nhóm 2 & Nhóm 4) - Lấy dữ liệu trực tiếp từ Database MySQL
 Route::get('/api/property-types', [\App\Http\Controllers\PropertyTypeController::class, 'index']);
-Route::post('/api/property-types', [\App\Http\Controllers\PropertyTypeController::class, 'store']);
-Route::get('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'show']);
-Route::put('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'update']);
-Route::delete('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'destroy']);
+Route::post('/api/property-types', [\App\Http\Controllers\PropertyTypeController::class, 'save']);
+Route::put('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'save'])->whereNumber('id');
+Route::delete('/api/property-types/{id}', [\App\Http\Controllers\PropertyTypeController::class, 'destroy'])->whereNumber('id');
+Route::get('/api/properties/stats', [\App\Http\Controllers\PropertyReadController::class, 'stats']);
+Route::get('/api/properties/trash', [PropertyManagementController::class, 'trash']);
+Route::post('/api/properties/bulk-action', [PropertyManagementController::class, 'bulk']);
+Route::post('/api/properties', [PropertyManagementController::class, 'store']);
+Route::put('/api/properties/{id}', [PropertyManagementController::class, 'update'])->whereNumber('id');
+Route::delete('/api/properties/{id}', [PropertyManagementController::class, 'action'])->whereNumber('id')->defaults('action', 'delete');
+Route::patch('/api/properties/{id}/restore', [PropertyManagementController::class, 'action'])->whereNumber('id')->defaults('action', 'restore');
+Route::delete('/api/properties/{id}/force', [PropertyManagementController::class, 'action'])->whereNumber('id')->defaults('action', 'force_delete');
+Route::patch('/api/properties/{id}/status', [PropertyManagementController::class, 'action'])->whereNumber('id')->defaults('action', 'status');
+Route::post('/api/properties/{id}/extend', [PropertyManagementController::class, 'action'])->whereNumber('id')->defaults('action', 'extend');
+Route::get('/api/properties/{id}/status-history', [PropertyManagementController::class, 'history'])->whereNumber('id')->defaults('action', 'status');
+Route::get('/api/properties/{id}/extension-history', [PropertyManagementController::class, 'history'])->whereNumber('id')->defaults('action', 'extend');
+
+Route::get('/api/properties', function (\Illuminate\Http\Request $request) {
+    // The deployed administration UI expects a paginated data/meta envelope.
+    // Keep the public listing's array response compatible with the source UI.
+    if ($request->boolean('admin')) {
+        return app(\App\Http\Controllers\PropertyReadController::class)->index($request);
+    }
+    return app(\App\Http\Controllers\PropertyReadController::class)->publicIndex($request);
+});
 
 // Migration & Database Seed Trigger
-Route::get('/api/run-migrate', function () {
+Route::get('/api/run-migrate', function (\Illuminate\Http\Request $request) {
+    abort_unless($request->user() && $request->user()->is_active, 401, 'Vui lòng đăng nhập lại.');
+    abort_unless((int) $request->user()->role_id === 1, 403, 'Chỉ quản trị viên được cập nhật cấu trúc dữ liệu.');
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+        $exitCode = \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
-        
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        $seedOutput = \Illuminate\Support\Facades\Artisan::output();
-        
+        if ($exitCode !== 0) throw new \RuntimeException('Không cập nhật được cấu trúc dữ liệu.');
+
+        $seedOutput = 'Giữ nguyên dữ liệu hiện có.';
+
         $propCount = \App\Models\Property::count();
         $userCount = \App\Models\User::count();
         $roleCount = \App\Models\Role::count();
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Cơ sở dữ liệu đã được khởi tạo và nạp dữ liệu mẫu thành công!',
+            'message' => 'Đã cập nhật cấu trúc dữ liệu, giữ nguyên tin đăng và tài khoản hiện có.',
             'migrate' => trim($migrateOutput),
             'seed' => trim($seedOutput),
             'stats' => [
@@ -206,4 +217,3 @@ Route::patch('/api/broker-assignments/{id}/cancel', [\App\Http\Controllers\Broke
 Route::delete('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyAssignment']);
 
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
-

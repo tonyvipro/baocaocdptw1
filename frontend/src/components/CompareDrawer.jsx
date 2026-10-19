@@ -5,7 +5,7 @@ export default function CompareDrawer({ comparedList, onRemove, onClear, onClose
   if (comparedList.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-red-600 shadow-2xl p-4">
+    <div id="compare-drawer" tabIndex={-1} className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-red-600 shadow-2xl p-4 max-h-[70vh] overflow-y-auto">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
