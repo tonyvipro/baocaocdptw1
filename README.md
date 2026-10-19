@@ -1,5 +1,29 @@
 # 3TV Land - Báo Cáo Chuyên Đề Phát Triển Web 1
 
+## Quản lý & Theo dõi Khách hàng
+
+Mở mục **Quản lý khách hàng** trong dashboard hoặc truy cập `http://localhost:3001/#admin/customers` sau khi đăng nhập. Hai tab **Quản lý khách hàng** và **Theo dõi khách hàng** dùng chung dữ liệu database.
+
+- Admin quản lý toàn bộ khách hàng và phân công người phụ trách; Broker quản lý khách hàng được giao.
+- Tab Quản lý có các cột Tên khách hàng, Công ty, Email, Số điện thoại, Nhóm khách hàng, Ngày tạo, Hành động.
+- Tab Theo dõi có các cột ID, Tên khách hàng, Công ty/Nguồn, Trạng thái, Lần tương tác cuối, Hoạt động tiếp theo, Người phụ trách, Hành động.
+- Mỗi dòng có biểu tượng xem, sửa, xóa và cuối bảng có số lượng bản ghi/phân trang. Nút xem ở tab Theo dõi mở lịch sử tương tác và lịch chăm sóc.
+- Xóa ở tab Theo dõi chỉ gỡ theo dõi. Bật lại tùy chọn Theo dõi khách hàng trong form sửa ở tab Quản lý để đưa khách hàng trở lại danh sách.
+- Các ô văn bản của module giới hạn 250 ký tự; SĐT chỉ nhận 10–11 chữ số. Xóa khách hàng dùng soft delete để giữ lịch sử. Bản sửa cũ được chặn bằng kiểm tra phiên bản.
+
+Dữ liệu CRM lưu trong `customers`, `customer_interactions`, `customer_activities`. Khi cập nhật mã nguồn ở môi trường khác, chạy migration bổ sung:
+
+```bash
+cd backend
+php artisan migrate --path=database/migrations/2026_10_19_150000_create_customer_crm_tables.php
+php artisan migrate --path=database/migrations/2026_10_19_160000_add_customer_tracking_flag.php
+php artisan db:seed --class=CustomerSeeder
+```
+
+Với Docker, chạy các lệnh trên qua `docker compose exec backend`. Seeder lấy khách hàng từ tài khoản Customer và phân công môi giới đã seed, kèm hai hồ sơ mẫu Phạm Văn E/Lê Thị C. Chạy lại CustomerSeeder không ghi đè hồ sơ đã sửa, không khôi phục khách đã xóa/gỡ theo dõi và không đặt lại tài khoản.
+
+Kiểm tra: `php artisan test --filter=CustomerManagementTest` trong `backend`; `npm run test:customers` trong `frontend`. Script `php scripts/check-customer-crm.php` kiểm tra bảng và truy vấn CRM trên kết nối database hiện tại bằng thao tác chỉ đọc.
+
 Hệ thống tra cứu, so sánh và định vị bất động sản cao cấp được phát triển bằng **ReactJS** (Frontend) và **Laravel 11** (Backend API).
 
 ---

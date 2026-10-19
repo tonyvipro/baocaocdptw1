@@ -219,6 +219,7 @@ class DatabaseSeeder extends Seeder
             AppointmentSeeder::class,
             UserManagementSeeder::class,
             StatisticalSeeder::class,
+            CustomerSeeder::class,
         ]);
     }
 }

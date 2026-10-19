@@ -6,6 +6,23 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PropertyManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\CustomerController;
+
+// CRM: each endpoint verifies the real session/token and the assigned broker.
+Route::prefix('/api/customers')->group(function () {
+    Route::get('/options', [CustomerController::class, 'options']);
+    Route::get('/', [CustomerController::class, 'index']);
+    Route::post('/', [CustomerController::class, 'store']);
+    Route::get('/{id}', [CustomerController::class, 'show'])->whereNumber('id');
+    Route::put('/{id}', [CustomerController::class, 'update'])->whereNumber('id');
+    Route::delete('/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
+    Route::delete('/{id}/tracking', [CustomerController::class, 'removeTracking'])->whereNumber('id');
+    Route::post('/{id}/interactions', [CustomerController::class, 'addInteraction'])->whereNumber('id');
+    Route::post('/{id}/activities', [CustomerController::class, 'addActivity'])->whereNumber('id');
+    Route::patch('/{id}/activities/{activityId}', [CustomerController::class, 'updateActivity'])->whereNumber(['id', 'activityId']);
+    Route::patch('/{id}/activities/{activityId}/cancel', [CustomerController::class, 'cancelActivity'])->whereNumber(['id', 'activityId']);
+    Route::patch('/{id}/activities/{activityId}/complete', [CustomerController::class, 'completeActivity'])->whereNumber(['id', 'activityId']);
+});
 
 Route::get('/', function () {
     return response()->json([
