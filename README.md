@@ -69,12 +69,14 @@ cd frontend
 npm install
 npm run dev
 ```
-Truy cập: `http://localhost:3000`
+Truy cập: `http://localhost:3001`. Giữ terminal này chạy trong khi sử dụng website. Vite dùng cố định cổng 3001; nếu cổng bị chiếm, chương trình sẽ báo lỗi thay vì tự đổi cổng.
+
+Trên PowerShell, nếu `npm.ps1` bị chặn bởi Execution Policy, dùng `npm.cmd install` và `npm.cmd run dev`.
 
 ### 2. Chạy Backend Laravel:
 ```bash
 cd backend
 composer install
-php artisan serve
+php artisan serve --host=127.0.0.1 --port=8080
 ```
-Truy cập: `http://127.0.0.1:8000`
+Truy cập: `http://127.0.0.1:8080`. Vite chuyển tiếp các yêu cầu `/api`, `/uploads`, `/storage` tới địa chỉ này.

@@ -19,13 +19,14 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:250',
             'email' => 'required|string|email|max:191|unique:users,email',
             'password' => 'required|string|min:8|max:32|confirmed',
-            'phone' => ['nullable', 'regex:/^[0-9]{10,11}$/'],
+            'password_confirmation' => 'required|string|min:8|max:32',
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
         ], [
             'name.required' => 'Vui lòng nhập họ và tên của bạn.',
-            'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
+            'name.max' => 'Họ và tên không được vượt quá 250 ký tự.',
             'email.required' => 'Vui lòng nhập địa chỉ email của bạn.',
             'email.email' => 'Địa chỉ email không đúng định dạng.',
             'email.max' => 'Email không được vượt quá 191 ký tự.',
@@ -34,6 +35,10 @@ class AuthController extends Controller
             'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.max' => 'Mật khẩu không được dài quá 32 ký tự.',
             'password.confirmed' => 'Xác nhận mật khẩu không trùng khớp.',
+            'password_confirmation.required' => 'Vui lòng xác nhận mật khẩu.',
+            'password_confirmation.min' => 'Xác nhận mật khẩu phải có ít nhất 8 ký tự.',
+            'password_confirmation.max' => 'Xác nhận mật khẩu không được dài quá 32 ký tự.',
+            'phone.string' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
             'phone.regex' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
         ]);
 
@@ -302,13 +307,13 @@ class AuthController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone' => ['nullable', 'regex:/^[0-9]{10,11}$/'],
+            'name' => 'required|string|max:250',
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
             'avatar' => 'nullable|string',
             'dark_mode' => 'nullable|boolean',
         ], [
             'name.required' => 'Họ và tên không được để trống.',
-            'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
+            'name.max' => 'Họ và tên không được vượt quá 250 ký tự.',
             'phone.regex' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
         ]);
 
