@@ -57,6 +57,7 @@ class PropertyManagementController extends Controller
     private function validationMessages(): array
     {
         return [
+            'title.max' => 'Tiêu đề bất động sản không được vượt quá 255 ký tự.',
             'price.regex' => 'Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e.',
             'price.numeric' => 'Mức giá phải là số.',
             'price.max' => 'Mức giá không được vượt quá 9.999.999.999.999 VNĐ.',
