@@ -314,18 +314,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    try {
-      await logoutUser();
-    } catch { /* ignore logout API errors */ }
-    setCurrentUser(null);
-    localStorage.removeItem('3tv_user');
-    localStorage.removeItem('3tv_token');
-    setCurrentAppMode('client');
-    localStorage.setItem('3tv_app_mode', 'client');
-    window.location.hash = '';
-  };
 
-  const handleLogout = async () => {
     try { await logoutUser(); } catch { /* Clear the local session even if the network fails. */ }
     setCurrentUser(null);
     setShowProfileModal(false);
