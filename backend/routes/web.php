@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Property;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PropertyManagementController;
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () {
     return response()->json([
@@ -30,6 +32,21 @@ Route::post('/api/logout', [AuthController::class, 'logout']);
 Route::get('/api/me', [AuthController::class, 'me']);
 Route::post('/api/profile', [AuthController::class, 'updateProfile']);
 Route::post('/api/change-password', [AuthController::class, 'changePassword']);
+
+// Appointments & Contracts API (Tự động nhận diện token Sanctum hoặc phiên đăng nhập Admin)
+Route::get('/api/appointments', [AppointmentController::class, 'index']);
+Route::post('/api/appointments', [AppointmentController::class, 'store']);
+Route::patch('/api/appointments/{id}/confirm', [AppointmentController::class, 'confirm']);
+Route::patch('/api/appointments/{id}/cancel', [AppointmentController::class, 'cancel']);
+Route::patch('/api/appointments/{id}/reschedule', [AppointmentController::class, 'reschedule']);
+
+// Contracts API (Spec Hình 38, 39, 40)
+Route::get('/api/contracts', [\App\Http\Controllers\ContractController::class, 'index']);
+Route::post('/api/contracts', [\App\Http\Controllers\ContractController::class, 'store']);
+Route::get('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'show']);
+Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update']);
+Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
+Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
@@ -61,7 +78,7 @@ Route::post('/api/history', function (\Illuminate\Http\Request $request) {
         $userId = \Illuminate\Support\Facades\Auth::id();
         $prop = $property->toArray();
         $propId = $property->id;
-        
+
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
             \Illuminate\Support\Facades\DB::table('activity_logs')->updateOrInsert([
                 'user_id' => $userId,
@@ -139,9 +156,9 @@ Route::get('/api/run-migrate', function (\Illuminate\Http\Request $request) {
         $exitCode = \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOutput = \Illuminate\Support\Facades\Artisan::output();
         if ($exitCode !== 0) throw new \RuntimeException('Không cập nhật được cấu trúc dữ liệu.');
-        
+
         $seedOutput = 'Giữ nguyên dữ liệu hiện có.';
-        
+
         $propCount = \App\Models\Property::count();
         $userCount = \App\Models\User::count();
         $roleCount = \App\Models\Role::count();
@@ -164,3 +181,39 @@ Route::get('/api/run-migrate', function (\Illuminate\Http\Request $request) {
         ], 500);
     }
 });
+
+// User Management & Role Assignment API (Chuẩn Hình 11)
+Route::get('/api/users', [\App\Http\Controllers\UserController::class, 'index']);
+Route::get('/api/roles', [\App\Http\Controllers\UserController::class, 'getRoles']);
+Route::put('/api/users/{id}/assign-role', [\App\Http\Controllers\UserController::class, 'assignRole']);
+Route::get('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'show']);
+Route::post('/api/users', [\App\Http\Controllers\UserController::class, 'store']);
+Route::put('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'update']);
+Route::delete('/api/users/{id}', [\App\Http\Controllers\UserController::class, 'destroy']);
+
+Route::get('/api/reports/statistics', [App\Http\Controllers\ReportController::class, 'getStatistics']);
+Route::get('/api/dashboard/overview', [\App\Http\Controllers\DashboardController::class, 'getOverview']);
+
+// Category Management API (Hình 50)
+Route::get('/api/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
+Route::get('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
+Route::post('/api/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+Route::put('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
+Route::patch('/api/categories/{id}/status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
+Route::delete('/api/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
+
+// Broker & Assignment Management API (Hình 29 & 30)
+Route::get('/api/brokers', [\App\Http\Controllers\BrokerController::class, 'indexBrokers']);
+Route::post('/api/brokers', [\App\Http\Controllers\BrokerController::class, 'storeBroker']);
+Route::get('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'showBroker']);
+Route::put('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'updateBroker']);
+Route::delete('/api/brokers/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyBroker']);
+
+Route::get('/api/broker-assignments', [\App\Http\Controllers\BrokerController::class, 'indexAssignments']);
+Route::post('/api/broker-assignments', [\App\Http\Controllers\BrokerController::class, 'storeAssignment']);
+Route::get('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'showAssignment']);
+Route::put('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'updateAssignment']);
+Route::patch('/api/broker-assignments/{id}/cancel', [\App\Http\Controllers\BrokerController::class, 'cancelAssignment']);
+Route::delete('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyAssignment']);
+
+Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });

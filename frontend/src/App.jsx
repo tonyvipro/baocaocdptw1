@@ -13,9 +13,12 @@ import CompareDrawer from './components/CompareDrawer';
 import AuthModal from './components/AuthModal';
 import UserProfileModal from './components/UserProfileModal';
 import RecentViewsModal from './components/RecentViewsModal';
+import PostPropertyModal from './components/PostPropertyModal';
+import UserListingsModal from './components/UserListingsModal';
 import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
+import AdminLayout from './pages/admin/AdminLayout';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -33,8 +36,31 @@ export default function App() {
     }
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  // Quản lý trạng thái F5 reload persistence (URL Hash & LocalStorage)
+  const [showProfileModal, setShowProfileModal] = useState(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = new URLSearchParams(window.location.search);
+      return hash.includes('profile') || search.get('modal') === 'profile' || localStorage.getItem('3tv_modal_profile') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [currentAppMode, setCurrentAppMode] = useState(() => {
+    try {
+      const hash = window.location.hash || '';
+      const search = new URLSearchParams(window.location.search);
+      const savedMode = localStorage.getItem('3tv_app_mode');
+      if (hash.startsWith('#admin') || search.get('mode') === 'admin' || savedMode === 'admin') {
+        return 'admin';
+      }
+      return 'client';
+    } catch {
+      return 'client';
+    }
+  });
 
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
@@ -55,6 +81,8 @@ export default function App() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showFavoritesModal, setShowFavoritesModal] = useState(false);
   const [showRecentModal, setShowRecentModal] = useState(false);
+  const [showPostPropertyModal, setShowPostPropertyModal] = useState(false);
+  const [showUserListingsModal, setShowUserListingsModal] = useState(false);
 
   // Favorites (LocalStorage)
   const [favorites, setFavorites] = useState(() => {
@@ -136,12 +164,12 @@ export default function App() {
             const merged = Array.from(map.values()).slice(0, 30);
             try {
               localStorage.setItem('3tv_recent_views', JSON.stringify(merged));
-            } catch (e) {}
+            } catch (e) { }
             return merged;
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Save Favorites to LocalStorage
@@ -152,6 +180,46 @@ export default function App() {
       console.error(e);
     }
   }, [favorites]);
+
+  // Đồng bộ URL hash và localStorage cho currentAppMode & showProfileModal (F5 Reload Persistence)
+  useEffect(() => {
+    try {
+      localStorage.setItem('3tv_app_mode', currentAppMode);
+      if (currentAppMode === 'admin') {
+        const activeTab = localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+        if (!window.location.hash.startsWith('#admin')) {
+          window.location.hash = `#admin/${activeTab}`;
+        }
+      } else {
+        if (window.location.hash.startsWith('#admin')) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+    } catch (e) {}
+  }, [currentAppMode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('3tv_modal_profile', showProfileModal ? 'true' : 'false');
+    } catch (e) {}
+  }, [showProfileModal]);
+
+  // Lắng nghe sự kiện hashchange trên window để chuyển mode mượt mà
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#admin')) {
+        setCurrentAppMode('admin');
+      } else if (hash === '' || hash === '#') {
+        const savedMode = localStorage.getItem('3tv_app_mode');
+        if (savedMode === 'client') {
+          setCurrentAppMode('client');
+        }
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const handleToggleFavorite = (prop) => {
     setFavorites((prev) => {
@@ -197,7 +265,7 @@ export default function App() {
     });
 
     // Ghi nhận ngầm lên Backend (Chức năng số 20: Lịch sử xem)
-    recordViewHistory(enrichedProp).catch(() => {});
+    recordViewHistory(enrichedProp).catch(() => { });
   };
 
   const handleRemoveRecentItem = (code) => {
@@ -205,18 +273,18 @@ export default function App() {
       const updated = prev.filter((p) => p.code !== code);
       try {
         localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
-      } catch (e) {}
+      } catch (e) { }
       return updated;
     });
-    clearViewHistoryApi(code).catch(() => {});
+    clearViewHistoryApi(code).catch(() => { });
   };
 
   const handleClearRecent = () => {
     setRecentViews([]);
     try {
       localStorage.removeItem('3tv_recent_views');
-    } catch (e) {}
-    clearViewHistoryApi().catch(() => {});
+    } catch (e) { }
+    clearViewHistoryApi().catch(() => { });
   };
 
   const formatRecentTimeAgo = (dateInput) => {
@@ -234,17 +302,18 @@ export default function App() {
     return `${diffInDays} ngày trước`;
   };
 
-  const handleAuthSuccess = (user) => {
+  const handleAuthSuccess = (user, token) => {
     setCurrentUser(user);
     localStorage.setItem('3tv_user', JSON.stringify(user));
+    if (token) {
+      localStorage.setItem('3tv_token', token);
+    }
+    if (user.role_id === 1) {
+      setCurrentAppMode('admin');
+    }
   };
 
-  const handleLogout = async () => {
-    await logoutUser();
-    setCurrentUser(null);
-    localStorage.removeItem('3tv_user');
-    setShowProfileModal(false);
-  };
+
 
   // Dropdown Lists Extracted Dynamically
   const projectsList = useMemo(() => {
@@ -294,6 +363,41 @@ export default function App() {
   const rentCount = properties.filter((p) => p.purpose === 'rent').length;
   const saleCount = properties.filter((p) => p.purpose === 'sale').length;
 
+  // Nếu đang ở chế độ admin, render nguyên cụm layout admin
+  if (currentAppMode === 'admin') {
+    return (
+      <>
+        <AuthModal
+          isOpen={showAuthModal}
+          initialMode={authMode}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={handleAuthSuccess}
+        />
+        <AdminLayout
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onExitAdmin={() => {
+            localStorage.setItem('3tv_app_mode', 'client');
+            setCurrentAppMode('client');
+            window.location.hash = '';
+            loadData(); // Tải lại dữ liệu từ master
+          }}
+          onOpenProfile={() => setShowProfileModal(true)} // Giữ từ nhánh Giang
+        />
+        <UserProfileModal
+          isOpen={showProfileModal}
+          currentUser={currentUser}
+          onClose={() => setShowProfileModal(false)}
+          onUserUpdated={(updatedUser) => {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
+          }}
+          onLogout={handleLogout}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {propertyError && <div role="alert" className="p-4 bg-red-50 text-red-700">{propertyError} <button onClick={loadData}>Thử lại</button></div>}
@@ -317,9 +421,17 @@ export default function App() {
           setShowAuthModal(true);
         }}
         onOpenProfile={() => setShowProfileModal(true)}
+        onOpenAdmin={() => {
+          localStorage.setItem('3tv_app_mode', 'admin');
+          const tab = localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+          window.location.hash = `#admin/${tab}`;
+          setCurrentAppMode('admin');
+        }}
         onLogout={handleLogout}
         recentCount={visibleHistory.length}
         openRecent={() => setShowRecentModal(true)}
+        onOpenPostProperty={() => setShowPostPropertyModal(true)}
+        onOpenUserListings={() => setShowUserListingsModal(true)}
       />
 
       {/* Hero & Search Section */}
@@ -349,7 +461,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main id="listing-section" className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        
+
         {/* Section Heading & Breadcrumbs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-200">
           <div>
@@ -385,6 +497,8 @@ export default function App() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           resetFilters={resetFilters}
+          totalResults={filteredProperties.length}
+          activeTab={activeTab}
         />
 
         {/* Loading State */}
@@ -478,8 +592,8 @@ export default function App() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {visibleHistory.slice(0, 6).map((p) => (
-                <div 
-                  key={p.code} 
+                <div
+                  key={p.code}
                   onClick={() => handleSelectProperty(p)}
                   className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 p-2.5 cursor-pointer transition-all hover:shadow-xs group relative flex flex-col justify-between"
                 >
@@ -497,15 +611,14 @@ export default function App() {
 
                   <div>
                     <div className="relative h-24 sm:h-28 rounded-lg overflow-hidden mb-2 bg-slate-100">
-                      <img 
-                        src={p.image} 
-                        alt={p.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
-                      <span className={`absolute bottom-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded text-white ${
-                        p.purpose === 'rent' ? 'bg-blue-600' : 'bg-red-600'
-                      }`}>
+                      <span className={`absolute bottom-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded text-white ${p.purpose === 'rent' ? 'bg-blue-600' : 'bg-red-600'
+                        }`}>
                         {p.purpose === 'rent' ? 'Thuê' : 'Bán'}
                       </span>
                     </div>
@@ -534,6 +647,8 @@ export default function App() {
         onClose={() => setSelectedProperty(null)}
         isFavorite={selectedProperty ? favorites.some((f) => f.code === selectedProperty.code) : false}
         onToggleFavorite={handleToggleFavorite}
+        isCompared={selectedProperty ? comparedList.some((c) => c.code === selectedProperty.code) : false}
+        onToggleCompare={handleToggleCompare}
         onOpenContact={(p) => {
           setContactProperty(p);
           setShowContactModal(true);
@@ -574,6 +689,27 @@ export default function App() {
           localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
         }}
         onLogout={handleLogout}
+      />
+
+      {/* Modal Đăng Tin */}
+      <PostPropertyModal
+        isOpen={showPostPropertyModal}
+        onClose={() => {
+          setShowPostPropertyModal(false);
+          loadData();
+        }}
+        currentUser={currentUser}
+      />
+
+      {/* Modal Quản Lý Tin Đăng (Cho Môi giới / Chủ nhà) */}
+      <UserListingsModal
+        isOpen={showUserListingsModal}
+        onClose={() => setShowUserListingsModal(false)}
+        currentUser={currentUser}
+        onOpenPostProperty={() => {
+          setShowUserListingsModal(false);
+          setShowPostPropertyModal(true);
+        }}
       />
 
       {/* Favorites Modal */}

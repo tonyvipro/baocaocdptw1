@@ -52,7 +52,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
       setTimeout(() => {
         setStatusModal(null);
-        onAuthSuccess(res.user);
+        onAuthSuccess(res.user, res.token);
         onClose();
       }, 1200);
 

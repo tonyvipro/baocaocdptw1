@@ -17,4 +17,14 @@ class PropertyType extends Model
     {
         return $this->hasMany(Property::class);
     }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
 }

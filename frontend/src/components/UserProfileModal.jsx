@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, Phone, Mail, Lock, Eye, EyeOff, CheckCircle2, XCircle, X } from 'lucide-react';
-import { updateProfile, changePassword } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { Camera, Eye, EyeOff, CheckCircle2, XCircle, Lock, User, Phone, Sparkles, X, ArrowLeft } from 'lucide-react';
+import { updateProfile, changePassword, resolveAvatarUrl } from '../services/api';
 
 export default function UserProfileModal({ isOpen, onClose, currentUser, onUserUpdated, onLogout }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password'
@@ -8,7 +8,10 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  
+  const fileInputRef = useRef(null);
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -36,13 +39,42 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    // Ràng buộc số điện thoại 10 - 11 số
+    if (profileForm.phone) {
+      const phoneDigits = profileForm.phone.replace(/\D/g, '');
+      if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+        setStatusMessage({ type: 'error', text: 'Số điện thoại phải từ 10 đến 11 chữ số (ví dụ: 0901234567).' });
+        return;
+      }
+    }
+
     setLoading(true);
     setStatusMessage(null);
+
+    // Cập nhật UI ngay lập tức
+    if (onUserUpdated) {
+      onUserUpdated({
+        ...currentUser,
+        name: profileForm.name,
+        phone: profileForm.phone,
+        avatar: profileForm.avatar || currentUser?.avatar,
+      });
+    }
+
     try {
-      const res = await updateProfile(profileForm);
+      const payload = {
+        ...profileForm,
+        user_id: currentUser?.id,
+        email: currentUser?.email,
+      };
+      const res = await updateProfile(payload);
       setStatusMessage({ type: 'success', text: 'Cập nhật thông tin hồ sơ thành công!' });
-      if (onUserUpdated) onUserUpdated(res.user);
-      setTimeout(() => setStatusMessage(null), 3000);
+      if (onUserUpdated && res?.user) onUserUpdated(res.user);
+      import('../services/tabSync').then(({ broadcastDataChange }) => {
+        broadcastDataChange({ entity: 'profile', action: 'update', user: res?.user, timestamp: Date.now() });
+      }).catch(() => {});
+      setTimeout(() => setStatusMessage(null), 2500);
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Lỗi cập nhật hồ sơ.' });
     } finally {
@@ -64,10 +96,18 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
     setLoading(true);
     setStatusMessage(null);
     try {
-      await changePassword(passwordForm);
+      const payload = {
+        ...passwordForm,
+        user_id: currentUser?.id,
+        email: currentUser?.email,
+      };
+      await changePassword(payload);
       setStatusMessage({ type: 'success', text: 'Đổi mật khẩu tài khoản thành công!' });
       setPasswordForm({ current_password: '', password: '', password_confirmation: '' });
-      setTimeout(() => setStatusMessage(null), 3000);
+      setTimeout(() => {
+        setStatusMessage(null);
+        setActiveTab('profile');
+      }, 2000);
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Lỗi đổi mật khẩu.' });
     } finally {
@@ -75,267 +115,327 @@ export default function UserProfileModal({ isOpen, onClose, currentUser, onUserU
     }
   };
 
+  const handleAvatarClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Nén ảnh đại diện trước khi lưu (Client-side Compression)
+  const compressImage = (file, maxWidth = 320, maxHeight = 320, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Nén thành JPEG chất lượng 0.85: siêu nhẹ (~20KB - 35KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => {
+        const directReader = new FileReader();
+        directReader.onloadend = () => resolve(directReader.result);
+        directReader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setIsCompressing(true);
+      try {
+        const compressedBase64 = await compressImage(file, 320, 320, 0.85);
+        setProfileForm(prev => ({ ...prev, avatar: compressedBase64 }));
+      } catch (err) {
+        console.warn('Compress error', err);
+      } finally {
+        setIsCompressing(false);
+      }
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn transition-all duration-300">
+      {/* Khung Modal Kính Mờ (Glassmorphism Container) */}
+      <div className="relative w-full max-w-[700px] bg-[#141820]/85 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85),0_0_35px_rgba(195,162,117,0.1)] p-8 sm:p-10 overflow-hidden font-sans">
         
-        {/* Close Button */}
-        <button
+        {/* Viền ánh sáng nhẹ trên đỉnh kính mờ */}
+        <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#c3a275]/50 to-transparent pointer-events-none" />
+
+        {/* Nút Đóng góc trên bên phải */}
+        <button 
+          type="button" 
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
+          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer"
+          title="Đóng modal"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
-
-        {/* Modal Header */}
-        <div className="bg-slate-900 px-6 pt-6 pb-4 text-white text-center">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold border border-slate-700 uppercase tracking-wider">
-              {currentUser.role || 'Thành viên'}
-            </span>
-          </div>
-          <h3 className="text-base font-bold uppercase tracking-wider">
-            {activeTab === 'profile' ? 'CẬP NHẬT HỒ SƠ' : 'QUẢN LÝ MẬT KHẨU'}
-          </h3>
-          <p className="text-slate-400 text-xs mt-0.5">
-            {activeTab === 'profile' ? 'Quản lý thông tin tài khoản cá nhân' : 'Vui lòng nhập mật khẩu mới.'}
-          </p>
-
-          {/* Tab Switcher */}
-          <div className="mt-4 flex bg-slate-800 p-1 rounded-lg border border-slate-700">
-            <button
-              type="button"
-              onClick={() => { setActiveTab('profile'); setStatusMessage(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                activeTab === 'profile' 
-                  ? 'bg-white text-slate-900 shadow-xs' 
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              Hồ Sơ Cá Nhân
-            </button>
-            <button
-              type="button"
-              onClick={() => { setActiveTab('password'); setStatusMessage(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                activeTab === 'password' 
-                  ? 'bg-white text-slate-900 shadow-xs' 
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              Đổi Mật Khẩu
-            </button>
-          </div>
-        </div>
 
         {/* Status Toast */}
         {statusMessage && (
-          <div className={`mx-6 mt-3.5 p-2.5 rounded-lg text-xs font-semibold flex items-center gap-2 ${
+          <div className={`mb-6 p-4 rounded-xl text-sm font-semibold flex items-center gap-3 shadow-md backdrop-blur-md transform transition-all duration-300 ${
             statusMessage.type === 'success' 
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
+              ? 'bg-[#1b2f21]/90 text-[#a7d3a6] border border-[#2d5236]' 
+              : 'bg-[#3b1c1c]/90 text-[#d99090] border border-[#6b3131]'
           }`}>
-            {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <XCircle className="w-4 h-4 text-red-600" />}
+            {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-[#a7d3a6]" /> : <XCircle className="w-5 h-5 text-[#d99090]" />}
             <span>{statusMessage.text}</span>
           </div>
         )}
 
-        {/* Body */}
-        <div className="p-6">
-          {activeTab === 'profile' ? (
-            <form onSubmit={handleUpdateProfile} className="space-y-3.5">
+        {activeTab === 'profile' ? (
+          <form onSubmit={handleUpdateProfile} className="flex flex-col">
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center mb-7">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <div className="relative group cursor-pointer" onClick={handleAvatarClick} title="Nhấn để đổi ảnh đại diện">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center overflow-hidden bg-[#0d1017]/90 border-2 border-[#c3a275] shadow-[0_0_25px_rgba(195,162,117,0.35)] backdrop-blur-md transition-all duration-300 group-hover:scale-105 group-hover:border-[#e5c79e] group-hover:shadow-[0_0_35px_rgba(195,162,117,0.5)]">
+                  {isCompressing ? (
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#c3a275]">
+                      <svg className="animate-spin h-6 w-6 text-[#c3a275]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span className="text-[10px] font-bold">Đang nén</span>
+                    </div>
+                  ) : profileForm.avatar ? (
+                    <img 
+                      src={resolveAvatarUrl(profileForm.avatar)} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Camera className="w-9 h-9 text-[#c3a275]" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </div>
+
+              {/* Nút Đổi ảnh hiển thị sắc nét, phong cách Glassmorphism */}
+              <button 
+                type="button" 
+                onClick={handleAvatarClick}
+                disabled={isCompressing}
+                className="mt-3.5 text-xs font-semibold text-[#c3a275] hover:text-[#f3dec3] bg-[#c3a275]/10 hover:bg-[#c3a275]/20 border border-[#c3a275]/30 px-3.5 py-1.5 rounded-full transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>{isCompressing ? 'Đang xử lý ảnh...' : 'Đổi ảnh'}</span>
+              </button>
+            </div>
+
+            {/* Header Text */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-wide text-[#c3a275] mb-1.5 uppercase drop-shadow-sm">
+                Cập nhật hồ sơ
+              </h2>
+              <p className="text-sm text-[#8c9096] font-light">
+                Quản lý ảnh đại diện và thông tin quản trị của bạn
+              </p>
+            </div>
+
+            {/* Form Fields: Kính mờ sắc nét */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-8">
+              <div className="relative group flex items-center bg-[#0d1017]/70 border border-[#c3a275]/40 focus-within:border-[#c3a275] focus-within:ring-2 focus-within:ring-[#c3a275]/20 rounded-xl px-4 py-3.5 transition-all shadow-inner backdrop-blur-md">
+                <User className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3 shrink-0" strokeWidth={1.5} />
+                <input
+                  type="text"
+                  required
+                  maxLength={250}
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value.slice(0, 250) })}
+                  placeholder="Họ và tên của bạn (Tối đa 250 ký tự)"
+                  className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
+                />
+              </div>
+
+              <div className="relative group flex items-center bg-[#0d1017]/70 border border-[#c3a275]/40 focus-within:border-[#c3a275] focus-within:ring-2 focus-within:ring-[#c3a275]/20 rounded-xl px-4 py-3.5 transition-all shadow-inner backdrop-blur-md">
+                <Phone className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3 shrink-0" strokeWidth={1.5} />
+                <input
+                  type="tel"
+                  maxLength={11}
+                  value={profileForm.phone}
+                  onChange={(e) => {
+                    const numbersOnly = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    setProfileForm({ ...profileForm, phone: numbersOnly });
+                  }}
+                  placeholder="0901234567 (10 - 11 số)"
+                  className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
+                />
+                {profileForm.phone && (
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded ml-2 whitespace-nowrap shrink-0 ${
+                    profileForm.phone.length >= 10 && profileForm.phone.length <= 11 
+                      ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800' 
+                      : 'bg-amber-950/80 text-amber-400 border border-amber-800'
+                  }`}>
+                    {profileForm.phone.length}/11 số
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-4">
+              {/* Nút LƯU HỒ SƠ đỏ đô sang trọng */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full md:flex-[2.5] py-3.5 px-8 rounded-xl bg-gradient-to-r from-[#9a141b] via-[#b91c24] to-[#9a141b] hover:from-[#b91c24] hover:to-[#dc2626] text-white font-bold text-sm uppercase tracking-wider shadow-[0_10px_35px_-5px_rgba(154,20,27,0.8),0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_12px_40px_-5px_rgba(185,28,36,0.9),0_0_25px_rgba(220,38,38,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-center"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Đang Lưu...
+                  </span>
+                ) : 'LƯU HỒ SƠ'}
+              </button>
               
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Họ & Tên:
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    placeholder="Nhập họ và tên"
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Email (Cố định):
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    disabled
-                    value={currentUser.email || ''}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-100 text-slate-500 border border-slate-200 rounded-lg cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Số Điện Thoại:
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="tel"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    placeholder="09xx xxx xxx"
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {loading ? 'Đang Lưu...' : 'LƯU THAY ĐỔI'}
-                </button>
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('password')}
-                    className="text-red-600 font-semibold hover:underline cursor-pointer"
-                  >
-                    Đổi Mật Khẩu?
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="text-slate-500 hover:text-slate-800 cursor-pointer"
-                  >
-                    Đóng lại
-                  </button>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-3 text-center">
+              <div className="w-full md:flex-[1.5] flex justify-center md:justify-end">
                 <button
                   type="button"
-                  onClick={onLogout}
-                  className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                  onClick={() => setActiveTab('password')}
+                  className="text-sm font-semibold text-[#c3a275] hover:text-[#e0c298] transition-colors whitespace-nowrap cursor-pointer hover:underline underline-offset-4"
                 >
-                  Đăng xuất khỏi hệ thống
+                  Đổi Mật Khẩu?
                 </button>
               </div>
+            </div>
 
-            </form>
-          ) : (
-            <form onSubmit={handleChangePassword} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Mật Khẩu Hiện Tại:
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showCurrentPw ? 'text' : 'password'}
-                    required
-                    value={passwordForm.current_password}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
-                    placeholder="Nhập mật khẩu hiện tại"
-                    className="w-full pl-9 pr-9 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPw(!showCurrentPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+          </form>
+        ) : (
+          <form onSubmit={handleChangePassword} className="flex flex-col">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-wide text-[#c3a275] mb-1.5 uppercase drop-shadow-sm">
+                ĐỔI MẬT KHẨU
+              </h2>
+              <p className="text-sm text-[#8c9096] font-light">
+                Bảo vệ tài khoản quản trị với mật khẩu an toàn
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Mật Khẩu Mới:
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showNewPw ? 'text' : 'password'}
-                    required
-                    value={passwordForm.password}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
-                    placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
-                    className="w-full pl-9 pr-9 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPw(!showNewPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Xác Nhận Mật Khẩu Mới:
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type={showConfirmPw ? 'text' : 'password'}
-                    required
-                    value={passwordForm.password_confirmation}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
-                    placeholder="Nhập lại mật khẩu mới"
-                    className="w-full pl-9 pr-9 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPw(!showConfirmPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2">
+            <div className="space-y-4 mb-8">
+              <div className="relative group flex items-center bg-[#0d1017]/70 border border-[#c3a275]/40 focus-within:border-[#c3a275] focus-within:ring-2 focus-within:ring-[#c3a275]/20 rounded-xl px-4 py-3.5 transition-all shadow-inner backdrop-blur-md">
+                <Lock className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3 shrink-0" strokeWidth={1.5} />
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  required
+                  maxLength={250}
+                  value={passwordForm.current_password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value.slice(0, 250) })}
+                  placeholder="Mật khẩu hiện tại"
+                  className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
+                />
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+                  type="button"
+                  onClick={() => setShowCurrentPw(!showCurrentPw)}
+                  className="text-[#8c9096] hover:text-[#c3a275] transition-colors ml-2"
                 >
-                  {loading ? 'Đang Cập Nhật...' : 'CẬP NHẬT MẬT KHẨU'}
+                  {showCurrentPw ? <EyeOff className="w-5 h-5" strokeWidth={1.5} /> : <Eye className="w-5 h-5" strokeWidth={1.5} />}
                 </button>
-
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('profile')}
-                    className="text-slate-500 hover:text-slate-800 cursor-pointer"
-                  >
-                    Hủy bỏ
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="text-red-600 font-semibold hover:underline cursor-pointer"
-                  >
-                    Đóng lại
-                  </button>
-                </div>
               </div>
 
-            </form>
-          )}
+              <div className="relative group flex items-center bg-[#0d1017]/70 border border-[#c3a275]/40 focus-within:border-[#c3a275] focus-within:ring-2 focus-within:ring-[#c3a275]/20 rounded-xl px-4 py-3.5 transition-all shadow-inner backdrop-blur-md">
+                <Lock className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3 shrink-0" strokeWidth={1.5} />
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  required
+                  maxLength={250}
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value.slice(0, 250) })}
+                  placeholder="Mật khẩu mới (Tối thiểu 8 ký tự, tối đa 250)"
+                  className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPw(!showNewPw)}
+                  className="text-[#8c9096] hover:text-[#c3a275] transition-colors ml-2"
+                >
+                  {showNewPw ? <EyeOff className="w-5 h-5" strokeWidth={1.5} /> : <Eye className="w-5 h-5" strokeWidth={1.5} />}
+                </button>
+              </div>
+
+              <div className="relative group flex items-center bg-[#0d1017]/70 border border-[#c3a275]/40 focus-within:border-[#c3a275] focus-within:ring-2 focus-within:ring-[#c3a275]/20 rounded-xl px-4 py-3.5 transition-all shadow-inner backdrop-blur-md">
+                <Lock className="w-5 h-5 text-[#8c9096] group-focus-within:text-[#c3a275] transition-colors mr-3 shrink-0" strokeWidth={1.5} />
+                <input
+                  type={showConfirmPw ? 'text' : 'password'}
+                  required
+                  maxLength={250}
+                  value={passwordForm.password_confirmation}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value.slice(0, 250) })}
+                  placeholder="Xác nhận mật khẩu mới (Tối đa 250 ký tự)"
+                  className="w-full bg-transparent text-sm text-[#e4e4e4] placeholder-[#8c9096] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPw(!showConfirmPw)}
+                  className="text-[#8c9096] hover:text-[#c3a275] transition-colors ml-2"
+                >
+                  {showConfirmPw ? <EyeOff className="w-5 h-5" strokeWidth={1.5} /> : <Eye className="w-5 h-5" strokeWidth={1.5} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 mb-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3.5 px-8 rounded-xl bg-gradient-to-r from-[#9a141b] via-[#b91c24] to-[#9a141b] hover:from-[#b91c24] hover:to-[#dc2626] text-white font-bold text-sm uppercase tracking-wider shadow-[0_10px_35px_-5px_rgba(154,20,27,0.8),0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_12px_40px_-5px_rgba(185,28,36,0.9),0_0_25px_rgba(220,38,38,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Đang Cập Nhật...
+                  </span>
+                ) : 'CẬP NHẬT MẬT KHẨU'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Bottom Section */}
+        <div className="relative mt-6 pt-3 flex justify-center border-t border-white/5">
+          <button
+            type="button"
+            onClick={activeTab === 'password' ? () => setActiveTab('profile') : onClose}
+            className="text-xs text-[#8c9096] hover:text-[#c3a275] transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Quay lại</span>
+          </button>
         </div>
 
       </div>
