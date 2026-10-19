@@ -42,6 +42,32 @@ class PropertyLifecycleTest extends TestCase
         $this->assertDatabaseMissing('properties', ['id' => $id]);
     }
 
+    public function test_property_title_accepts_255_characters_and_rejects_256_on_create_and_update(): void
+    {
+        $this->actingAs($this->user(1));
+        $title = str_repeat('đ', 255);
+        $id = $this->postJson('/api/properties', array_merge($this->payload(), ['title' => $title]))
+            ->assertCreated()->json('data.id');
+        $tooLong = $title.'đ';
+        $this->postJson('/api/properties', array_merge($this->payload(), ['title' => $tooLong]))
+            ->assertUnprocessable()->assertJsonValidationErrors('title');
+        $this->putJson('/api/properties/'.$id, ['title' => $tooLong])
+            ->assertUnprocessable()->assertJsonValidationErrors('title');
+        $this->assertDatabaseHas('properties', ['id' => $id, 'title' => $title]);
+    }
+
+    public function test_category_and_broker_pages_load_and_broker_sync_is_repeatable(): void
+    {
+        $this->actingAs($this->user(1));
+        $this->getJson('/api/categories')->assertOk()->assertJsonPath('summary.total', 8);
+        $brokerUser = $this->user(2);
+        $this->artisan('brokers:sync-users')->assertSuccessful();
+        $this->artisan('brokers:sync-users')->assertSuccessful();
+        $this->getJson('/api/brokers')->assertOk()->assertJsonPath('summary.total', 1);
+        $this->assertDatabaseHas('brokers', ['user_id' => $brokerUser->id]);
+        $this->getJson('/api/broker-assignments')->assertOk();
+    }
+
     public function test_pending_hidden_expired_and_deleted_listings_are_not_public(): void
     {
         $customer = $this->user(5);

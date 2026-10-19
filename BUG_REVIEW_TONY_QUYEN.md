@@ -1,5 +1,17 @@
 # Rà soát chức năng Phạm Đoàn Tony Quyền — 19/10/2026
 
+## Sửa lỗi sau khi pull — danh mục, môi giới, so sánh và tiêu đề
+
+Trang trắng sau khi build do `App.jsx` tham chiếu `handleLogout` chưa được khai báo. Đã khôi phục hàm đăng xuất và dọn trạng thái phiên/giao diện.
+
+- Bổ sung migration tạo bảng `categories` còn thiếu; API trả 8 danh mục. Lệnh `php artisan brokers:sync-users` bổ sung hồ sơ từ tài khoản vai trò môi giới, không ghi đè hoặc khôi phục hồ sơ đã xóa; API hiện trả 4 hồ sơ.
+- Bảng so sánh đối chiếu tối đa 4 tin theo giá, giá/m², diện tích, phòng, vị trí, pháp lý, nội thất; tô hàng khác biệt, lọc chỉ khác biệt, thu gọn giữ lựa chọn và cuộn ngang.
+- Form thêm/sửa BĐS và đăng tin chặn tiêu đề quá 255 ký tự; API kiểm tra tạo/sửa và báo tiếng Việt. Có test biên 255/256 ký tự tiếng Việt.
+- Source quản trị đã được pull đầy đủ; đã production build bằng Node 20 trong Docker. Các ghi chú bên dưới về source quản trị bị thiếu mô tả trạng thái cũ.
+- Sự cố kiểm thử: Docker giữ kết nối MySQL từ môi trường/cấu hình cache, làm rỗng database khi chạy test. Đã phục hồi binlog đến trước vị trí 1016648 của `binlog.000086` trên MySQL độc lập, xác minh rồi nhập lại: 22 BĐS, 15 tài khoản, 4 môi giới, 8 danh mục, 10 lịch hẹn, 15 hợp đồng. SQL phục hồi và bản sao binlog nằm trong `backend/storage/app/private/` (không đưa vào Git).
+- Đã ép SQLite trước khi Laravel khởi động và thêm chốt từ chối mọi database kiểm thử khác SQLite `:memory:`. Kiểm thử lại trong Docker: 18 tests, 199 assertions đạt. Frontend: property regression, cú pháp toàn bộ source, auth-session và production build đạt.
+- `frontend/tests/compare-browser.ps1` chạy Chrome ẩn: đạt bố cục 390/820/1365 px, bộ lọc khác biệt, thu gọn và không có runtime exception. Ảnh kiểm tra: `frontend/tests/compare-390.png`, `compare-820.png`, `compare-1365.png`.
+
 ## Database là nguồn dữ liệu chính
 
 ### Đăng tin và phân loại sau khi chuyển database
