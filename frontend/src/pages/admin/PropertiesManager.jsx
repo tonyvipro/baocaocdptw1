@@ -1183,7 +1183,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
       return;
     }
     if (formData.title.length > 255) {
-      setError('Tên sản phẩm không được vượt quá 255 ký tự.');
+      setError('Tiêu đề bất động sản không được vượt quá 255 ký tự.');
       return;
     }
     if (!formData.price || isNaN(formData.price) || Number(formData.price) <= 0) {
@@ -1270,7 +1270,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
             <label className="font-bold text-slate-700">Tiêu đề tin (*):</label>
             <input
               type="text"
-              name="title"
+              name="title" maxLength={255}
               value={formData.title}
               onChange={handleChange}
               placeholder="Ví dụ: Bán căn hộ 3PN Vinhomes Central Park view sông cực đẹp..."
@@ -1723,7 +1723,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
       return;
     }
     if (formData.title.length > 255) {
-      setError('Tên sản phẩm không được vượt quá 255 ký tự.');
+      setError('Tiêu đề bất động sản không được vượt quá 255 ký tự.');
       return;
     }
 
@@ -1782,7 +1782,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
             <label className="font-bold text-slate-700">Tiêu đề BĐS (*):</label>
             <input
               type="text"
-              name="title"
+              name="title" maxLength={255}
               value={formData.title}
               onChange={handleChange}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-red-500 font-medium"

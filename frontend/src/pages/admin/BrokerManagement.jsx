@@ -850,8 +850,8 @@ export default function BrokerManagement() {
                   <tr>
                     <td colSpan={7} className="py-16 text-center text-slate-400">
                       <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                      <p className="font-semibold text-slate-600">Không tìm thấy môi giới nào</p>
-                      <p className="text-xs text-slate-400 mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bỏ chọn các bộ lọc</p>
+                      <p className="font-semibold text-slate-600">Chưa có môi giới phù hợp</p>
+                      <p className="text-xs text-slate-400 mt-1">Thêm môi giới mới để bắt đầu, hoặc thay đổi từ khóa và bộ lọc.</p>
                     </td>
                   </tr>
                 ) : (

@@ -3,6 +3,24 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
+Artisan::command('brokers:sync-users', function () {
+    $created = 0;
+    \Illuminate\Support\Facades\DB::transaction(function () use (&$created) {
+        foreach (\App\Models\User::where('role_id', 2)->get() as $user) {
+            if (\App\Models\Broker::withTrashed()->where('user_id', $user->id)->exists()) continue;
+            $code = 'MG-U'.$user->id;
+            while (\App\Models\Broker::withTrashed()->where('code', $code)->exists()) $code .= '-'.strtolower(\Illuminate\Support\Str::random(4));
+            \App\Models\Broker::create([
+                'user_id' => $user->id, 'code' => $code, 'name' => $user->name,
+                'phone' => $user->phone, 'email' => $user->email,
+                'level' => 'Chuyên viên', 'status' => $user->is_active ? 'active' : 'inactive',
+            ]);
+            $created++;
+        }
+    });
+    $this->info('Đã thêm '.$created.' hồ sơ từ tài khoản môi giới. Giữ nguyên hồ sơ hiện có.');
+})->purpose('Bổ sung hồ sơ từ tài khoản môi giới, không ghi đè hoặc khôi phục hồ sơ đã xóa');
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');

@@ -180,7 +180,7 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
                   <label className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">Tiêu đề tin (*):</label>
                   <input
                     type="text"
-                    name="title"
+                    name="title" maxLength={255}
                     value={formData.title}
                     onChange={handleChange}
                     placeholder="Ví dụ: Bán căn hộ 3PN Vinhomes view sông cực đẹp..."
