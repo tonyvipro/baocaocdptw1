@@ -19,6 +19,7 @@ import Footer from './components/Footer';
 import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
 import AdminLayout from './pages/admin/AdminLayout';
+import NotificationsPage from './pages/NotificationsPage';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -37,6 +38,11 @@ export default function App() {
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
+  const [showNotifications, setShowNotifications] = useState(() => window.location.hash === '#notifications');
+  const goHome = () => {
+    setShowNotifications(false);
+    window.location.hash = '';
+  };
   // Quản lý trạng thái F5 reload persistence (URL Hash & LocalStorage)
   const [showProfileModal, setShowProfileModal] = useState(() => {
     try {
@@ -208,6 +214,7 @@ export default function App() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash || '';
+      setShowNotifications(hash === '#notifications');
       if (hash.startsWith('#admin')) {
         setCurrentAppMode('admin');
       } else if (hash === '' || hash === '#') {
@@ -414,7 +421,6 @@ export default function App() {
       {propertyError && <div role="alert" className="p-4 bg-red-50 text-red-700">{propertyError} <button onClick={loadData}>Thử lại</button></div>}
       {/* Header / Navbar */}
       <Navbar
-        activeTab={activeTab}
         setActiveTab={setActiveTab}
         favoriteCount={favorites.length}
         openFavorites={() => setShowFavoritesModal(true)}
@@ -443,8 +449,19 @@ export default function App() {
         openRecent={() => setShowRecentModal(true)}
         onOpenPostProperty={() => setShowPostPropertyModal(true)}
         onOpenUserListings={() => setShowUserListingsModal(true)}
+        onGoHome={goHome}
+        onOpenNotifications={() => {
+          setShowNotifications(true);
+          window.location.hash = '#notifications';
+        }}
       />
 
+      {showNotifications ? <NotificationsPage
+        key={currentUser?.id || 'guest'}
+        currentUser={currentUser}
+        onBack={goHome}
+        onLogin={() => { setAuthMode('login'); setShowAuthModal(true); }}
+      /> : <>
       {/* Hero & Search Section */}
       <HeroSection
         searchKeyword={searchKeyword}
@@ -651,6 +668,7 @@ export default function App() {
         )}
 
       </main>
+      </>}
 
       {/* Property Details Modal */}
       <PropertyModal
