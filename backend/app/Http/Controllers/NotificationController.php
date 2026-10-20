@@ -43,7 +43,7 @@ class NotificationController extends Controller
         $labels = ['LOGIN' => 'Đăng nhập', 'LOGOUT' => 'Đăng xuất', 'PROFILE_UPDATE' => 'Cập nhật hồ sơ',
             'CONTRACT_SIGN' => 'Ký hợp đồng', 'CONTRACT_CREATE' => 'Tạo hợp đồng', 'CONTRACT_UPDATE' => 'Cập nhật hợp đồng',
             'CONTRACT_DELETE' => 'Xóa hợp đồng', 'CUSTOMER_CREATE' => 'Thêm khách hàng', 'CUSTOMER_UPDATE' => 'Cập nhật khách hàng',
-            'CUSTOMER_DELETE' => 'Xóa khách hàng', 'CREATE' => 'Tạo mới', 'UPDATE' => 'Cập nhật', 'DELETE' => 'Xóa',
+            'CUSTOMER_DELETE' => 'Xóa khách hàng', 'DEMAND_CREATE' => 'Thêm nhu cầu', 'DEMAND_UPDATE' => 'Cập nhật nhu cầu', 'DEMAND_DELETE' => 'Xóa nhu cầu', 'CREATE' => 'Tạo mới', 'UPDATE' => 'Cập nhật', 'DELETE' => 'Xóa',
             'VIEW' => 'Xem bất động sản', 'STATUS_CHANGE' => 'Đổi trạng thái tin', 'EXTEND' => 'Gia hạn tin'];
         $tables = ['properties' => 'Bất động sản', 'users' => 'Tài khoản', 'contracts' => 'Hợp đồng', 'customers' => 'Khách hàng'];
         $details = $log->new_data['description'] ?? null;

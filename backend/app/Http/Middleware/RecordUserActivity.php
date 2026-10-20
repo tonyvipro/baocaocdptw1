@@ -45,6 +45,11 @@ class RecordUserActivity
                 $recordId = isset($matches[1]) ? (int) $matches[1] : ($payload['data']['id'] ?? 0);
                 $action = $request->isMethod('POST') ? 'CUSTOMER_CREATE' : ($request->isMethod('DELETE') ? 'CUSTOMER_DELETE' : 'CUSTOMER_UPDATE');
                 $table = 'customers'; $details = 'Khách hàng #'.$recordId;
+            } elseif (preg_match('~^api/demands(?:/(\d+))?$~', $path, $matches)) {
+                $payload = json_decode($response->getContent(), true);
+                $recordId = isset($matches[1]) ? (int) $matches[1] : ($payload['data']['id'] ?? 0);
+                $action = $request->isMethod('POST') ? 'DEMAND_CREATE' : ($request->isMethod('DELETE') ? 'DEMAND_DELETE' : 'DEMAND_UPDATE');
+                $table = 'customer_demands'; $details = 'Nhu cầu ND-'.(1000 + (int) $recordId);
             }
             if (!$action) return $response;
             $log = ActivityLog::create(['user_id' => $actor->id, 'action' => $action, 'table_name' => $table, 'record_id' => $recordId,

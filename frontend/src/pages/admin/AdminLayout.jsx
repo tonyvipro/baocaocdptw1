@@ -17,6 +17,8 @@ import CategoryManagement from './CategoryManagement';
 import RoleAssignment from './RoleAssignment';
 import BrokerManagement from './BrokerManagement';
 import CustomerManagement from './CustomerManagement';
+import DemandManagement from './DemandManagement';
+import { ClipboardList } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import NotificationsPage from '../NotificationsPage';
 import { Bell } from 'lucide-react';
@@ -98,6 +100,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
       { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck, roles: [1, 2] },
       { id: 'customers', label: 'Quản lý khách hàng', icon: Users, roles: [1, 2] },
+      { id: 'demands', label: 'Quản lý nhu cầu', icon: ClipboardList, roles: [1, 2] },
       { id: 'notifications', label: 'Thông báo & Nhật ký', icon: Bell, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
@@ -262,6 +265,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'dashboard' && <DashboardOverview />}
+          {activeMenu === 'demands' && <DemandManagement key={currentUser?.id || 'guest'} currentUser={currentUser} />}
           {activeMenu === 'notifications' && <NotificationsPage key={currentUser?.id || 'guest'} currentUser={currentUser} embedded />}
           {activeMenu === 'categories' && <CategoryManagement />}
           {activeMenu === 'brokers' && <BrokerManagement />}
@@ -275,7 +279,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
+          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

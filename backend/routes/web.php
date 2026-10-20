@@ -8,6 +8,16 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CustomerDemandController;
+
+Route::prefix('/api/demands')->group(function () {
+    Route::get('/options', [CustomerDemandController::class, 'options']);
+    Route::get('/', [CustomerDemandController::class, 'index']);
+    Route::post('/', [CustomerDemandController::class, 'store']);
+    Route::get('/{id}', [CustomerDemandController::class, 'show'])->whereNumber('id');
+    Route::put('/{id}', [CustomerDemandController::class, 'update'])->whereNumber('id');
+    Route::delete('/{id}', [CustomerDemandController::class, 'destroy'])->whereNumber('id');
+});
 
 Route::get('/api/notifications', [NotificationController::class, 'index']);
 Route::get('/api/notifications/unread-count', [NotificationController::class, 'unreadCount']);

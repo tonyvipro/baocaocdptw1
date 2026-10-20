@@ -56,6 +56,7 @@ class PropertyTypeController extends Controller
         $this->authorizeWrite($request);
         $type = PropertyType::findOrFail($id);
         abort_if(PropertyType::where('parent_id', $id)->exists() || Property::withTrashed()->where('property_type_id', $id)->exists(), 422, 'Danh mục còn danh mục con hoặc bất động sản sử dụng.');
+        abort_if(\Illuminate\Support\Facades\Schema::hasTable('customer_demands') && \App\Models\CustomerDemand::withTrashed()->where('property_type_id', $id)->exists(), 422, 'Danh mục đang được sử dụng trong nhu cầu khách hàng.');
         $type->delete();
         return response()->json(['message' => 'Đã xóa danh mục.']);
     }
