@@ -1,5 +1,17 @@
 # 3TV Land - Báo Cáo Chuyên Đề Phát Triển Web 1
 
+## Thông báo & Nhật ký
+
+Bấm biểu tượng chuông trên thanh đầu trang để mở `http://localhost:3001/#notifications`. Trong dashboard Admin/Broker, dùng chuông hoặc mục **Thông báo & Nhật ký** (`#admin/notifications`). Ba liên kết Tất Cả Nhà Đất/Nhà Đất Bán/Nhà Đất Cho Thuê trên thanh điều hướng đã được gỡ; danh sách và bộ lọc bất động sản vẫn hoạt động.
+
+- Bảng Thông báo Mới gồm Ngày, Loại thông báo, Nội dung và Trạng thái; chuông hiển thị số thông báo chưa đọc. Dữ liệu tự cập nhật mỗi 15 giây khi trang đang hiển thị.
+- Thông báo lấy từ bảng `notifications`, hóa đơn đã thanh toán/quá hạn và hợp đồng còn hiệu lực sắp hết hạn trong 3 ngày. Cập nhật hồ sơ và kích hoạt hợp đồng cũng tạo thông báo. Đồng bộ lại không tạo trùng hoặc đặt lại trạng thái đã đọc.
+- Nhật ký ghi thao tác thành công từ lúc triển khai: đăng nhập, đăng xuất, cập nhật hồ sơ, tạo/sửa/xóa khách hàng, tạo/sửa/xóa/kích hoạt hợp đồng; đồng thời hiển thị nhật ký bất động sản đã có. Kích hoạt hợp đồng được hiển thị là Ký hợp đồng theo luồng trạng thái hiện tại.
+- Admin xem nhật ký hệ thống; tài khoản khác chỉ xem nhật ký của mình. Thông báo và nút **Đánh dấu tất cả là đã đọc** luôn thuộc tài khoản hiện tại.
+- **Tải xuống Nhật ký** xuất toàn bộ nhật ký trong phạm vi quyền truy cập ra CSV UTF-8 (mở được bằng Excel), gồm cả các trang chưa mở. Ngày giờ hiển thị theo giờ Việt Nam. Không xuất mật khẩu hoặc payload hồ sơ thô.
+
+Module dùng các bảng `notifications`, `activity_logs`, `contracts`, `invoices` đã có, không cần migration mới hoặc dữ liệu giả. Kiểm tra: `php artisan test --filter=NotificationTest` trong `backend`, `npm.cmd run test:notifications` và `npm.cmd run build` trong `frontend`.
+
 ## Quản lý & Theo dõi Khách hàng
 
 Mở mục **Quản lý khách hàng** trong dashboard hoặc truy cập `http://localhost:3001/#admin/customers` sau khi đăng nhập. Hai tab **Quản lý khách hàng** và **Theo dõi khách hàng** dùng chung dữ liệu database.
@@ -88,6 +100,13 @@ docker compose down
 ## 💻 Hướng dẫn chạy thủ công (Local Development)
 
 ### 1. Chạy Frontend ReactJS:
+
+Trên Windows, nhấp đúp **`start-local.cmd`** ở thư mục gốc để khởi động Vite chạy nền tại `http://localhost:3001`. Có thể đóng cửa sổ sau khi khởi động. Chạy lại file này khi khởi động lại máy; nếu website đã chạy, chương trình dùng lại tiến trình hiện tại. Nhật ký nằm ở `frontend/vite-local.log`.
+
+Hoặc chạy từ thư mục `frontend`: `npm.cmd run start:local`.
+
+Để chạy và xem log trực tiếp trong terminal:
+
 ```bash
 cd frontend
 npm install

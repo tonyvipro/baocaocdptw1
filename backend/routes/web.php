@@ -7,6 +7,12 @@ use App\Http\Controllers\PropertyManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\NotificationController;
+
+Route::get('/api/notifications', [NotificationController::class, 'index']);
+Route::get('/api/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+Route::patch('/api/notifications/read-all', [NotificationController::class, 'markAllRead']);
+Route::get('/api/notifications/logs/download', [NotificationController::class, 'downloadLogs']);
 
 // CRM: each endpoint verifies the real session/token and the assigned broker.
 Route::prefix('/api/customers')->group(function () {
