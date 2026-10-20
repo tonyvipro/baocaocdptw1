@@ -1,5 +1,29 @@
 # 3TV Land - Báo Cáo Chuyên Đề Phát Triển Web 1
 
+## Quản lý nhu cầu
+
+Đăng nhập bằng Admin hoặc Broker và mở **Quản lý nhu cầu** trong dashboard: `http://localhost:3001/#admin/demands`.
+
+- Tìm theo mã `ND-1001`, tên/thông tin khách hàng, loại BĐS, khu vực hoặc ghi chú. Nút **Bộ lọc** lọc loại BĐS, ngân sách VNĐ, khu vực và trạng thái. Khoảng ngân sách được lọc theo phần giao nhau, tính cả hai đầu mút.
+- Nút **Thêm nhu cầu mới** chọn khách hàng CRM và loại BĐS từ database, nhập khoảng ngân sách, khu vực, trạng thái và ghi chú. Có thể tìm khách hàng theo tên, email hoặc SĐT để chọn trong danh sách được phân quyền.
+- Bảng gồm ID Nhu cầu, Tên khách hàng, Loại BĐS, Ngân sách, Khu vực, Trạng thái, Ngày tạo và các nút xem/sửa/xóa. Có phân trang và tổng số bản ghi. Xóa nhu cầu không xóa khách hàng; dữ liệu nhu cầu được xóa mềm.
+- Admin quản lý toàn bộ nhu cầu; Broker chỉ quản lý nhu cầu của khách hàng được phân công. Phân công lại khách hàng cũng chuyển phạm vi quản lý nhu cầu. Khách hàng đã xóa không còn xuất hiện trong danh sách nhu cầu.
+- Các ô văn bản tối đa 250 ký tự; ngân sách là số nguyên VNĐ không âm, tối đa 15 chữ số và ngân sách đến phải từ ngân sách bắt đầu trở lên. Các thay đổi được ghi trong Nhật ký hoạt động và có kiểm tra phiên bản để tránh ghi đè khi cùng chỉnh sửa.
+
+Chạy migration bổ sung trên môi trường khác trước khi sử dụng:
+
+```bash
+cd backend
+php artisan migrate --path=database/migrations/2026_10_19_000001_extend_property_types_table.php
+php artisan migrate --path=database/migrations/2026_10_20_120000_create_customer_demands_table.php
+```
+
+Với Docker, chạy hai lệnh trên bằng `docker compose exec backend php artisan migrate --path=...`. Migration danh mục bổ sung cột `property_types.status`; migration nhu cầu tạo bảng `customer_demands`. Danh sách ban đầu trống cho đến khi ghi nhận nhu cầu thực tế. Không cần chạy lại DatabaseSeeder.
+
+Nếu frontend trả lỗi HTTP 500 với nội dung rỗng, kiểm tra backend tại `http://localhost:8080/up` và khởi động Docker/backend. Lỗi thiếu bảng `customer_demands` hoặc cột `property_types.status` cần chạy đủ hai migration trên. API trả thông báo 503 khi cấu trúc module còn thiếu; frontend phân biệt lỗi kết nối, lỗi HTTP và giới hạn chờ 30 giây để chịu được thời gian khởi động backend.
+
+Kiểm tra: `php artisan test --filter=CustomerDemandTest` trong `backend`, `npm.cmd run test:demands` và `npm.cmd run build` trong `frontend`. Script `php scripts/check-customer-demands.php` kiểm tra cấu trúc và hai truy vấn API trên database hiện tại bằng thao tác chỉ đọc.
+
 ## Thông báo & Nhật ký
 
 Bấm biểu tượng chuông trên thanh đầu trang để mở `http://localhost:3001/#notifications`. Trong dashboard Admin/Broker, dùng chuông hoặc mục **Thông báo & Nhật ký** (`#admin/notifications`). Ba liên kết Tất Cả Nhà Đất/Nhà Đất Bán/Nhà Đất Cho Thuê trên thanh điều hướng đã được gỡ; danh sách và bộ lọc bất động sản vẫn hoạt động.
