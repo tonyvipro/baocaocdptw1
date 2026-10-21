@@ -42,6 +42,10 @@ class Contract extends Model
         'meeting_time' => 'datetime',
     ];
 
+    // Hằng số nghiệp vụ gia hạn (Spec mục 3.2 & 5.5)
+    public const GRACE_PERIOD_DAYS = 30; // Ân hạn 30 ngày sau khi hết hạn
+    public const REMINDER_DAYS = [30, 15, 7]; // Các mốc nhắc nhở trước khi hết hạn (ngày)
+
     public function property()
     {
         return $this->belongsTo(Property::class, 'property_id');
@@ -55,6 +59,16 @@ class Contract extends Model
     public function customer()
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function extensions()
+    {
+        return $this->hasMany(ContractExtension::class, 'contract_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(ContractDocument::class, 'contract_id');
     }
 
     /**

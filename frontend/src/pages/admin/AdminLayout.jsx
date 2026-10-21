@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck, FolderOpen
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+import ContractDocumentsManager from './ContractDocumentsManager';
 // 1. Gộp tất cả các import cần thiết lại với nhau
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
@@ -17,6 +18,11 @@ import CategoryManagement from './CategoryManagement';
 import RoleAssignment from './RoleAssignment';
 import BrokerManagement from './BrokerManagement';
 import CustomerManagement from './CustomerManagement';
+import DemandManagement from './DemandManagement';
+import { ClipboardList } from 'lucide-react';
+import NotificationBell from '../../components/NotificationBell';
+import NotificationsPage from '../NotificationsPage';
+import { Bell } from 'lucide-react';
 
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
   // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
@@ -95,12 +101,15 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
       { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck, roles: [1, 2] },
       { id: 'customers', label: 'Quản lý khách hàng', icon: Users, roles: [1, 2] },
+      { id: 'demands', label: 'Quản lý nhu cầu', icon: ClipboardList, roles: [1, 2] },
+      { id: 'notifications', label: 'Thông báo & Nhật ký', icon: Bell, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
       { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
       { id: 'property-types', label: 'Phân loại Bất Động Sản', icon: Layers, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
+      { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
       { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound, roles: [1] }, // Chuẩn Hình 11
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
@@ -219,19 +228,20 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-4">
             <button 
-              className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+              className="lg:hidden shrink-0 p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
               onClick={() => setSidebarOpen(false)}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 capitalize">
+            <h1 className="truncate text-base sm:text-xl font-bold text-slate-800 capitalize">
               {menuItems.find(i => i.id === activeMenu)?.label || 'Bảng điều khiển'}
             </h1>
           </div>
           
           <div className="flex items-center gap-3">
+            <NotificationBell currentUser={currentUser} onOpen={() => handleSelectMenu('notifications')} />
             <div className="hidden sm:block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               Chế độ Quản Trị Hệ Thống
             </div>
@@ -257,6 +267,8 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         {/* Dynamic Page Content */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           {activeMenu === 'dashboard' && <DashboardOverview />}
+          {activeMenu === 'demands' && <DemandManagement key={currentUser?.id || 'guest'} currentUser={currentUser} />}
+          {activeMenu === 'notifications' && <NotificationsPage key={currentUser?.id || 'guest'} currentUser={currentUser} embedded />}
           {activeMenu === 'categories' && <CategoryManagement />}
           {activeMenu === 'brokers' && <BrokerManagement />}
           {activeMenu === 'customers' && (currentUser && [1, 2].includes(Number(currentUser.role_id)) ? <CustomerManagement currentUser={currentUser} /> : <p className="text-sm text-slate-500">Vui lòng đăng nhập bằng tài khoản Admin hoặc Môi giới để quản lý khách hàng.</p>)}
@@ -265,11 +277,12 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'property-types' && <PropertyTypesManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
-          {activeMenu === 'contracts' && <ContractsManager />}
+          {activeMenu === 'contracts' && <ContractsManager currentUser={currentUser} />}
+          {activeMenu === 'contract-documents' && <ContractDocumentsManager currentUser={currentUser} onNavigateToContracts={() => handleSelectMenu('contracts')} />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
+          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'contract-documents' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

@@ -7,6 +7,22 @@ use App\Http\Controllers\PropertyManagementController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CustomerDemandController;
+
+Route::prefix('/api/demands')->group(function () {
+    Route::get('/options', [CustomerDemandController::class, 'options']);
+    Route::get('/', [CustomerDemandController::class, 'index']);
+    Route::post('/', [CustomerDemandController::class, 'store']);
+    Route::get('/{id}', [CustomerDemandController::class, 'show'])->whereNumber('id');
+    Route::put('/{id}', [CustomerDemandController::class, 'update'])->whereNumber('id');
+    Route::delete('/{id}', [CustomerDemandController::class, 'destroy'])->whereNumber('id');
+});
+
+Route::get('/api/notifications', [NotificationController::class, 'index']);
+Route::get('/api/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+Route::patch('/api/notifications/read-all', [NotificationController::class, 'markAllRead']);
+Route::get('/api/notifications/logs/download', [NotificationController::class, 'downloadLogs']);
 
 // CRM: each endpoint verifies the real session/token and the assigned broker.
 Route::prefix('/api/customers')->group(function () {
@@ -64,6 +80,22 @@ Route::get('/api/contracts/{id}', [\App\Http\Controllers\ContractController::cla
 Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'update']);
 Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
 Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
+
+// Contract Extensions API (Spec Hình 41 - Gia hạn hợp đồng)
+Route::get('/api/contracts/{contract}/extensions', [\App\Http\Controllers\ContractExtensionController::class, 'indexByContract']);
+Route::get('/api/contracts/{contract}/extension-eligibility', [\App\Http\Controllers\ContractExtensionController::class, 'checkEligibility']);
+Route::get('/api/contracts/{contract}/extension-draft', [\App\Http\Controllers\ContractExtensionController::class, 'getDraft']);
+Route::post('/api/contracts/{contract}/extensions', [\App\Http\Controllers\ContractExtensionController::class, 'storeDraft']);
+
+Route::get('/api/contract-extensions', [\App\Http\Controllers\ContractExtensionController::class, 'indexAll']);
+Route::put('/api/contract-extensions/{extension}', [\App\Http\Controllers\ContractExtensionController::class, 'updateDraft']);
+Route::post('/api/contract-extensions/{extension}/submit', [\App\Http\Controllers\ContractExtensionController::class, 'submit']);
+Route::post('/api/contract-extensions/{extension}/approve', [\App\Http\Controllers\ContractExtensionController::class, 'approve']);
+Route::post('/api/contract-extensions/{extension}/reject', [\App\Http\Controllers\ContractExtensionController::class, 'reject']);
+Route::post('/api/contract-extensions/{extension}/cancel', [\App\Http\Controllers\ContractExtensionController::class, 'cancel']);
+Route::delete('/api/contract-extensions/{extension}', [\App\Http\Controllers\ContractExtensionController::class, 'destroy']);
+Route::post('/api/contract-extensions/{extension}/documents', [\App\Http\Controllers\ContractExtensionController::class, 'uploadDocuments']);
+Route::delete('/api/contract-extensions/{extension}/documents/{document}', [\App\Http\Controllers\ContractExtensionController::class, 'destroyDocument']);
 
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
@@ -231,6 +263,20 @@ Route::post('/api/broker-assignments', [\App\Http\Controllers\BrokerController::
 Route::get('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'showAssignment']);
 Route::put('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'updateAssignment']);
 Route::patch('/api/broker-assignments/{id}/cancel', [\App\Http\Controllers\BrokerController::class, 'cancelAssignment']);
-Route::delete('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyAssignment']);
+Route::get('/api/contract-documents', [\App\Http\Controllers\ContractDocumentController::class, 'index']);
+Route::get('/api/contracts/{contract}/documents', [\App\Http\Controllers\ContractDocumentController::class, 'indexByContract']);
+Route::post('/api/contracts/{contract}/documents', [\App\Http\Controllers\ContractDocumentController::class, 'store']);
+Route::get('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'show']);
+Route::get('/api/contract-documents/{document}/preview', [\App\Http\Controllers\ContractDocumentController::class, 'preview']);
+Route::get('/api/contract-documents/{document}/download', [\App\Http\Controllers\ContractDocumentController::class, 'download']);
+Route::put('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'update']);
+Route::delete('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'destroy']);
+
+// Customer Portal Contracts & Documents API (Khách hàng)
+Route::get('/api/my/contracts', [\App\Http\Controllers\CustomerContractController::class, 'index']);
+Route::get('/api/my/contracts/{contract}', [\App\Http\Controllers\CustomerContractController::class, 'show']);
+Route::get('/api/my/contracts/{contract}/documents', [\App\Http\Controllers\CustomerContractController::class, 'documents']);
+Route::get('/api/my/contract-documents/{document}/preview', [\App\Http\Controllers\CustomerContractController::class, 'preview']);
+Route::get('/api/my/contract-documents/{document}/download', [\App\Http\Controllers\CustomerContractController::class, 'download']);
 
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });
