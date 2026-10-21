@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { shareListing } from '../utils/propertyCatalog';
 import { Bed, Bath, Maximize2, MapPin, Heart, SlidersHorizontal, Check, Camera, ShieldCheck, User, Share2, CheckCheck } from 'lucide-react';
 
 export default function PropertyCard({
@@ -11,13 +12,12 @@ export default function PropertyCard({
   viewMode = 'grid'
 }) {
   const isRent = property.purpose === 'rent';
+  const imageCount = new Set([property.image, ...(Array.isArray(property.images) ? property.images.map(image => typeof image === 'string' ? image : image?.image_url || image?.url) : [])].filter(Boolean)).size;
   const [copied, setCopied] = useState(false);
 
-  const handleShare = (e) => {
+  const handleShare = async (e) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/?property=${property.code || property.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
+    if (await shareListing(property)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -40,13 +40,13 @@ export default function PropertyCard({
             <span className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold text-white shadow-md tracking-wider ${
               isRent ? 'bg-blue-600' : 'bg-red-600'
             }`}>
-              {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+              {isRent ? 'CHO THUÊ' : 'ĐANG BÁN'}
             </span>
           </div>
 
           <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/75 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-md font-medium">
             <Camera className="w-3.5 h-3.5" />
-            <span>5 ảnh</span>
+            <span>{imageCount} ảnh</span>
           </div>
         </div>
 
@@ -175,7 +175,7 @@ export default function PropertyCard({
           <span className={`px-2.5 py-1 rounded-md text-[11px] font-black text-white shadow-md tracking-wider ${
             isRent ? 'bg-blue-600' : 'bg-red-600'
           }`}>
-            {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+            {isRent ? 'CHO THUÊ' : 'ĐANG BÁN'}
           </span>
           {property.badge && (
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold text-white bg-slate-900/80 backdrop-blur-md shadow-xs">
@@ -229,7 +229,7 @@ export default function PropertyCard({
 
         <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 bg-slate-950/70 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-md">
           <Camera className="w-3 h-3" />
-          <span>5 ảnh</span>
+          <span>{imageCount} ảnh</span>
         </div>
       </div>
 

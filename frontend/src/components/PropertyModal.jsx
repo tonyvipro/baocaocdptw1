@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { validCoordinates } from '../utils/property';
+import { shareListing } from '../utils/propertyCatalog';
 import {
   X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle,
   Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
@@ -22,6 +24,7 @@ export default function PropertyModal({
   const [showMapTab, setShowMapTab] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  useEffect(() => { setCurrentProp(property); }, [property]);
 
   if (!property) return null;
 
@@ -43,33 +46,22 @@ export default function PropertyModal({
     )
   );
 
-  // Demo gallery image list
-  const galleryImages = [
-    property.image,
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80'
-  ];
+  const galleryImages = [...new Set([property.image, ...(Array.isArray(property.images) ? property.images.map(image => typeof image === 'string' ? image : image.image_url || image.url) : [])].filter(Boolean))];
+  const mapQuery = validCoordinates(property) ? `${Number(property.lat)},${Number(property.lng)}`
+    : [property.address || property.street, property.district, property.city].filter(Boolean).join(', ');
 
   const handleShare = async () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('property', property.code);
-    try {
-      await navigator.clipboard.writeText(url.toString());
+    if (await shareListing(property)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
-      window.prompt('Sao chép liên kết bất động sản:', url.toString());
     }
   };
 
-  const amenities = [
-    'Hồ bơi vô cực tràn bờ', 'Phòng Gym & Yoga cao cấp',
-    'Công viên cây xanh 5ha', 'Khu vui chơi trẻ em an toàn',
-    'Hầm đỗ xe thông minh', 'Hệ thống an ninh 24/7 & Camera',
-    'TTTM & Siêu thị mini', 'Trường mầm non quốc tế'
-  ];
+  let amenities = property.amenities;
+  if (typeof amenities === 'string') {
+    try { amenities = JSON.parse(amenities); } catch { amenities = amenities.split(/[,\n]/).map(value => value.trim()).filter(Boolean); }
+  }
+  amenities = Array.isArray(amenities) ? amenities.filter(value => typeof value === 'string') : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
@@ -150,7 +142,7 @@ export default function PropertyModal({
                   <span className={`px-2.5 py-1 rounded-md text-xs font-black text-white shadow-md ${
                     isRent ? 'bg-blue-600' : 'bg-red-600'
                   }`}>
-                    {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+                    {isRent ? 'CHO THUÊ' : 'ĐANG BÁN'}
                   </span>
                   {Number(prop.status) === 2 && (
                     <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-blue-600 shadow-md">
@@ -168,12 +160,12 @@ export default function PropertyModal({
                     </span>
                   )}
                   <span className="px-2.5 py-1 rounded-md text-xs font-bold text-white bg-slate-900/80 backdrop-blur-md">
-                    {property.badge || 'VIP'}
+                    {property.badge || ''}
                   </span>
                 </div>
 
                 <div className="absolute bottom-3 right-3 bg-slate-950/75 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-md font-medium">
-                  {activeImageIndex + 1} / {galleryImages.length} ảnh
+                  {galleryImages.length ? activeImageIndex + 1 : 0} / {galleryImages.length} ảnh
                 </div>
               </div>
 
@@ -247,16 +239,16 @@ export default function PropertyModal({
                       {property.owner_name ? property.owner_name.charAt(0) : 'N'}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-900">{property.owner_name || 'Nguyễn Hoàng Nam'}</p>
+                      <p className="text-xs font-bold text-slate-900">{property.owner_name || 'Chưa cập nhật người liên hệ'}</p>
                       <p className="text-[10px] text-slate-500">Chuyên viên 3TV Land</p>
                     </div>
                   </div>
                   <a
-                    href={`tel:${property.owner_phone || '0912888777'}`}
+                    href={property.owner_phone ? `tel:${property.owner_phone}` : undefined}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    <span>{property.owner_phone || '0912.888.777'}</span>
+                    <span>{property.owner_phone || 'Chưa cập nhật số điện thoại'}</span>
                   </a>
                 </div>
               </div>
@@ -287,7 +279,7 @@ export default function PropertyModal({
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Tình trạng pháp lý</span>
-                <strong className="text-xs text-slate-900 mt-0.5 block truncate" title={property.legal}>{property.legal || 'Sổ hồng lâu dài'}</strong>
+                <strong className="text-xs text-slate-900 mt-0.5 block truncate" title={property.legal_status || property.legal}>{property.legal_status || property.legal || 'Chưa cập nhật'}</strong>
               </div>
             </div>
           </div>
@@ -305,15 +297,15 @@ export default function PropertyModal({
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Loại hình:</span>
-                <strong className="text-slate-900">{property.type || 'Căn hộ chung cư'}</strong>
+                <strong className="text-slate-900">{property.type || 'Chưa cập nhật'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Hướng ban công / cửa:</span>
-                <strong className="text-slate-900">{property.direction || 'Đông Nam'}</strong>
+                <strong className="text-slate-900">{property.direction || 'Chưa cập nhật'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Thời gian bàn giao:</span>
-                <strong className="text-slate-900">{property.available_date || 'Dọn vào ở ngay'}</strong>
+                <strong className="text-slate-900">{property.available_date || 'Chưa cập nhật'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Phí dịch vụ / Quản lý:</span>
@@ -370,11 +362,11 @@ export default function PropertyModal({
                 {property.furniture ? (
                   <><strong>Tình trạng nội thất: </strong>{property.furniture}</>
                 ) : (
-                  'Đầy đủ nội thất cao cấp: Tủ bếp, bếp từ, máy hút mùi, điều hòa Daikin, sàn gỗ công nghiệp, thiết bị vệ sinh Toto cao cấp.'
+                  'Chưa cập nhật thông tin nội thất.'
                 )}
               </p>
               <p>
-                Căn hộ sở hữu tầm nhìn thoáng đãng, đón ánh sáng tự nhiên và gió trời trong lành. Tiện ích nội khu đẳng cấp: Hồ bơi tràn bờ, phòng gym tiêu chuẩn, công viên cây xanh, trường học quốc tế, bệnh viện và trung tâm thương mại ngay dưới chân tòa nhà.
+                {property.description || 'Chưa cập nhật mô tả.'}
               </p>
             </div>
           </div>
@@ -387,7 +379,7 @@ export default function PropertyModal({
                 <span>Vị Trí Bản Đồ Bất Động Sản</span>
               </h3>
               <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.street}, ${property.district}, ${property.city}`)}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1"
@@ -398,16 +390,16 @@ export default function PropertyModal({
             </div>
 
             <div className="relative h-48 sm:h-56 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
-              <iframe
+              {mapQuery ? <iframe
                 title="Bản đồ vị trí"
                 width="100%"
                 height="100%"
                 frameBorder="0"
                 style={{ border: 0 }}
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(`${property.district}, ${property.city}, Vietnam`)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                 allowFullScreen
                 loading="lazy"
-              />
+              /> : <p className="text-xs text-slate-500">Chưa cập nhật vị trí bản đồ.</p>}
               <div className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 shadow-sm flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-red-600" />
                 <span>{property.street}, {property.district}</span>

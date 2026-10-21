@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useDatabaseTypes, databaseTypeElements } from '../utils/databaseTypes';
 import { X, Plus, AlertTriangle, Building2, Save, CheckCircle2, Clock } from 'lucide-react';
 
 export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
+  const activeTypes = useDatabaseTypes(React);
   const [formData, setFormData] = useState({
     title: '',
     purpose: 'sale',
@@ -55,6 +57,10 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    if (!activeTypes.some(type => type.name === formData.type)) {
+      setError('Vui lòng chọn loại bất động sản đang hoạt động từ database.');
+      return;
+    }
 
     if (!formData.title.trim()) {
       setError('Vui lòng nhập tiêu đề tin đăng.');
@@ -102,18 +108,11 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
       const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let res = await fetch('/api/properties', {
+      const res = await fetch('/api/properties', {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
-      if (!res.ok) {
-        res = await fetch('http://localhost:8080/api/properties', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
-      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Lỗi khi tạo bất động sản.');
@@ -212,11 +211,7 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 font-medium transition-all shadow-sm"
                   >
-                    <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-                    <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-                    <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-                    <option value="Shophouse thương mại">Shophouse thương mại</option>
-                    <option value="Đất nền dự án">Đất nền dự án</option>
+                    {databaseTypeElements(React, activeTypes, formData.type)}
                   </select>
                 </div>
 

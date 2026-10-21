@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDatabaseTypes, databaseTypeElements } from '../../utils/databaseTypes';
 import { 
   Building2, Plus, Search, Filter, RefreshCw, Eye, Edit, Trash2, RotateCcw, 
   CheckCircle2, XCircle, AlertTriangle, Clock, MapPin, DollarSign, Home, 
@@ -11,6 +12,7 @@ import ChangePropertyStatusModal from '../../components/ChangePropertyStatusModa
 import BulkChangePropertyStatusModal from '../../components/BulkChangePropertyStatusModal';
 
 export default function PropertiesManager() {
+  const activeTypes = useDatabaseTypes(React);
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
   const [activeTab, setActiveTab] = useState('list');
 
@@ -583,12 +585,7 @@ export default function PropertiesManager() {
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500"
                 >
                   <option value="all">Tất cả loại BĐS</option>
-                  <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-                  <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-                  <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-                  <option value="Shophouse thương mại">Shophouse</option>
-                  <option value="Đất nền dự án">Đất nền dự án</option>
-                  <option value="Penthouse Sky Villa">Penthouse</option>
+                  {activeTypes.map(type => <option key={type.id} value={type.name}>{type.name}</option>)}
                 </select>
               </div>
 
@@ -1127,6 +1124,7 @@ export default function PropertiesManager() {
 // SUB-COMPONENT: FORM TẠO TIN ĐĂNG / THÊM BĐS MỚI 
 // -------------------------------------------------------------
 function CreatePropertyForm({ onSuccess, onCancel }) {
+  const activeTypes = useDatabaseTypes(React);
   const [formData, setFormData] = useState({
     title: '',
     purpose: 'sale',
@@ -1176,6 +1174,10 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
   const handleSubmit = async (e, isDraft = false) => {
     e.preventDefault();
     setError('');
+    if (!activeTypes.some(type => type.name === formData.type)) {
+      setError('Vui lòng chọn loại bất động sản đang hoạt động từ database.');
+      return;
+    }
 
     // Validation theo Chương 6 Báo cáo
     if (!formData.title.trim()) {
@@ -1216,18 +1218,11 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
       const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let res = await fetch('/api/properties', {
+      const res = await fetch('/api/properties', {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
-      if (!res.ok) {
-        res = await fetch('http://localhost:8080/api/properties', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
-      }
 
       const data = await res.json();
       if (!res.ok) {
@@ -1302,12 +1297,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
               onChange={handleChange}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 font-medium"
             >
-              <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-              <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-              <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-              <option value="Shophouse thương mại">Shophouse thương mại</option>
-              <option value="Đất nền dự án">Đất nền dự án</option>
-              <option value="Penthouse Sky Villa">Penthouse Sky Villa</option>
+              {databaseTypeElements(React, activeTypes, formData.type)}
             </select>
           </div>
 
@@ -1688,6 +1678,7 @@ function PropertyDetailModal({ property, onClose, onEdit, onManageStatus }) {
 // SUB-COMPONENT: MODAL CHỈNH SỬA THÔNG TIN BĐS 
 // -------------------------------------------------------------
 function EditPropertyModal({ property, onClose, onSuccess }) {
+  const activeTypes = useDatabaseTypes(React);
   const [formData, setFormData] = useState({
     title: property.title || '',
     type: property.type || 'Căn hộ cao cấp',
@@ -1733,18 +1724,11 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
       const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let res = await fetch(`/api/properties/${property.id}`, {
+      const res = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(formData)
       });
-      if (!res.ok) {
-        res = await fetch(`http://localhost:8080/api/properties/${property.id}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(formData)
-        });
-      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Lỗi khi cập nhật BĐS.');
@@ -1821,12 +1805,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
                 onChange={handleChange}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
               >
-                <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-                <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-                <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-                <option value="Shophouse thương mại">Shophouse thương mại</option>
-                <option value="Đất nền dự án">Đất nền dự án</option>
-                <option value="Penthouse Sky Villa">Penthouse Sky Villa</option>
+                {databaseTypeElements(React, activeTypes, formData.type)}
               </select>
             </div>
             <div className="space-y-1">

@@ -27,6 +27,7 @@ class AdminPropertyListingTest extends TestCase
         Property::create(['code' => 'RENT-1', 'title' => 'House', 'purpose' => 'rent', 'price' => 12000000, 'status' => 0]);
         $deleted = Property::create(['code' => 'DELETED', 'title' => 'Deleted']);
         $deleted->delete();
+        $this->actingAs((new \App\Models\User)->forceFill(['id' => 1, 'role_id' => 1, 'is_active' => true]));
     }
 
     public function test_admin_gets_rows_and_pagination_instead_of_an_empty_table(): void

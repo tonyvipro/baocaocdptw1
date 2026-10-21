@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 class PropertyReadController extends Controller
 {
-    private function presentPrice(Property $property): Property
+    public function presentPrice(Property $property): Property
     {
         if ($property->relationLoaded('propertyType')) {
             if ($property->propertyType) $property->type = $property->propertyType->name;
@@ -40,7 +40,9 @@ class PropertyReadController extends Controller
             $query->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()));
         }
         \App\Support\PropertySearch::apply($query, $request);
-        $properties = $query->orderBy('id')->get()->map(function ($property) {
+        $this->filters($query, $request);
+        [$column, $direction] = $this->sort($request);
+        $properties = $query->orderBy($column, $direction)->orderBy('id')->get()->map(function ($property) {
             if (!$property->street && $property->address) $property->street = $property->address;
             if ($property->expire_date) $property->expire_date = \Illuminate\Support\Carbon::parse($property->expire_date)->toISOString();
             return $this->presentPrice($property);
@@ -50,13 +52,13 @@ class PropertyReadController extends Controller
 
     public function index(Request $request)
     {
+        $user = $request->user();
+        abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
+        abort_unless(in_array((int) $user->role_id, [1, 2], true), 403, 'Bạn không có quyền xem danh sách quản trị.');
         $query = Property::with('propertyType');
+        if ((int) $user->role_id !== 1) $query->where('user_id', $user->id);
         \App\Support\PropertySearch::apply($query, $request);
-        foreach (['type', 'purpose', 'city'] as $field) {
-            if ($request->filled($field) && $request->input($field) !== 'all') {
-                $query->where($field, $request->input($field));
-            }
-        }
+        $this->filters($query, $request);
         $hasExpiry = Schema::hasColumn('properties', 'expire_date');
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $status = (int) $request->input('status');
@@ -70,14 +72,7 @@ class PropertyReadController extends Controller
         if (!$request->filled('status') && $request->boolean('exclude_pending')) {
             $query->where('status', '!=', 0);
         }
-        [$column, $direction] = match ($request->input('sort', 'newest')) {
-            'oldest' => ['created_at', 'asc'],
-            'price-asc', 'price_asc' => ['price', 'asc'],
-            'price-desc', 'price_desc' => ['price', 'desc'],
-            'area-asc', 'area_asc' => ['area', 'asc'],
-            'area-desc', 'area_desc' => ['area', 'desc'],
-            default => ['created_at', 'desc'],
-        };
+        [$column, $direction] = $this->sort($request);
         $page = $query->orderBy($column, $direction)->orderBy('id', $direction)
             ->paginate(max(1, min(100, $request->integer('per_page', 12))));
         $page->getCollection()->each(fn ($property) => $this->presentPrice($property));
@@ -94,6 +89,42 @@ class PropertyReadController extends Controller
                 'total' => $page->total(),
             ],
         ])->header('Cache-Control', 'no-store');
+    }
+
+    private function filters($query, Request $request): void
+    {
+        $request->validate([
+            'price_min' => 'nullable|numeric|min:0', 'price_max' => 'nullable|numeric|min:0'.($request->filled('price_min') ? '|gte:price_min' : ''),
+            'area_min' => 'nullable|numeric|min:0', 'area_max' => 'nullable|numeric|min:0'.($request->filled('area_min') ? '|gte:area_min' : ''),
+            'purpose' => 'nullable|string|in:all,sale,rent,project', 'city' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100', 'type' => 'nullable|string|max:100',
+        ]);
+        foreach (['purpose', 'city', 'district'] as $field) {
+            if ($request->filled($field) && $request->input($field) !== 'all') $query->where($field, $request->input($field));
+        }
+        if ($request->filled('type') && $request->input('type') !== 'all') {
+            $type = $request->input('type');
+            if (Schema::hasColumn('properties', 'property_type_id')) {
+                $query->where(fn ($q) => $q->whereHas('propertyType', fn ($t) => is_numeric($type) ? $t->whereKey($type) : $t->where('name', $type))
+                    ->orWhere(fn ($legacy) => $legacy->whereNull('property_type_id')->where('type', $type)));
+            } else $query->where('type', $type);
+        }
+        foreach (['price', 'area'] as $field) {
+            if ($request->filled($field.'_min')) $query->where($field, '>=', $request->input($field.'_min'));
+            if ($request->filled($field.'_max')) $query->where($field, '<=', $request->input($field.'_max'));
+        }
+    }
+
+    private function sort(Request $request): array
+    {
+        return match ($request->input('sort', 'newest')) {
+            'oldest' => ['created_at', 'asc'],
+            'price-asc', 'price_asc' => ['price', 'asc'],
+            'price-desc', 'price_desc' => ['price', 'desc'],
+            'area-asc', 'area_asc' => ['area', 'asc'],
+            'area-desc', 'area_desc' => ['area', 'desc'],
+            default => ['created_at', 'desc'],
+        };
     }
 
     public function stats()

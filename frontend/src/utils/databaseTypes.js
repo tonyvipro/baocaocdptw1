@@ -23,3 +23,9 @@ export function databaseTypeOptions(jsx, types, selected) {
   if (!types.some(type => type.name === selected)) options.unshift(jsx.jsx('option', { value: selected, disabled: true, children: types.length ? `${selected} (không khả dụng)` : 'Đang tải loại BĐS từ database...' }, 'current'));
   return options;
 }
+
+export function databaseTypeElements(React, types, selected) {
+  const options = types.map(type => React.createElement('option', { key: type.id, value: type.name }, type.name));
+  if (!types.some(type => type.name === selected)) options.unshift(React.createElement('option', { key: 'unavailable', value: selected, disabled: true }, types.length ? `${selected} (không khả dụng)` : 'Đang tải loại BĐS từ database...'));
+  return options;
+}

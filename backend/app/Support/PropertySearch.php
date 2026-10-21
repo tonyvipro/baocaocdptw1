@@ -23,14 +23,21 @@ final class PropertySearch
                 fn ($value) => Str::lower(Str::ascii((string) $value)), 1);
         }
         $columns = array_intersect(['title', 'code', 'project', 'address', 'street', 'district', 'city', 'developer', 'type'], Schema::getColumnListing('properties'));
+        $hasType = Schema::hasColumn('properties', 'property_type_id') && Schema::hasTable('property_types');
         foreach ($tokens as $token) {
             // Treat SQL wildcard characters as literal user input.
             $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $token).'%';
-            $query->where(function (Builder $group) use ($columns, $pattern, $sqlite, $connection) {
+            $query->where(function (Builder $group) use ($columns, $pattern, $sqlite, $connection, $hasType) {
                 foreach ($columns as $column) {
                     $wrapped = $connection->getQueryGrammar()->wrap($column);
                     $expression = $sqlite ? "search_normalize($wrapped)" : "CONVERT($wrapped USING utf8mb4) COLLATE utf8mb4_unicode_ci";
                     $group->orWhereRaw("$expression LIKE ? ESCAPE '!'", [$pattern]);
+                }
+                if ($hasType) {
+                    $group->orWhereHas('propertyType', function (Builder $type) use ($pattern, $sqlite) {
+                        $expression = $sqlite ? 'search_normalize(name)' : 'CONVERT(name USING utf8mb4) COLLATE utf8mb4_unicode_ci';
+                        $type->whereRaw("$expression LIKE ? ESCAPE '!'", [$pattern]);
+                    });
                 }
             });
         }

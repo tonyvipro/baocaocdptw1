@@ -22,7 +22,7 @@ class PropertyManagementController extends Controller
     private function rules(bool $create): array
     {
         $rules = [
-            'title' => ($create ? 'required' : 'sometimes').'|string|max:255',
+            'title' => ($create ? 'required' : 'sometimes|required').'|string|max:255',
             'purpose' => ($create ? 'required' : 'sometimes').'|in:sale,rent,project',
             'type' => ($create ? 'required' : 'sometimes').'|string|max:100',
             'status' => 'sometimes|integer|between:0,4',
@@ -38,11 +38,19 @@ class PropertyManagementController extends Controller
             'lng' => 'nullable|numeric|between:-180,180',
             'expire_date' => 'nullable|date|after:now',
             'description' => 'nullable|string|max:50000',
+            'amenities' => 'nullable|array|max:100',
+            'amenities.*' => 'string|max:250',
+            'build_year' => 'nullable|integer|between:1800,'.(now()->year + 10),
             'image' => 'nullable|url:http,https|max:4096',
-            'deposit' => 'nullable|numeric|min:0',
+            'deposit' => 'nullable|numeric|min:0|max:9999999999999',
         ];
         foreach (['address', 'street', 'district', 'city', 'developer', 'project', 'furniture', 'owner_name', 'owner_phone', 'legal', 'legal_status', 'direction', 'available_date', 'management_fee', 'rent_period_min', 'unit_price'] as $field) {
-            $rules[$field] = 'nullable|string|max:255';
+            $limit = match ($field) {
+                'owner_phone', 'direction' => 50,
+                'district', 'city', 'legal', 'legal_status', 'available_date', 'management_fee', 'rent_period_min', 'unit_price' => 100,
+                default => 255,
+            };
+            $rules[$field] = 'nullable|string|max:'.$limit;
         }
         foreach (['price', 'price_sale', 'price_rent', 'area'] as $field) {
             array_unshift($rules[$field], 'bail', function ($attribute, $value, $fail) {
@@ -73,7 +81,7 @@ class PropertyManagementController extends Controller
     {
         $purpose = $data['purpose'] ?? $property?->purpose;
         $field = $purpose === 'rent' ? 'price_rent' : 'price_sale';
-        $price = array_key_exists('price', $data) ? $data['price'] : ($data[$field] ?? $property?->$field ?? $property?->price ?? 0);
+        $price = array_key_exists('price', $data) ? $data['price'] : ($data[$field] ?? $property?->price ?? $property?->$field ?? 0);
         $data['price'] = $data[$field] = $price;
         $data['price_sale_text'] = $purpose === 'rent' ? null : ((float) $price >= 1e9 ? round($price / 1e9, 2).' tỷ' : round($price / 1e6, 2).' triệu');
         $data['price_rent_text'] = $purpose === 'rent' ? round($price / 1e6, 2).' triệu/tháng' : null;
@@ -111,6 +119,7 @@ class PropertyManagementController extends Controller
         $validated = $request->validate($this->rules(true), $this->validationMessages());
         $this->authorizeProperty($request);
         $data = $this->pricing($validated);
+        if (array_key_exists('amenities', $data)) $data['amenities'] = json_encode($data['amenities'], JSON_UNESCAPED_UNICODE);
         $data['title'] = trim($data['title']);
         abort_if($data['title'] === '', 422, 'Tiêu đề không được để trống.');
         $data['code'] = 'BDS-'.Str::upper(Str::random(12));
@@ -131,6 +140,7 @@ class PropertyManagementController extends Controller
         $property = Property::findOrFail($id);
         $this->authorizeProperty($request, $property);
         $data = $this->pricing($validated, $property);
+        if (array_key_exists('amenities', $data)) $data['amenities'] = json_encode($data['amenities'], JSON_UNESCAPED_UNICODE);
         if (array_key_exists('image', $data) && !$data['image']) unset($data['image']);
         if ((int) $request->user()->role_id !== 1) $data['status'] = 0;
         DB::transaction(function () use ($request, $property, $data) {

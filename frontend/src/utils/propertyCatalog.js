@@ -7,7 +7,7 @@ export function availableRecentViews(history, catalog) {
 }
 
 export function propertyPrice(p) {
-  const value = Number(p.purpose === 'rent' ? (p.price_rent ?? p.price) : (p.price_sale ?? p.price));
+  const value = Number(p.price ?? (p.purpose === 'rent' ? p.price_rent : p.price_sale));
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
@@ -16,7 +16,7 @@ function inRange(value, range, prefix = '') {
   if (value === null || !Number.isFinite(value) || value <= 0) return false;
   if (range.startsWith(prefix)) {
     const [low, high] = range.slice(prefix.length).split('-').map(Number);
-    return Number.isFinite(low) && Number.isFinite(high) && low >= 0 && high >= low && value >= low && value <= high;
+    return Number.isFinite(low) && (Number.isFinite(high) || high === Infinity) && low >= 0 && high >= low && value >= low && value <= high;
   }
   return false;
 }

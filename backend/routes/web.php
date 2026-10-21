@@ -102,16 +102,16 @@ Route::get('/api/history', function (\Illuminate\Http\Request $request) {
     try {
         $userId = \Illuminate\Support\Facades\Auth::id();
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
-            $visible = Property::where('status', 1)->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()))->select('id');
+            $visible = Property::with('propertyType')->where('status', 1)->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()))->get()->keyBy('id');
             $logs = \Illuminate\Support\Facades\DB::table('activity_logs')
                 ->where('user_id', $userId)
                 ->where('action', 'VIEW')
-                ->whereIn('record_id', $visible)
+                ->where('table_name', 'properties')->whereIn('record_id', $visible->keys())
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->unique('record_id')->take(30)->values()
-                ->map(function ($item) {
-                    $item->property_data = json_decode($item->new_data, true);
+                ->map(function ($item) use ($visible) {
+                    $item->property_data = app(\App\Http\Controllers\PropertyReadController::class)->presentPrice($visible[$item->record_id])->toArray();
                     return $item;
                 });
             return response()->json($logs);
@@ -122,7 +122,8 @@ Route::get('/api/history', function (\Illuminate\Http\Request $request) {
 
 Route::post('/api/history', function (\Illuminate\Http\Request $request) {
     $request->validate(['property' => 'required|array', 'property.code' => 'required|string|max:50']);
-    $property = Property::where('code', $request->input('property.code'))->where('status', 1)->firstOrFail();
+    $property = Property::where('code', $request->input('property.code'))->where('status', 1)
+        ->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()))->firstOrFail();
     try {
         $userId = \Illuminate\Support\Facades\Auth::id();
         $prop = $property->toArray();

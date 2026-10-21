@@ -125,6 +125,7 @@ export default function App() {
   });
 
   const visibleHistory = useMemo(() => availableRecentViews(recentViews, properties), [recentViews, properties]);
+  const visibleFavorites = useMemo(() => availableRecentViews(favorites, properties), [favorites, properties]);
 
   // Compare List
   const [comparedList, setComparedList] = useState([]);
@@ -135,6 +136,7 @@ export default function App() {
     try {
       const result = await fetchProperties();
       setProperties(result.data);
+      setComparedList(previous => availableRecentViews(previous, result.data));
       setSelectedProperty(previous => previous ? result.data.find(p => p.code === previous.code) || null : null);
       setDataSource(result.source);
       setPropertyError('');
@@ -464,7 +466,7 @@ export default function App() {
       {/* Header / Navbar */}
       <Navbar
         setActiveTab={setActiveTab}
-        favoriteCount={favorites.length}
+        favoriteCount={visibleFavorites.length}
         openFavorites={() => setShowFavoritesModal(true)}
         compareCount={comparedList.length}
         openCompare={() => document.getElementById('compare-drawer')?.focus()}
@@ -741,6 +743,7 @@ export default function App() {
 
       {/* Property Details Modal */}
       <PropertyModal
+        key={selectedProperty?.code || 'closed'}
         property={selectedProperty}
         onClose={() => setSelectedProperty(null)}
         isFavorite={selectedProperty ? favorites.some((f) => f.code === selectedProperty.code) : false}
@@ -817,7 +820,7 @@ export default function App() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-red-600 fill-red-600" />
-                <h3 className="text-base font-bold text-slate-900">Danh Sách Tin Đăng Đã Lưu ({favorites.length})</h3>
+                <h3 className="text-base font-bold text-slate-900">Danh Sách Tin Đăng Đã Lưu ({visibleFavorites.length})</h3>
               </div>
               <button
                 onClick={() => setShowFavoritesModal(false)}
@@ -828,10 +831,10 @@ export default function App() {
             </div>
 
             <div className="overflow-y-auto flex-1 py-3 space-y-2.5">
-              {favorites.length === 0 ? (
+              {visibleFavorites.length === 0 ? (
                 <p className="text-center text-xs text-slate-400 py-8">Bạn chưa lưu bất động sản nào vào danh sách yêu thích.</p>
               ) : (
-                favorites.map((p) => (
+                visibleFavorites.map((p) => (
                   <div key={p.code} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 gap-3">
                     <img src={p.image} alt={p.title} className="w-16 h-16 rounded object-cover shrink-0" />
                     <div className="flex-1 min-w-0">
