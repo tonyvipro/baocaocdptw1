@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "repair:deployed": "node scripts/repair-deployed-catalog.mjs",
     "test:catalog": "node tests/catalog.test.mjs",
+    "test:search": "node tests/search-engine.test.mjs",
     "test:catalog:live": "node tests/catalog.test.mjs --live",
     "test:browser": "node tests/catalog-browser.mjs",
     "test:property-form": "node tests/property-form-browser.mjs",

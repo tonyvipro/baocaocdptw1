@@ -47,7 +47,7 @@ export function areaMatches(p, range) {
 }
 
 export function filterCatalog(properties, f = {}) {
-  const keyword = normalizeText(f.search);
+  const tokens = normalizeText(f.search).split(' ').filter(Boolean);
   const typeGroups = {
     'can-ho': ['can ho', 'chung cu', 'apartment'], 'nha-pho': ['nha pho', 'lien ke', 'nha rieng', 'townhouse'],
     'biet-thu': ['biet thu', 'villa'], 'dat-nen': ['dat'], 'mat-bang': ['mat bang', 'shophouse', 'kinh doanh'],
@@ -58,7 +58,7 @@ export function filterCatalog(properties, f = {}) {
     for (const field of ['purpose', 'project', 'city', 'developer']) {
       if (f[field] && f[field] !== 'all' && p[field] !== f[field]) return false;
     }
-    if (keyword && !['title', 'project', 'street', 'address', 'district', 'city', 'developer', 'code'].some(field => normalizeText(p[field]).includes(keyword))) return false;
+    if (!tokens.every(token => ['title', 'project', 'street', 'address', 'district', 'city', 'developer', 'code', 'type'].some(field => normalizeText(p[field]).includes(token)))) return false;
     if (f.type && f.type !== 'all') {
       const type = normalizeText(p.type);
       const selected = normalizeText(f.type);

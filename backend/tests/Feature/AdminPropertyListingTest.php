@@ -52,4 +52,29 @@ class AdminPropertyListingTest extends TestCase
             ->assertJsonPath('pending', 1)->assertJsonPath('trash', 1);
         $this->getJson('/api/properties')->assertOk()->assertJsonPath('0.code', 'SALE-1');
     }
+
+    public function test_search_handles_vietnamese_tokens_across_fields_and_visibility(): void
+    {
+        Property::where('code', 'SALE-1')->update(['title' => 'Biệt thự Thảo Điền', 'address' => 'Nguyễn Văn Hưởng']);
+        foreach (['THAO dien', '  nguyen   biet  ', 'SALE-1'] as $keyword) {
+            $url = '/api/properties?'.http_build_query(['search' => $keyword]);
+            $this->getJson($url)->assertOk()->assertJsonCount(1)->assertJsonPath('0.code', 'SALE-1');
+            $this->getJson($url.'&admin=1')->assertOk()->assertJsonPath('meta.total', 1);
+        }
+        $this->getJson('/api/properties?search=House')->assertOk()->assertJsonCount(0);
+        foreach (['%', '_', "' OR 1=1 --"] as $keyword) {
+            $this->getJson('/api/properties?'.http_build_query(['search' => $keyword]))
+                ->assertOk()->assertJsonCount(0);
+        }
+        $this->getJson('/api/properties?search[]=invalid')->assertUnprocessable();
+        $this->getJson('/api/properties?search='.str_repeat('a', 251))->assertUnprocessable();
+    }
+
+    public function test_api_diagnostics_include_errors_and_hide_timing_in_production(): void
+    {
+        $this->getJson('/api/properties')->assertOk()->assertHeader('X-Request-ID');
+        $this->getJson('/api/properties?search[]=invalid')->assertUnprocessable()->assertHeader('X-Request-ID');
+        config(['app.debug' => false]);
+        $this->getJson('/api/properties')->assertHeaderMissing('Server-Timing');
+    }
 }
