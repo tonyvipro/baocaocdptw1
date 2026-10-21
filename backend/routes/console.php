@@ -2,6 +2,9 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('contracts:process-expiry')->dailyAt('00:00');
 
 Artisan::command('brokers:sync-users', function () {
     $created = 0;

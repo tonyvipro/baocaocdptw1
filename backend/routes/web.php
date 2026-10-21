@@ -81,6 +81,22 @@ Route::put('/api/contracts/{id}', [\App\Http\Controllers\ContractController::cla
 Route::patch('/api/contracts/{id}/status', [\App\Http\Controllers\ContractController::class, 'updateStatus']);
 Route::delete('/api/contracts/{id}', [\App\Http\Controllers\ContractController::class, 'destroy']);
 
+// Contract Extensions API (Spec Hình 41 - Gia hạn hợp đồng)
+Route::get('/api/contracts/{contract}/extensions', [\App\Http\Controllers\ContractExtensionController::class, 'indexByContract']);
+Route::get('/api/contracts/{contract}/extension-eligibility', [\App\Http\Controllers\ContractExtensionController::class, 'checkEligibility']);
+Route::get('/api/contracts/{contract}/extension-draft', [\App\Http\Controllers\ContractExtensionController::class, 'getDraft']);
+Route::post('/api/contracts/{contract}/extensions', [\App\Http\Controllers\ContractExtensionController::class, 'storeDraft']);
+
+Route::get('/api/contract-extensions', [\App\Http\Controllers\ContractExtensionController::class, 'indexAll']);
+Route::put('/api/contract-extensions/{extension}', [\App\Http\Controllers\ContractExtensionController::class, 'updateDraft']);
+Route::post('/api/contract-extensions/{extension}/submit', [\App\Http\Controllers\ContractExtensionController::class, 'submit']);
+Route::post('/api/contract-extensions/{extension}/approve', [\App\Http\Controllers\ContractExtensionController::class, 'approve']);
+Route::post('/api/contract-extensions/{extension}/reject', [\App\Http\Controllers\ContractExtensionController::class, 'reject']);
+Route::post('/api/contract-extensions/{extension}/cancel', [\App\Http\Controllers\ContractExtensionController::class, 'cancel']);
+Route::delete('/api/contract-extensions/{extension}', [\App\Http\Controllers\ContractExtensionController::class, 'destroy']);
+Route::post('/api/contract-extensions/{extension}/documents', [\App\Http\Controllers\ContractExtensionController::class, 'uploadDocuments']);
+Route::delete('/api/contract-extensions/{extension}/documents/{document}', [\App\Http\Controllers\ContractExtensionController::class, 'destroyDocument']);
+
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
     try {

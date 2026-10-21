@@ -275,7 +275,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'property-types' && <PropertyTypesManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
-          {activeMenu === 'contracts' && <ContractsManager />}
+          {activeMenu === 'contracts' && <ContractsManager currentUser={currentUser} />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
