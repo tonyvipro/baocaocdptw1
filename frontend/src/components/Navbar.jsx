@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Heart, SlidersHorizontal, Phone, Database, 
   User, LogIn, UserPlus, LogOut, ChevronDown, PlusCircle,
-  MapPin, Clock
+  MapPin, Clock, FileText
 } from 'lucide-react';
 import { triggerDatabaseMigration, resolveAvatarUrl } from '../services/api';
 import NotificationBell from './NotificationBell';
@@ -26,6 +26,7 @@ export default function Navbar({
   onOpenPostProperty,
   onOpenUserListings,
   onOpenNotifications,
+  onOpenMyContracts,
   onGoHome,
 }) {
   const [migrating, setMigrating] = useState(false);
@@ -230,6 +231,21 @@ export default function Navbar({
                       >
                         <Database className="w-4 h-4 text-slate-400" />
                         <span>{currentUser.role_id === 1 ? 'Trang hệ thống' : 'Quản lý lịch hẹn'}</span>
+                      </button>
+                    )}
+
+                    {/* Nút Xem hợp đồng dành riêng cho Khách hàng (role_id = 5) - đặt NGAY PHÍA TRÊN nút Đăng xuất */}
+                    {currentUser && currentUser.role_id === 5 && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenMyContracts) onOpenMyContracts();
+                          else window.location.hash = '#my-contracts';
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-100"
+                      >
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-slate-800">Xem hợp đồng</span>
                       </button>
                     )}
 

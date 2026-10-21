@@ -20,6 +20,8 @@ import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
 import AdminLayout from './pages/admin/AdminLayout';
 import NotificationsPage from './pages/NotificationsPage';
+import MyContractsPage from './pages/customer/MyContractsPage';
+import MyContractDetailPage from './pages/customer/MyContractDetailPage';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -39,8 +41,20 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [showNotifications, setShowNotifications] = useState(() => window.location.hash === '#notifications');
+  const [showMyContracts, setShowMyContracts] = useState(() => {
+    const hash = window.location.hash || '';
+    return hash.startsWith('#my-contracts');
+  });
+  const [selectedCustomerContractId, setSelectedCustomerContractId] = useState(() => {
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#my-contracts\/(\d+)$/);
+    return match ? Number(match[1]) : null;
+  });
+
   const goHome = () => {
     setShowNotifications(false);
+    setShowMyContracts(false);
+    setSelectedCustomerContractId(null);
     window.location.hash = '';
   };
   // Quản lý trạng thái F5 reload persistence (URL Hash & LocalStorage)
@@ -215,6 +229,16 @@ export default function App() {
     const handleHash = () => {
       const hash = window.location.hash || '';
       setShowNotifications(hash === '#notifications');
+
+      if (hash.startsWith('#my-contracts')) {
+        const match = hash.match(/^#my-contracts\/(\d+)$/);
+        setShowMyContracts(true);
+        setSelectedCustomerContractId(match ? Number(match[1]) : null);
+      } else {
+        setShowMyContracts(false);
+        setSelectedCustomerContractId(null);
+      }
+
       if (hash.startsWith('#admin')) {
         setCurrentAppMode('admin');
       } else if (hash === '' || hash === '#') {
@@ -227,6 +251,24 @@ export default function App() {
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
+
+  // Bảo vệ route #my-contracts: Yêu cầu đăng nhập và đúng vai trò khách hàng
+  useEffect(() => {
+    if (showMyContracts) {
+      if (!currentUser) {
+        setAuthMode('login');
+        setShowAuthModal(true);
+        goHome();
+      } else if (currentUser.role_id === 1 || currentUser.role_id === 2) {
+        // Nếu là Admin/Môi giới, chuyển sang màn hình Quản lý tài liệu hợp đồng
+        localStorage.setItem('3tv_app_mode', 'admin');
+        localStorage.setItem('3tv_admin_active_menu', 'contract-documents');
+        window.location.hash = '#admin/contract-documents';
+        setCurrentAppMode('admin');
+        setShowMyContracts(false);
+      }
+    }
+  }, [showMyContracts, currentUser]);
 
   const handleToggleFavorite = (prop) => {
     setFavorites((prev) => {
@@ -454,14 +496,41 @@ export default function App() {
           setShowNotifications(true);
           window.location.hash = '#notifications';
         }}
+        onOpenMyContracts={() => {
+          setShowMyContracts(true);
+          setSelectedCustomerContractId(null);
+          window.location.hash = '#my-contracts';
+        }}
       />
 
-      {showNotifications ? <NotificationsPage
-        key={currentUser?.id || 'guest'}
-        currentUser={currentUser}
-        onBack={goHome}
-        onLogin={() => { setAuthMode('login'); setShowAuthModal(true); }}
-      /> : <>
+      {showNotifications ? (
+        <NotificationsPage
+          key={currentUser?.id || 'guest'}
+          currentUser={currentUser}
+          onBack={goHome}
+          onLogin={() => { setAuthMode('login'); setShowAuthModal(true); }}
+        />
+      ) : showMyContracts ? (
+        selectedCustomerContractId ? (
+          <MyContractDetailPage
+            contractId={selectedCustomerContractId}
+            currentUser={currentUser}
+            onBack={() => {
+              setSelectedCustomerContractId(null);
+              window.location.hash = '#my-contracts';
+            }}
+          />
+        ) : (
+          <MyContractsPage
+            currentUser={currentUser}
+            onSelectContract={(id) => {
+              setSelectedCustomerContractId(id);
+              window.location.hash = `#my-contracts/${id}`;
+            }}
+            onGoHome={goHome}
+          />
+        )
+      ) : <>
       {/* Hero & Search Section */}
       <HeroSection
         searchKeyword={searchKeyword}

@@ -263,6 +263,20 @@ Route::post('/api/broker-assignments', [\App\Http\Controllers\BrokerController::
 Route::get('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'showAssignment']);
 Route::put('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'updateAssignment']);
 Route::patch('/api/broker-assignments/{id}/cancel', [\App\Http\Controllers\BrokerController::class, 'cancelAssignment']);
-Route::delete('/api/broker-assignments/{id}', [\App\Http\Controllers\BrokerController::class, 'destroyAssignment']);
+Route::get('/api/contract-documents', [\App\Http\Controllers\ContractDocumentController::class, 'index']);
+Route::get('/api/contracts/{contract}/documents', [\App\Http\Controllers\ContractDocumentController::class, 'indexByContract']);
+Route::post('/api/contracts/{contract}/documents', [\App\Http\Controllers\ContractDocumentController::class, 'store']);
+Route::get('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'show']);
+Route::get('/api/contract-documents/{document}/preview', [\App\Http\Controllers\ContractDocumentController::class, 'preview']);
+Route::get('/api/contract-documents/{document}/download', [\App\Http\Controllers\ContractDocumentController::class, 'download']);
+Route::put('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'update']);
+Route::delete('/api/contract-documents/{document}', [\App\Http\Controllers\ContractDocumentController::class, 'destroy']);
+
+// Customer Portal Contracts & Documents API (Khách hàng)
+Route::get('/api/my/contracts', [\App\Http\Controllers\CustomerContractController::class, 'index']);
+Route::get('/api/my/contracts/{contract}', [\App\Http\Controllers\CustomerContractController::class, 'show']);
+Route::get('/api/my/contracts/{contract}/documents', [\App\Http\Controllers\CustomerContractController::class, 'documents']);
+Route::get('/api/my/contract-documents/{document}/preview', [\App\Http\Controllers\CustomerContractController::class, 'preview']);
+Route::get('/api/my/contract-documents/{document}/download', [\App\Http\Controllers\CustomerContractController::class, 'download']);
 
 Route::get('/api/test-db', function() { return response()->json(['db' => DB::connection()->getDatabaseName(), 'cwd' => getcwd()]); });

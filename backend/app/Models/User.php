@@ -42,4 +42,19 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class, 'role_id');
     }
+
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class, 'customer_id');
+    }
+
+    public function brokeredContracts()
+    {
+        return $this->hasMany(Contract::class, 'broker_id');
+    }
+
+    public function uploadedContractDocuments()
+    {
+        return $this->hasMany(ContractDocument::class, 'uploaded_by');
+    }
 }
