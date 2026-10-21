@@ -1,5 +1,11 @@
 # Rà soát chức năng Phạm Đoàn Tony Quyền — 19/10/2026
 
+## Sửa lỗi Quản lý khách hàng — 21/10/2026
+
+Trang `localhost:3000/#admin/customers` báo SQLSTATE[42S02] vì database Docker `baocaocdptw1_db` chưa chạy hai migration CRM. Đã chạy riêng `2026_10_19_150000_create_customer_crm_tables.php` và `2026_10_19_160000_add_customer_tracking_flag.php`, sau đó chạy `CustomerSeeder` để bổ sung hồ sơ từ dữ liệu dự án. Không reset database hoặc ghi đè hồ sơ cũ.
+
+Kiểm tra chỉ đọc bằng `docker exec baocaocdptw1_backend php scripts/check-customer-crm.php`: database đúng `baocaocdptw1_db`, các bảng/quan hệ truy vấn OK, 5 khách hàng và 5 hồ sơ theo dõi. Bộ `CustomerManagementTest` chạy bằng PHP 8.4.25 trên SQLite `:memory:` đạt 9 tests, 132 assertions. Khi triển khai sang database khác, cần chạy hai migration CRM như hướng dẫn README.
+
 ## Sửa lỗi sau khi pull — danh mục, môi giới, so sánh và tiêu đề
 
 Trang trắng sau khi build do `App.jsx` tham chiếu `handleLogout` chưa được khai báo. Đã khôi phục hàm đăng xuất và dọn trạng thái phiên/giao diện.

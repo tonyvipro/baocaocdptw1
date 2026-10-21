@@ -39,6 +39,7 @@ class PropertyReadController extends Controller
         if (!$ownListings && Schema::hasColumn('properties', 'expire_date')) {
             $query->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()));
         }
+        \App\Support\PropertySearch::apply($query, $request);
         $properties = $query->orderBy('id')->get()->map(function ($property) {
             if (!$property->street && $property->address) $property->street = $property->address;
             if ($property->expire_date) $property->expire_date = \Illuminate\Support\Carbon::parse($property->expire_date)->toISOString();
@@ -50,14 +51,7 @@ class PropertyReadController extends Controller
     public function index(Request $request)
     {
         $query = Property::with('propertyType');
-        if ($request->filled('search')) {
-            $search = '%'.trim($request->string('search')->toString()).'%';
-            $query->where(function ($q) use ($search) {
-                foreach (['title', 'code', 'address', 'street', 'project'] as $field) {
-                    $q->orWhere($field, 'like', $search);
-                }
-            });
-        }
+        \App\Support\PropertySearch::apply($query, $request);
         foreach (['type', 'purpose', 'city'] as $field) {
             if ($request->filled($field) && $request->input($field) !== 'all') {
                 $query->where($field, $request->input($field));
