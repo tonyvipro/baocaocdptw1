@@ -269,7 +269,7 @@ export default function ContractsManager({ currentUser }) {
           </div>
           <div>
             <h3 className="font-extrabold text-slate-900 text-lg">Quản Lý & Trạng Thái Hợp Đồng</h3>
-            <p className="text-xs text-slate-500">Soạn thảo, theo dõi tiến độ pháp lý và quản lý hợp đồng BĐS (Hình 38, 39, 40)</p>
+            <p className="text-xs text-slate-500">Soạn thảo, theo dõi tiến độ pháp lý và quản lý hợp đồng BĐS</p>
           </div>
         </div>
 
@@ -497,7 +497,7 @@ export default function ContractsManager({ currentUser }) {
                                     setActiveTab('extend');
                                   }}
                                   className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                  title="Gia Hạn Hợp Đồng (Hình 41)"
+                                  title="Gia Hạn Hợp Đồng"
                                 >
                                   <CalendarPlus className="w-4 h-4" />
                                 </button>
@@ -515,7 +515,7 @@ export default function ContractsManager({ currentUser }) {
                                 <button
                                   onClick={() => setDocumentModalContract(c)}
                                   className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                                  title="Hồ Sơ Tài Liệu Hợp Đồng (Hình 42)"
+                                  title="Hồ Sơ Tài Liệu Hợp Đồng"
                                 >
                                   <FolderOpen className="w-4 h-4" />
                                 </button>
