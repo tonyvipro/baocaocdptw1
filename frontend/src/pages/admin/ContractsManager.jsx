@@ -2,11 +2,16 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Save, CheckCircle, AlertTriangle, Building, User, DollarSign,
   Calendar, Plus, RefreshCw, Eye, Download, X, Trash2, Edit3, ShieldAlert,
-  MapPin, CheckSquare, Clock, ArrowRight, ShieldCheck, FileCheck, HelpCircle
+  MapPin, CheckSquare, Clock, ArrowRight, ShieldCheck, FileCheck, HelpCircle,
+  History, CalendarPlus
 } from 'lucide-react';
+import ExtendContractPage from './ExtendContractPage';
+import ContractExtensionHistoryModal from '../../components/ContractExtensionHistoryModal';
 
-export default function ContractsManager() {
-  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'create'
+export default function ContractsManager({ currentUser }) {
+  const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'extend'
+  const [extendingContractId, setExtendingContractId] = useState(null);
+  const [historyModalContract, setHistoryModalContract] = useState(null);
   const [viewingContract, setViewingContract] = useState(null);
   const [statusModalContract, setStatusModalContract] = useState(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState(0);
@@ -268,7 +273,10 @@ export default function ContractsManager() {
 
         <div className="flex items-center bg-slate-200/80 p-1 rounded-xl">
           <button
-            onClick={() => setActiveTab('list')}
+            onClick={() => {
+              setActiveTab('list');
+              setExtendingContractId(null);
+            }}
             className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${activeTab === 'list'
               ? 'bg-white text-blue-700 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
@@ -277,7 +285,10 @@ export default function ContractsManager() {
             📋 Danh Sách & Trạng Thái
           </button>
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => {
+              setActiveTab('create');
+              setExtendingContractId(null);
+            }}
             className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${activeTab === 'create'
               ? 'bg-white text-blue-700 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
@@ -285,12 +296,32 @@ export default function ContractsManager() {
           >
             ✍️ Tạo Hợp Đồng Mới
           </button>
+          {activeTab === 'extend' && extendingContractId && (
+            <button
+              onClick={() => setActiveTab('extend')}
+              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all bg-white text-indigo-700 shadow-sm flex items-center gap-1.5"
+            >
+              🔄 Phụ Lục Gia Hạn HĐ #{extendingContractId}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Main Container */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50 relative">
-        {activeTab === 'list' ? (
+        {activeTab === 'extend' && extendingContractId ? (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <ExtendContractPage
+              contractId={extendingContractId}
+              onBack={() => {
+                setExtendingContractId(null);
+                setActiveTab('list');
+                fetchContracts();
+              }}
+              currentUser={currentUser}
+            />
+          </div>
+        ) : activeTab === 'list' ? (
           <div className="p-4 sm:p-6 h-full flex flex-col">
 
             {/* Filter Bar (Hình 39 & Hình 40) */}
@@ -455,6 +486,27 @@ export default function ContractsManager() {
                                   title="Xem chi tiết & In Hợp Đồng"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Gia Hạn Hợp Đồng (Hình 41) */}
+                                <button
+                                  onClick={() => {
+                                    setExtendingContractId(c.id);
+                                    setActiveTab('extend');
+                                  }}
+                                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title="Gia Hạn Hợp Đồng (Hình 41)"
+                                >
+                                  <CalendarPlus className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Lịch Sử Gia Hạn & Phê Duyệt */}
+                                <button
+                                  onClick={() => setHistoryModalContract(c)}
+                                  className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                  title="Lịch Sử Gia Hạn & Phê Duyệt"
+                                >
+                                  <History className="w-4 h-4" />
                                 </button>
 
                                 {/* Nút Cập Nhật Trạng Thái (Hình 40) */}
@@ -1094,6 +1146,16 @@ export default function ContractsManager() {
 
           </div>
         </div>
+      )}
+
+      {/* Modal Lịch Sử & Phê Duyệt Gia Hạn */}
+      {historyModalContract && (
+        <ContractExtensionHistoryModal
+          contract={historyModalContract}
+          onClose={() => setHistoryModalContract(null)}
+          currentUser={currentUser}
+          onRefreshList={fetchContracts}
+        />
       )}
 
       {/* Print styles */}
