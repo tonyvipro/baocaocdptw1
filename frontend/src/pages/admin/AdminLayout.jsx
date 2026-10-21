@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck, FolderOpen
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+import ContractDocumentsManager from './ContractDocumentsManager';
 // 1. Gộp tất cả các import cần thiết lại với nhau
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
@@ -108,6 +109,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
+      { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
       { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound, roles: [1] }, // Chuẩn Hình 11
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
@@ -276,10 +278,11 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager currentUser={currentUser} />}
+          {activeMenu === 'contract-documents' && <ContractDocumentsManager currentUser={currentUser} onNavigateToContracts={() => handleSelectMenu('contracts')} />}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
+          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'contract-documents' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

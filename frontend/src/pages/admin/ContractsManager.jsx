@@ -3,10 +3,11 @@ import {
   FileText, Save, CheckCircle, AlertTriangle, Building, User, DollarSign,
   Calendar, Plus, RefreshCw, Eye, Download, X, Trash2, Edit3, ShieldAlert,
   MapPin, CheckSquare, Clock, ArrowRight, ShieldCheck, FileCheck, HelpCircle,
-  History, CalendarPlus
+  History, CalendarPlus, FolderOpen
 } from 'lucide-react';
 import ExtendContractPage from './ExtendContractPage';
 import ContractExtensionHistoryModal from '../../components/ContractExtensionHistoryModal';
+import ContractDocumentListModal from '../../components/ContractDocumentListModal';
 
 export default function ContractsManager({ currentUser }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'extend'
@@ -14,6 +15,7 @@ export default function ContractsManager({ currentUser }) {
   const [historyModalContract, setHistoryModalContract] = useState(null);
   const [viewingContract, setViewingContract] = useState(null);
   const [statusModalContract, setStatusModalContract] = useState(null);
+  const [documentModalContract, setDocumentModalContract] = useState(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState(0);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
@@ -507,6 +509,15 @@ export default function ContractsManager({ currentUser }) {
                                   title="Lịch Sử Gia Hạn & Phê Duyệt"
                                 >
                                   <History className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Hồ Sơ Tài Liệu Hợp Đồng (Hình 42) */}
+                                <button
+                                  onClick={() => setDocumentModalContract(c)}
+                                  className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                                  title="Hồ Sơ Tài Liệu Hợp Đồng (Hình 42)"
+                                >
+                                  <FolderOpen className="w-4 h-4" />
                                 </button>
 
                                 {/* Nút Cập Nhật Trạng Thái (Hình 40) */}
@@ -1155,6 +1166,16 @@ export default function ContractsManager({ currentUser }) {
           onClose={() => setHistoryModalContract(null)}
           currentUser={currentUser}
           onRefreshList={fetchContracts}
+        />
+      )}
+
+      {/* Modal Hồ Sơ Tài Liệu Hợp Đồng (Hình 42) */}
+      {documentModalContract && (
+        <ContractDocumentListModal
+          isOpen={!!documentModalContract}
+          onClose={() => setDocumentModalContract(null)}
+          contract={documentModalContract}
+          currentUser={currentUser}
         />
       )}
 
