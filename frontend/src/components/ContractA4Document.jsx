@@ -232,9 +232,9 @@ export default function ContractA4Document({
               <p>
                 1.1. Bên A đồng ý cho Bên B thuê và Bên B đồng ý thuê bất động sản thuộc quyền sử dụng hợp pháp của Bên A với thông tin như sau:
               </p>
-              <div className="bg-slate-50/80 p-3.5 rounded border border-slate-200 my-2 text-xs sm:text-sm space-y-1.5 print:bg-transparent print:border-none print:p-0">
+              <div className="pl-4 my-2 text-xs sm:text-sm space-y-1 text-slate-900">
                 <p>• <strong>Tên bất động sản:</strong> {property.title || contract.property_title || 'Căn hộ chung cư cao cấp'}</p>
-                <p>• <strong>Mã định danh căn hộ:</strong> <span className="font-bold text-blue-900">{property.code || contract.property_code || 'A101'}</span></p>
+                <p>• <strong>Mã định danh căn hộ:</strong> <span className="font-bold">{property.code || contract.property_code || 'A101'}</span></p>
                 <p>• <strong>Địa chỉ tài sản:</strong> {property.address || contract.property_address || 'Địa chỉ ghi nhận theo hồ sơ'}</p>
                 <p>• <strong>Diện tích sử dụng:</strong> {property.area ? `${property.area} m²` : 'Theo hiện trạng thực tế'}</p>
                 <p>• <strong>Loại hình tài sản:</strong> {property.type || contract.property_type || 'Căn hộ chung cư'}</p>

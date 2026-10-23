@@ -151,7 +151,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
 
       {/* Left Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
+        fixed lg:static inset-y-0 left-0 z-50 no-print
         w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out
         ${sidebarOpen ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
       `}>
@@ -244,7 +244,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0 no-print">
           <div className="flex min-w-0 items-center gap-4">
             <button 
               className="lg:hidden shrink-0 p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"

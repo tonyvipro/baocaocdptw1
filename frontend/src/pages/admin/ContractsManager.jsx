@@ -9,6 +9,7 @@ import ExtendContractPage from './ExtendContractPage';
 import ContractExtensionHistoryModal from '../../components/ContractExtensionHistoryModal';
 import ContractDocumentListModal from '../../components/ContractDocumentListModal';
 import ContractA4Document from '../../components/ContractA4Document';
+import AdminContractDetailPage from './AdminContractDetailPage';
 
 export default function ContractsManager({ currentUser }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'extend'
@@ -259,6 +260,17 @@ export default function ContractsManager({ currentUser }) {
       default: return null;
     }
   };
+
+  if (viewingContract) {
+    return (
+      <AdminContractDetailPage
+        contract={viewingContract}
+        currentUser={currentUser}
+        onBack={() => setViewingContract(null)}
+        onRefreshList={fetchContracts}
+      />
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col font-sans">
@@ -1060,124 +1072,6 @@ export default function ContractsManager({ currentUser }) {
         </div>
       )}
 
-      {/* MODAL 2: CHI TIẾT & XUẤT IN PDF HỢP ĐỒNG (CHUẨN KHỔ A4 ĐỒNG BỘ KHÁCH HÀNG) */}
-      {viewingContract && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/70 backdrop-blur-xs p-0 sm:p-4 md:p-6 overflow-y-auto animate-fade-in print:p-0 print:bg-white print:overflow-visible">
-          <div className="bg-slate-100 min-h-full sm:rounded-2xl w-full max-w-5xl mx-auto flex flex-col shadow-2xl overflow-hidden print:bg-white print:shadow-none print:w-full print:max-w-none">
-
-            {/* Header Toolbar (Ẩn khi in ấn) */}
-            <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 shadow-xs no-print">
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
-                <button
-                  onClick={() => setViewingContract(null)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Quay lại</span>
-                </button>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
-                  {viewingContract.contract_code}
-                </span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                <span className="font-semibold text-slate-900 truncate max-w-[200px] sm:max-w-xs">
-                  {viewingContract.contract_name}
-                </span>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-                  title="In văn bản hợp đồng khổ A4"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>In Hợp Đồng (A4)</span>
-                </button>
-                <button
-                  onClick={() => setViewingContract(null)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                  title="Đóng"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Sub-Header Tabs & Status */}
-            <div className="px-4 sm:px-6 py-3 bg-white/90 border-b border-slate-200 flex items-center justify-between flex-wrap gap-3 no-print">
-              <div className="flex items-center bg-slate-200/80 p-1 rounded-xl gap-1">
-                <button
-                  onClick={() => setAdminDetailTab('a4')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    adminDetailTab === 'a4'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Văn Bản Hợp Đồng (Khổ A4)</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    const c = viewingContract;
-                    setDocumentModalContract(c);
-                  }}
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
-                  title="Xem hồ sơ & tài liệu đính kèm"
-                >
-                  <FileCheck className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Hồ Sơ Đính Kèm</span>
-                </button>
-
-                {(viewingContract.extensions?.length > 0 || viewingContract.approved_extensions?.length > 0) && (
-                  <button
-                    onClick={() => {
-                      const c = viewingContract;
-                      setHistoryModalContract(c);
-                    }}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
-                    title="Xem lịch sử gia hạn"
-                  >
-                    <History className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Lịch Sử Gia Hạn ({(viewingContract.approved_extensions || viewingContract.extensions || []).length})</span>
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                  viewingContract.status === 1
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    : 'bg-slate-100 text-slate-700 border-slate-200'
-                }`}>
-                  {['Nháp/Chờ ký', 'Đang hiệu lực', 'Đã thanh lý/Hết hạn', 'Đã hủy'][viewingContract.status] || 'Đang hiệu lực'}
-                </span>
-
-                {viewingContract.is_high_value && (
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-                    <span>HĐ Giá Trị Lớn</span>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Document Container: Tờ giấy A4 chuẩn xác */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-100/70 print:p-0 print:bg-white">
-              <ContractA4Document
-                contract={viewingContract}
-                currentUser={currentUser}
-                showWatermark={true}
-              />
-            </div>
-
-          </div>
-        </div>
-      )}
-
       {/* Modal Lịch Sử & Phê Duyệt Gia Hạn */}
       {historyModalContract && (
         <ContractExtensionHistoryModal
@@ -1197,18 +1091,6 @@ export default function ContractsManager({ currentUser }) {
           currentUser={currentUser}
         />
       )}
-
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .printable-contract, .printable-contract * { visibility: visible; }
-          .printable-contract { position: absolute; left: 0; top: 0; width: 100%; padding: 25px; }
-          .print\\:hidden { display: none !important; }
-          .print\\:p-0 { padding: 0 !important; }
-          .print\\:bg-transparent { background-color: transparent !important; }
-        }
-      `}</style>
     </div>
   );
 }

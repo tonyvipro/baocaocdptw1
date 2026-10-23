@@ -72,13 +72,18 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 10mm;
   }
-  body {
+  html, body, #root, main {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
     background: white !important;
     color: black !important;
   }
-  .no-print {
+  .no-print,
+  aside,
+  header {
     display: none !important;
   }
   #contract-a4-document {
