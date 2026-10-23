@@ -3,46 +3,65 @@ import { ShieldCheck, MapPin, CheckCircle2 } from 'lucide-react';
 
 // Helper: Chuyển đổi số tiền thành chữ tiếng Việt chuẩn văn bản pháp lý & hợp đồng hành chính
 export const convertNumberToVietnameseWords = (num) => {
+  if (num === 0 || num === '0') return 'Không đồng';
   if (!num || isNaN(num)) return '';
   num = Math.round(Number(num));
   if (num === 0) return 'Không đồng';
+  if (num < 0) return 'Âm ' + convertNumberToVietnameseWords(Math.abs(num));
 
   const units = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
   const digits = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
 
-  const readGroup = (n) => {
-    let str = '';
+  const readGroup = (n, isHighestGroup) => {
     const h = Math.floor(n / 100);
     const t = Math.floor((n % 100) / 10);
     const u = n % 10;
+    let str = '';
 
-    if (h > 0 || t > 0 || u > 0) {
+    if (h > 0) {
       str += digits[h] + ' trăm ';
-      if (t === 0 && u > 0) str += 'lẻ ';
-      if (t === 1) str += 'mười ';
-      if (t > 1) str += digits[t] + ' mươi ';
-      if (t > 0 && u === 1) str += (t === 1 ? 'một' : 'mốt');
-      else if (t > 0 && u === 5) str += 'lăm';
-      else if (u > 0) str += digits[u];
+    } else if (!isHighestGroup) {
+      str += 'không trăm ';
     }
+
+    if (t > 1) {
+      str += digits[t] + ' mươi ';
+      if (u === 1) str += 'mốt ';
+      else if (u === 5) str += 'lăm ';
+      else if (u > 0) str += digits[u] + ' ';
+    } else if (t === 1) {
+      str += 'mười ';
+      if (u === 5) str += 'lăm ';
+      else if (u > 0) str += digits[u] + ' ';
+    } else if (t === 0) {
+      if (u > 0) {
+        if (h > 0 || !isHighestGroup) str += 'lẻ ' + digits[u] + ' ';
+        else str += digits[u] + ' ';
+      }
+    }
+
     return str.trim();
   };
 
-  let result = '';
-  let groupIndex = 0;
+  const groups = [];
   let temp = num;
-
   while (temp > 0) {
-    const chunk = temp % 1000;
-    if (chunk > 0) {
-      const chunkStr = readGroup(chunk);
-      result = chunkStr + (units[groupIndex] ? ' ' + units[groupIndex] : '') + (result ? ' ' + result : '');
-    }
+    groups.push(temp % 1000);
     temp = Math.floor(temp / 1000);
-    groupIndex++;
+  }
+
+  let result = '';
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const chunk = groups[i];
+    if (chunk > 0) {
+      const isHighest = (i === groups.length - 1);
+      const chunkStr = readGroup(chunk, isHighest);
+      result += chunkStr + (units[i] ? ' ' + units[i] : '') + ' ';
+    }
   }
 
   result = result.trim();
+  if (!result) return 'Không đồng';
   return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng chẵn';
 };
 
@@ -92,7 +111,7 @@ export default function ContractA4Document({
       >
         {/* Dấu mộc số hóa chìm trang trọng (Watermark) */}
         {showWatermark && (
-          <div className="absolute right-12 top-28 pointer-events-none select-none opacity-20 rotate-[-12deg] border-4 border-red-600 rounded-2xl p-4 text-center text-red-600 uppercase font-sans font-black leading-tight no-print">
+          <div className="absolute right-12 top-28 pointer-events-none select-none opacity-20 rotate-[-12deg] border-4 border-red-600 rounded-2xl p-4 text-center text-red-600 uppercase font-sans font-black leading-tight no-print contract-keep-sans">
             <div className="text-xs tracking-widest">3TV LAND SYSTEM</div>
             <div className="text-sm font-extrabold my-0.5">XÁC THỰC SỐ HÓA</div>
             <div className="text-[10px] tracking-wider">{contract.contract_code}</div>
@@ -101,25 +120,25 @@ export default function ContractA4Document({
 
         {/* 1. QUỐC HIỆU & TIÊU NGỮ (Chuẩn Nghị định 30/2020/NĐ-CP) */}
         <div className="text-center mb-8 pb-4">
-          <h1 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-950 contract-legal-font">
+          <h1 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-950">
             CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
           </h1>
-          <h2 className="text-sm sm:text-base font-bold italic mt-1 text-slate-800 contract-legal-font">
+          <h2 className="text-sm sm:text-base font-bold italic mt-1 text-slate-800">
             Độc lập - Tự do - Hạnh phúc
           </h2>
           <div className="w-32 h-0.5 bg-slate-900 mx-auto my-3"></div>
-          <p className="text-xs italic text-slate-600 contract-legal-font">
+          <p className="text-xs italic text-slate-600">
             Thành phố Hồ Chí Minh, ngày {createdDate.day} tháng {createdDate.month} năm {createdDate.year}
           </p>
         </div>
 
         {/* 2. TÊN HỢP ĐỒNG & SỐ HIỆU */}
         <div className="text-center mb-8">
-          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-slate-950 contract-legal-font">
+          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-wide text-slate-950">
             {contract.contract_name || 'HỢP ĐỒNG THUÊ BẤT ĐỘNG SẢN'}
           </h2>
-          <p className="text-sm font-sans font-bold text-slate-700 mt-1">
-            Số hợp đồng: <span className="font-mono text-blue-900 font-extrabold">{contract.contract_code}</span>
+          <p className="text-sm font-bold text-slate-700 mt-1">
+            Số hợp đồng: <span className="text-blue-900 font-extrabold">{contract.contract_code}</span>
           </p>
         </div>
 
@@ -137,14 +156,14 @@ export default function ContractA4Document({
         <div className="space-y-5 mb-8 text-xs sm:text-sm">
           {/* BÊN A (BÊN CHO THUÊ) */}
           <div className="p-4 bg-slate-50/80 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
-            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between contract-legal-font">
+            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between">
               <span>BÊN CHO THUÊ (Sau đây gọi tắt là BÊN A):</span>
-              <span className="text-[11px] font-sans font-normal text-slate-500">Đại diện chủ quyền</span>
+              <span className="text-[11px] font-normal italic text-slate-500">Đại diện chủ quyền</span>
             </h3>
             <div className="space-y-1 pl-2">
               <p>• <strong>Họ và tên / Đơn vị:</strong> {contract.party_a_info ? contract.party_a_info.split('\n')[0] : 'Đại diện theo pháp luật / Chủ sở hữu Bất động sản'}</p>
               <p>• <strong>Thông tin liên hệ & Pháp lý:</strong></p>
-              <div className="pl-4 text-slate-700 whitespace-pre-line text-xs font-sans">
+              <div className="pl-4 text-slate-700 whitespace-pre-line text-xs">
                 {contract.party_a_info || 'Đại diện Bên A cam kết là chủ sở hữu hoặc người có thẩm quyền cho thuê bất động sản hợp pháp.'}
               </div>
             </div>
@@ -152,16 +171,16 @@ export default function ContractA4Document({
 
           {/* BÊN B (BÊN THUÊ) */}
           <div className="p-4 bg-slate-50/80 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
-            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between contract-legal-font">
+            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between">
               <span>BÊN THUÊ (Sau đây gọi tắt là BÊN B):</span>
-              <span className="text-[11px] font-sans font-normal text-slate-500">Khách thuê cư trú</span>
+              <span className="text-[11px] font-normal italic text-slate-500">Khách thuê cư trú</span>
             </h3>
             <div className="space-y-1 pl-2">
               <p>• <strong>Họ và tên người thuê:</strong> {customer.name || contract.customer_name || (currentUser?.name) || 'Khách hàng thuê nhà'}</p>
               <p>• <strong>Số điện thoại:</strong> {customer.phone || contract.customer_phone || (currentUser?.phone) || 'Chưa cập nhật'}</p>
               <p>• <strong>Địa chỉ email:</strong> {customer.email || contract.customer_email || (currentUser?.email) || 'Chưa cập nhật'}</p>
               {contract.party_b_info && (
-                <div className="pl-4 mt-1 text-slate-700 whitespace-pre-line text-xs font-sans">
+                <div className="pl-4 mt-1 text-slate-700 whitespace-pre-line text-xs">
                   {contract.party_b_info}
                 </div>
               )}
@@ -170,9 +189,9 @@ export default function ContractA4Document({
 
           {/* BÊN C - ĐƠN VỊ KẾT NỐI & QUẢN LÝ (3TV LAND) */}
           <div className="p-4 bg-slate-50/80 rounded-lg border border-slate-200 print:bg-transparent print:border-none print:p-0">
-            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between contract-legal-font">
+            <h3 className="font-bold uppercase text-slate-950 tracking-wide mb-2 flex items-center justify-between">
               <span>BÊN MÔI GIỚI & TƯ VẤN TRUNG GIAN (BÊN C):</span>
-              <span className="text-[11px] font-sans font-normal text-slate-500">Sàn giao dịch</span>
+              <span className="text-[11px] font-normal italic text-slate-500">Sàn giao dịch</span>
             </h3>
             <div className="space-y-1 pl-2">
               <p>• <strong>Đơn vị phụ trách:</strong> Công ty Cổ phần Quản lý & Kinh doanh Bất động sản 3TV LAND</p>
@@ -184,7 +203,7 @@ export default function ContractA4Document({
 
         {/* Thông báo hình thức ký & gặp mặt công chứng (Nếu là BĐS giá trị cao hoặc trực tiếp) */}
         {(contract.is_high_value || contract.signing_method === 'DIRECT_MEETING') && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg font-sans text-xs text-amber-950">
+          <div className="mb-6 p-4 bg-amber-50/80 border border-amber-200 rounded-lg text-xs text-amber-950">
             <p className="font-bold uppercase tracking-wider text-amber-900 mb-1 flex items-center gap-1.5">
               <MapPin className="w-4 h-4 text-amber-600" /> Hợp đồng ký kết trực tiếp có công chứng:
             </p>
@@ -198,24 +217,24 @@ export default function ContractA4Document({
           </div>
         )}
 
-        <p className="text-xs sm:text-sm font-semibold mb-6 contract-legal-font">
+        <p className="text-xs sm:text-sm font-semibold mb-6">
           Hai Bên đã thống nhất cùng nhau ký kết Hợp đồng thuê bất động sản với các điều khoản và điều kiện cụ thể sau đây:
         </p>
 
         {/* 5. CÁC ĐIỀU KHOẢN HỢP ĐỒNG (TỪ ĐIỀU 1 ĐẾN ĐIỀU 6) */}
-        <div className="space-y-6 text-xs sm:text-sm contract-legal-font">
+        <div className="space-y-6 text-xs sm:text-sm">
           {/* ĐIỀU 1 */}
           <div>
-            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5 contract-legal-font">
+            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5">
               ĐIỀU 1: ĐỐI TƯỢNG HỢP ĐỒNG (BẤT ĐỘNG SẢN THUÊ)
             </h4>
             <div className="space-y-1 text-justify pl-2">
               <p>
                 1.1. Bên A đồng ý cho Bên B thuê và Bên B đồng ý thuê bất động sản thuộc quyền sử dụng hợp pháp của Bên A với thông tin như sau:
               </p>
-              <div className="bg-slate-50 p-3 rounded border border-slate-200 my-2 font-sans text-xs space-y-1 print:bg-transparent">
+              <div className="bg-slate-50/80 p-3.5 rounded border border-slate-200 my-2 text-xs sm:text-sm space-y-1.5 print:bg-transparent print:border-none print:p-0">
                 <p>• <strong>Tên bất động sản:</strong> {property.title || contract.property_title || 'Căn hộ chung cư cao cấp'}</p>
-                <p>• <strong>Mã định danh căn hộ:</strong> <span className="font-mono font-bold text-blue-900">{property.code || contract.property_code || 'A101'}</span></p>
+                <p>• <strong>Mã định danh căn hộ:</strong> <span className="font-bold text-blue-900">{property.code || contract.property_code || 'A101'}</span></p>
                 <p>• <strong>Địa chỉ tài sản:</strong> {property.address || contract.property_address || 'Địa chỉ ghi nhận theo hồ sơ'}</p>
                 <p>• <strong>Diện tích sử dụng:</strong> {property.area ? `${property.area} m²` : 'Theo hiện trạng thực tế'}</p>
                 <p>• <strong>Loại hình tài sản:</strong> {property.type || contract.property_type || 'Căn hộ chung cư'}</p>
@@ -242,7 +261,7 @@ export default function ContractA4Document({
                 2.3. <strong>Điều kiện gia hạn:</strong> Trước khi hết hạn hợp đồng tối thiểu ba mươi (30) ngày, nếu Bên B có nguyện vọng tiếp tục thuê và Bên A đồng ý tiếp tục cho thuê, hai Bên sẽ tiến hành lập và ký kết Phụ lục gia hạn hợp đồng mới.
               </p>
               {approvedExtensions.length > 0 && (
-                <div className="p-3 bg-purple-50/70 border border-purple-200 rounded font-sans text-xs text-purple-900 my-2">
+                <div className="p-3 bg-purple-50/70 border border-purple-200 rounded text-xs text-purple-900 my-2">
                   <p className="font-bold">✓ Ghi nhận phụ lục gia hạn đã được phê duyệt hợp lệ:</p>
                   {approvedExtensions.map((ext, idx) => (
                     <p key={idx} className="mt-0.5">
@@ -256,7 +275,7 @@ export default function ContractA4Document({
 
           {/* ĐIỀU 3 */}
           <div>
-            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5 contract-legal-font">
+            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5">
               ĐIỀU 3: GIÁ THUÊ, TIỀN ĐẶT CỌC VÀ PHƯƠNG THỨC THANH TOÁN
             </h4>
             <div className="space-y-1 text-justify pl-2">
@@ -283,7 +302,7 @@ export default function ContractA4Document({
 
           {/* ĐIỀU 4 */}
           <div>
-            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5 contract-legal-font">
+            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5">
               ĐIỀU 4: QUYỀN VÀ NGHĨA VỤ CỦA BÊN CHO THUÊ (BÊN A)
             </h4>
             <div className="space-y-1 text-justify pl-2">
@@ -296,7 +315,7 @@ export default function ContractA4Document({
 
           {/* ĐIỀU 5 */}
           <div>
-            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5 contract-legal-font">
+            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5">
               ĐIỀU 5: QUYỀN VÀ NGHĨA VỤ CỦA BÊN THUÊ (BÊN B)
             </h4>
             <div className="space-y-1 text-justify pl-2">
@@ -310,7 +329,7 @@ export default function ContractA4Document({
 
           {/* ĐIỀU 6 */}
           <div>
-            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5 contract-legal-font">
+            <h4 className="font-bold uppercase text-slate-950 tracking-wide mb-1.5">
               ĐIỀU 6: ĐIỀU KHOẢN CHUNG VÀ CAM KẾT THI HÀNH
             </h4>
             <div className="space-y-1 text-justify pl-2">
@@ -328,7 +347,7 @@ export default function ContractA4Document({
         </div>
 
         {/* 6. KHỐI CHỮ KÝ VÀ CON DẤU XÁC NHẬN */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-10 mt-12 border-t-2 border-slate-900 font-sans pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-10 mt-12 border-t-2 border-slate-900 pb-12">
           {/* Bên A */}
           <div className="text-center">
             <h5 className="font-bold text-slate-950 uppercase text-xs sm:text-sm">ĐẠI DIỆN BÊN A</h5>
@@ -353,7 +372,7 @@ export default function ContractA4Document({
             <p className="text-[11px] text-slate-500 italic mb-4">(Đơn vị môi giới 3TV Land)</p>
             
             {/* Con dấu điện tử đỏ mô phỏng */}
-            <div className="inline-block border-2 border-dashed border-red-500 bg-red-50/50 p-2 rounded-xl text-center text-red-600 mb-2">
+            <div className="inline-block border-2 border-dashed border-red-500 bg-red-50/50 p-2 rounded-xl text-center text-red-600 mb-2 contract-keep-sans">
               <div className="flex items-center justify-center gap-1 text-[11px] font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-red-600" />
                 <span>ĐÃ DUYỆT ĐIỆN TỬ</span>
@@ -368,7 +387,7 @@ export default function ContractA4Document({
         </div>
 
         {/* 7. Footer chân trang A4 */}
-        <div className="pt-4 border-t border-slate-200 text-center text-[10px] text-slate-400 font-sans flex items-center justify-between">
+        <div className="pt-4 border-t border-slate-200 text-center text-[11px] text-slate-500 flex items-center justify-between">
           <span>Hệ thống Quản lý Bất động sản 3TV Land</span>
           <span>Trang 1 / 1 (Khổ A4)</span>
           <span>Mã HĐ: {contract.contract_code}</span>
