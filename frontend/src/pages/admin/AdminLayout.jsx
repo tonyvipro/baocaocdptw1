@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck, FolderOpen
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck, FolderOpen, Receipt
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
 import ContractDocumentsManager from './ContractDocumentsManager';
+import InvoicesManager from './InvoicesManager';
+import InvoiceDetailPage from './InvoiceDetailPage';
 // 1. Gộp tất cả các import cần thiết lại với nhau
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
@@ -40,12 +42,18 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   };
 
   const [activeMenu, setActiveMenu] = useState(getInitialActiveMenu);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(() => {
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#admin\/invoices\/(\d+)/);
+    return match ? Number(match[1]) : null;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
   // Đồng bộ hóa trạng thái activeMenu với URL hash và localStorage
   const handleSelectMenu = (menuId) => {
     setActiveMenu(menuId);
+    setSelectedInvoiceId(null);
     localStorage.setItem('3tv_admin_active_menu', menuId);
     if (window.location.hash !== `#admin/${menuId}`) {
       window.location.hash = `#admin/${menuId}`;
@@ -56,9 +64,17 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   useEffect(() => {
     const onHashChange = () => {
       const hash = window.location.hash || '';
+      const invoiceMatch = hash.match(/^#admin\/invoices\/(\d+)/);
+      if (invoiceMatch) {
+        setActiveMenu('invoices');
+        setSelectedInvoiceId(Number(invoiceMatch[1]));
+        return;
+      }
+
       const match = hash.match(/#(?:admin\/)?([a-zA-Z0-9_-]+)/);
       if (match && match[1] && match[1] !== activeMenu) {
         setActiveMenu(match[1]);
+        setSelectedInvoiceId(null);
         localStorage.setItem('3tv_admin_active_menu', match[1]);
       }
     };
@@ -110,6 +126,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
       { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen, roles: [1, 2] },
+      { id: 'invoices', label: 'Quản lý Hóa đơn', icon: Receipt, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
       { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound, roles: [1] }, // Chuẩn Hình 11
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
@@ -279,10 +296,29 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           {activeMenu === 'appointments' && <AppointmentsManager />}
           {activeMenu === 'contracts' && <ContractsManager currentUser={currentUser} />}
           {activeMenu === 'contract-documents' && <ContractDocumentsManager currentUser={currentUser} onNavigateToContracts={() => handleSelectMenu('contracts')} />}
+          {activeMenu === 'invoices' && (
+            selectedInvoiceId ? (
+              <InvoiceDetailPage
+                invoiceId={selectedInvoiceId}
+                onBack={() => {
+                  setSelectedInvoiceId(null);
+                  window.location.hash = '#admin/invoices';
+                }}
+              />
+            ) : (
+              <InvoicesManager
+                currentUser={currentUser}
+                onSelectInvoice={(id) => {
+                  setSelectedInvoiceId(id);
+                  window.location.hash = `#admin/invoices/${id}`;
+                }}
+              />
+            )
+          )}
           {activeMenu === 'users' && <UserManagement />}
           {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'contract-documents' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
+          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'contract-documents' && activeMenu !== 'invoices' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>

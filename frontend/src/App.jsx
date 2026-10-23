@@ -22,6 +22,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import NotificationsPage from './pages/NotificationsPage';
 import MyContractsPage from './pages/customer/MyContractsPage';
 import MyContractDetailPage from './pages/customer/MyContractDetailPage';
+import MyInvoicesPage from './pages/customer/MyInvoicesPage';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -50,11 +51,16 @@ export default function App() {
     const match = hash.match(/^#my-contracts\/(\d+)$/);
     return match ? Number(match[1]) : null;
   });
+  const [showMyInvoices, setShowMyInvoices] = useState(() => {
+    const hash = window.location.hash || '';
+    return hash.startsWith('#my-invoices');
+  });
 
   const goHome = () => {
     setShowNotifications(false);
     setShowMyContracts(false);
     setSelectedCustomerContractId(null);
+    setShowMyInvoices(false);
     window.location.hash = '';
   };
   // Quản lý trạng thái F5 reload persistence (URL Hash & LocalStorage)
@@ -73,6 +79,9 @@ export default function App() {
       const hash = window.location.hash || '';
       const search = new URLSearchParams(window.location.search);
       const savedMode = localStorage.getItem('3tv_app_mode');
+      if (hash.startsWith('#my-invoices') || hash.startsWith('#my-contracts')) {
+        return 'client';
+      }
       if (hash.startsWith('#admin') || search.get('mode') === 'admin' || savedMode === 'admin') {
         return 'admin';
       }
@@ -239,6 +248,13 @@ export default function App() {
         setSelectedCustomerContractId(null);
       }
 
+      if (hash.startsWith('#my-invoices')) {
+        setShowMyInvoices(true);
+        setCurrentAppMode('client');
+      } else {
+        setShowMyInvoices(false);
+      }
+
       if (hash.startsWith('#admin')) {
         setCurrentAppMode('admin');
       } else if (hash === '' || hash === '#') {
@@ -269,6 +285,17 @@ export default function App() {
       }
     }
   }, [showMyContracts, currentUser]);
+
+  // Bảo vệ route #my-invoices: Yêu cầu đăng nhập (khách hàng hoặc Admin xem preview)
+  useEffect(() => {
+    if (showMyInvoices) {
+      if (!currentUser) {
+        setAuthMode('login');
+        setShowAuthModal(true);
+        goHome();
+      }
+    }
+  }, [showMyInvoices, currentUser]);
 
   const handleToggleFavorite = (prop) => {
     setFavorites((prev) => {
@@ -499,7 +526,16 @@ export default function App() {
         onOpenMyContracts={() => {
           setShowMyContracts(true);
           setSelectedCustomerContractId(null);
+          setShowMyInvoices(false);
+          setShowNotifications(false);
           window.location.hash = '#my-contracts';
+        }}
+        onOpenMyInvoices={() => {
+          setShowMyInvoices(true);
+          setShowMyContracts(false);
+          setSelectedCustomerContractId(null);
+          setShowNotifications(false);
+          window.location.hash = '#my-invoices';
         }}
       />
 
@@ -530,6 +566,11 @@ export default function App() {
             onGoHome={goHome}
           />
         )
+      ) : showMyInvoices ? (
+        <MyInvoicesPage
+          currentUser={currentUser}
+          onGoHome={goHome}
+        />
       ) : <>
       {/* Hero & Search Section */}
       <HeroSection

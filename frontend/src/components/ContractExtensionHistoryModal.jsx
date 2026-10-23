@@ -151,7 +151,7 @@ export default function ContractExtensionHistoryModal({ contract, onClose, curre
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
@@ -375,7 +375,7 @@ export default function ContractExtensionHistoryModal({ contract, onClose, curre
 
       {/* Reject Reason Sub-modal */}
       {rejectModalExt && (
-        <div className="fixed inset-0 z-60 bg-slate-900/60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">

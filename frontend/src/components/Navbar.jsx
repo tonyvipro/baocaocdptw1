@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Heart, SlidersHorizontal, Phone, Database, 
   User, LogIn, UserPlus, LogOut, ChevronDown, PlusCircle,
-  MapPin, Clock, FileText
+  MapPin, Clock, FileText, Receipt
 } from 'lucide-react';
 import { triggerDatabaseMigration, resolveAvatarUrl } from '../services/api';
 import NotificationBell from './NotificationBell';
@@ -27,6 +27,7 @@ export default function Navbar({
   onOpenUserListings,
   onOpenNotifications,
   onOpenMyContracts,
+  onOpenMyInvoices,
   onGoHome,
 }) {
   const [migrating, setMigrating] = useState(false);
@@ -234,8 +235,8 @@ export default function Navbar({
                       </button>
                     )}
 
-                    {/* Nút Xem hợp đồng dành riêng cho Khách hàng (role_id = 5) - đặt NGAY PHÍA TRÊN nút Đăng xuất */}
-                    {currentUser && currentUser.role_id === 5 && (
+                    {/* Nút Xem hợp đồng dành cho Khách hàng (role_id = 5) và Admin */}
+                    {currentUser && (currentUser.role_id === 5 || currentUser.role_id === 1) && (
                       <button
                         onClick={() => {
                           setUserDropdownOpen(false);
@@ -245,7 +246,26 @@ export default function Navbar({
                         className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-100"
                       >
                         <FileText className="w-4 h-4 text-blue-600" />
-                        <span className="font-semibold text-slate-800">Xem hợp đồng</span>
+                        <span className="font-semibold text-slate-800">
+                          {currentUser.role_id === 1 ? 'Xem hợp đồng (Giao diện khách)' : 'Xem hợp đồng'}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Nút Hóa đơn của tôi dành cho Khách hàng (role_id = 5) và Admin - đặt NGAY PHÍA TRÊN nút Đăng xuất */}
+                    {currentUser && (currentUser.role_id === 5 || currentUser.role_id === 1) && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenMyInvoices) onOpenMyInvoices();
+                          else window.location.hash = '#my-invoices';
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-emerald-50 flex items-center gap-2 text-slate-700 border-t border-slate-100"
+                      >
+                        <Receipt className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-slate-800">
+                          {currentUser.role_id === 1 ? 'Hóa đơn của tôi (Giao diện khách)' : 'Hóa đơn của tôi'}
+                        </span>
                       </button>
                     )}
 

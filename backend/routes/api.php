@@ -6,6 +6,9 @@ use App\Http\Controllers\ContractExtensionController;
 use App\Http\Controllers\ContractDocumentController;
 use App\Http\Controllers\CustomerContractController;
 
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MyInvoiceController;
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
@@ -43,4 +46,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my/contracts/{contract}/documents', [CustomerContractController::class, 'documents']);
     Route::get('/my/contract-documents/{document}/preview', [CustomerContractController::class, 'preview']);
     Route::get('/my/contract-documents/{document}/download', [CustomerContractController::class, 'download']);
+
+    // Invoices API - Nhân viên (Spec 5.1)
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::post('/invoices', [InvoiceController::class, 'store']);
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+    Route::put('/invoices/{invoice}', [InvoiceController::class, 'update']);
+    Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel']);
+    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf']);
+    Route::post('/invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail']);
+    Route::get('/contracts/{contract}/invoices', [InvoiceController::class, 'contractInvoices']);
+
+    // Invoices API - Khách hàng (Spec 5.2)
+    Route::get('/my/invoices', [MyInvoiceController::class, 'index']);
+    Route::get('/my/invoices/{invoice}', [MyInvoiceController::class, 'show']);
+    Route::get('/my/invoices/{invoice}/pdf', [MyInvoiceController::class, 'pdf']);
 });

@@ -220,6 +220,7 @@ class DatabaseSeeder extends Seeder
             UserManagementSeeder::class,
             StatisticalSeeder::class,
             CustomerSeeder::class,
+            InvoiceSeeder::class,
         ]);
     }
 }
