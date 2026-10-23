@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('contracts:process-expiry')->dailyAt('00:00');
+Schedule::command('invoices:generate-rent')->dailyAt('00:15');
+Schedule::command('invoices:mark-overdue')->dailyAt('00:20');
 
 Artisan::command('brokers:sync-users', function () {
     $created = 0;

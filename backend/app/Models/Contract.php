@@ -31,6 +31,8 @@ class Contract extends Model
         'meeting_time',
         'notary_office',
         'is_high_value',
+        'billing_cycle',
+        'next_billing_date',
     ];
 
     protected $casts = [
@@ -39,6 +41,7 @@ class Contract extends Model
         'rental_price' => 'decimal:2',
         'start_date' => 'date',
         'end_date' => 'date',
+        'next_billing_date' => 'date',
         'meeting_time' => 'datetime',
     ];
 
@@ -69,6 +72,11 @@ class Contract extends Model
     public function documents()
     {
         return $this->hasMany(ContractDocument::class, 'contract_id');
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id')->orderBy('issue_date', 'desc')->orderBy('id', 'desc');
     }
 
     /**

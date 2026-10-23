@@ -17,9 +17,10 @@ class ContractController extends Controller
     {
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         $query = Contract::query()->with([
-            'property:id,title,address,price',
+            'property:id,code,title,address,price,area,type',
             'broker:id,name,phone,email',
             'customer:id,name,phone,email',
+            'extensions',
         ]);
 
         // Phân quyền dữ liệu: Admin (Role 1) thấy toàn bộ, Broker (Role 2) thấy HĐ do mình lập
@@ -78,7 +79,8 @@ class ContractController extends Controller
         $contract = Contract::with([
             'property',
             'broker',
-            'customer'
+            'customer',
+            'extensions',
         ])->findOrFail($id);
 
         return response()->json([

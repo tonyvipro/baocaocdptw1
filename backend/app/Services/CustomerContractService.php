@@ -52,12 +52,16 @@ class CustomerContractService
      */
     public function getMyContractDetail(int $contractId, User $customer): Contract
     {
-        $contract = Contract::with(['property', 'broker', 'extensions'])
+        $query = Contract::with(['property', 'broker', 'customer', 'extensions'])
             ->where('id', $contractId)
-            ->where('customer_id', $customer->id)
-            ->where('status', '!=', 0) // Không lộ hợp đồng nháp
-            ->whereNull('deleted_at')
-            ->first();
+            ->whereNull('deleted_at');
+
+        if ((int)$customer->role_id !== 1) {
+            $query->where('customer_id', $customer->id)
+                  ->where('status', '!=', 0); // Không lộ hợp đồng nháp với khách
+        }
+
+        $contract = $query->first();
 
         if (!$contract) {
             abort(404, 'Không tìm thấy hợp đồng hoặc bạn không có quyền xem thông tin hợp đồng này.');
@@ -71,12 +75,11 @@ class CustomerContractService
      */
     public function getMyContractDocuments(int $contractId, User $customer): Collection
     {
-        // Kiểm tra hợp đồng thuộc về khách và không ở trạng thái nháp
-        $contract = Contract::where('id', $contractId)
-            ->where('customer_id', $customer->id)
-            ->where('status', '!=', 0)
-            ->whereNull('deleted_at')
-            ->first();
+        $query = Contract::where('id', $contractId)->whereNull('deleted_at');
+        if ((int)$customer->role_id !== 1) {
+            $query->where('customer_id', $customer->id)->where('status', '!=', 0);
+        }
+        $contract = $query->first();
 
         if (!$contract) {
             abort(404, 'Không tìm thấy hợp đồng hợp lệ.');
