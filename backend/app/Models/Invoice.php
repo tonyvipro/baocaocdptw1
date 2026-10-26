@@ -14,6 +14,10 @@ class Invoice extends Model
 
     protected $table = 'invoices';
 
+    protected $attributes = [
+        'version' => 1,
+    ];
+
     protected $fillable = [
         'invoice_no',
         'contract_id',
@@ -25,12 +29,14 @@ class Invoice extends Model
         'billing_period_start',
         'billing_period_end',
         'status',
+        'version',
         'note',
         'cancel_reason',
         'paid_amount',
         'paid_at',
         'email_sent_at',
         'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -43,6 +49,7 @@ class Invoice extends Model
         'paid_at' => 'datetime',
         'email_sent_at' => 'datetime',
         'status' => 'integer',
+        'version' => 'integer',
     ];
 
     protected $appends = [
@@ -69,6 +76,19 @@ class Invoice extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Scope hóa đơn tiền thuê (type = 'rent')
+     */
+    public function scopeRent($query)
+    {
+        return $query->where('type', InvoiceType::RENT);
     }
 
     /**

@@ -5,9 +5,13 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContractExtensionController;
 use App\Http\Controllers\ContractDocumentController;
 use App\Http\Controllers\CustomerContractController;
-
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyInvoiceController;
+use App\Http\Controllers\Api\RentPaymentController;
+use App\Http\Controllers\Api\MetaController;
+
+// Public Metadata API
+Route::get('/meta/field-limits', [MetaController::class, 'fieldLimits']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -61,4 +65,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my/invoices', [MyInvoiceController::class, 'index']);
     Route::get('/my/invoices/{invoice}', [MyInvoiceController::class, 'show']);
     Route::get('/my/invoices/{invoice}/pdf', [MyInvoiceController::class, 'pdf']);
+
+    // Quản lý Tiền Thuê API (Spec Hình 43 & Mục 5.1)
+    Route::get('/rent-payments', [RentPaymentController::class, 'index']);
+    Route::get('/rent-payments/summary', [RentPaymentController::class, 'summary']);
+    Route::get('/rent-payments/payable', [RentPaymentController::class, 'payable']);
+    Route::get('/rent-payments/{id}', [RentPaymentController::class, 'show']);
+    Route::post('/invoices/{id}/payments', [RentPaymentController::class, 'recordPayment']);
 });

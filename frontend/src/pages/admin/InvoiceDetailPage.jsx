@@ -110,13 +110,17 @@ export default function InvoiceDetailPage({ invoiceId: propInvoiceId, onBack }) 
     try {
       setCancelling(true);
       setCancelError(null);
-      const res = await invoiceApi.cancelInvoice(invoice.id, cancelReason.trim());
+      const res = await invoiceApi.cancelInvoice(invoice.id, cancelReason.trim(), invoice.version);
       setInvoice(res.data);
       setShowCancelModal(false);
       setCancelReason('');
       alert('Đã hủy hóa đơn thành công!');
     } catch (err) {
-      setCancelError(err.response?.data?.message || 'Không thể hủy hóa đơn.');
+      if (err.response?.status === 409) {
+        setCancelError('Hóa đơn đã bị cập nhật bởi người dùng khác. Vui lòng tải lại trang.');
+      } else {
+        setCancelError(err.response?.data?.message || 'Không thể hủy hóa đơn.');
+      }
     } finally {
       setCancelling(false);
     }
@@ -409,6 +413,18 @@ export default function InvoiceDetailPage({ invoiceId: propInvoiceId, onBack }) 
               </div>
             </div>
           )}
+          {/* Thông tin kiểm toán & phiên bản */}
+          <div className="mt-6 pt-4 border-t border-slate-200 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Lập bởi: <strong className="text-slate-700">{invoice.creator?.name || 'Hệ thống'}</strong>
+              {invoice.updater && (
+                <> • Cập nhật lần cuối bởi: <strong className="text-slate-700">{invoice.updater.name}</strong></>
+              )}
+            </span>
+            <span className="font-mono text-slate-400">
+              Phiên bản: v{invoice.version || 1}
+            </span>
+          </div>
         </div>
 
         {/* FOOTER NÚT THAO TÁC (Hình 46) */}

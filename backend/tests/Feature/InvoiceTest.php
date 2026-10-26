@@ -202,6 +202,7 @@ class InvoiceTest extends TestCase
         ]);
 
         $updatePayload = [
+            'version' => $invoice->version,
             'title' => 'Tiêu đề mới sau khi sửa',
             'items' => [
                 ['item_name' => 'Phí mới 1', 'quantity' => 1, 'unit_price' => 300000],
@@ -245,6 +246,7 @@ class InvoiceTest extends TestCase
         ]);
 
         $response = $this->putJson("/api/invoices/{$invoice->id}", [
+            'version' => $invoice->version,
             'items' => [
                 ['item_name' => 'Cố tình sửa hạng mục', 'quantity' => 1, 'unit_price' => 500000],
             ],
@@ -276,6 +278,7 @@ class InvoiceTest extends TestCase
         ]);
 
         $response = $this->postJson("/api/invoices/{$invoice->id}/cancel", [
+            'version' => $invoice->version,
             'cancel_reason' => 'Khách hàng không sử dụng dịch vụ phụ này nữa.',
         ]);
 
@@ -341,6 +344,61 @@ class InvoiceTest extends TestCase
         // 5. Chạy lại lần nữa để kiểm tra idempotency -> vẫn giữ nguyên status = 1
         $service->syncPaymentStatus($invoice);
         $this->assertEquals(1, $invoice->fresh()->status);
+    }
+
+    public function test_pending_or_failed_transactions_do_not_affect_paid_amount(): void
+    {
+        $broker = $this->makeUser(2);
+        $customer = $this->makeUser(5);
+        $contract = $this->makeContract($broker, $customer);
+        $service = app(InvoiceService::class);
+
+        $invoice = Invoice::create([
+            'invoice_no' => 'QLTT-INV-STATUS-TEST-01',
+            'contract_id' => $contract->id,
+            'issue_date' => Carbon::today()->toDateString(),
+            'due_date' => Carbon::today()->addDays(5)->toDateString(),
+            'title' => 'Test trạng thái giao dịch',
+            'type' => 'rent',
+            'amount' => 10000000,
+            'status' => InvoiceStatus::UNPAID,
+            'paid_amount' => 0,
+        ]);
+
+        // Tạo 1 giao dịch đang Chờ xử lý (status = 0) và 1 Thất bại (status = 2)
+        Transaction::create([
+            'invoice_id' => $invoice->id,
+            'amount' => 5000000,
+            'status' => \App\Enums\TransactionStatus::PENDING,
+            'payment_method' => PaymentMethod::MOMO,
+            'paid_at' => now(),
+        ]);
+        Transaction::create([
+            'invoice_id' => $invoice->id,
+            'amount' => 5000000,
+            'status' => \App\Enums\TransactionStatus::FAILED,
+            'payment_method' => PaymentMethod::VNPAY,
+            'paid_at' => now(),
+        ]);
+
+        $service->syncPaymentStatus($invoice);
+
+        // Hóa đơn vẫn phải là UNPAID (0) và paid_amount vẫn là 0
+        $this->assertEquals(InvoiceStatus::UNPAID, $invoice->fresh()->status);
+        $this->assertEquals(0, (float) $invoice->fresh()->paid_amount);
+
+        // Khi có 1 giao dịch THÀNH CÔNG (status = 1) -> mới được cộng
+        Transaction::create([
+            'invoice_id' => $invoice->id,
+            'amount' => 10000000,
+            'status' => \App\Enums\TransactionStatus::SUCCESS,
+            'payment_method' => PaymentMethod::BANK_TRANSFER,
+            'paid_at' => now(),
+        ]);
+
+        $service->syncPaymentStatus($invoice);
+        $this->assertEquals(InvoiceStatus::PAID, $invoice->fresh()->status);
+        $this->assertEquals(10000000, (float) $invoice->fresh()->paid_amount);
     }
 
     public function test_cron_generate_rent_invoices(): void

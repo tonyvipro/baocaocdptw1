@@ -282,13 +282,63 @@ class ContractDocumentService
     }
 
     /**
+     * Tìm đường dẫn vật lý thực tế của file trên ổ đĩa
+     * Hỗ trợ cả disk 'local' (private), disk 'public', và các đường dẫn tương đối cũ có tiền tố /storage/
+     */
+    public function resolvePhysicalFilePath(?string $fileUrl): ?string
+    {
+        if (empty($fileUrl)) {
+            return null;
+        }
+
+        // 1. Kiểm tra nguyên mẫu trên disk 'local'
+        if (Storage::disk('local')->exists($fileUrl)) {
+            return Storage::disk('local')->path($fileUrl);
+        }
+
+        // 2. Kiểm tra nguyên mẫu trên disk 'public'
+        if (Storage::disk('public')->exists($fileUrl)) {
+            return Storage::disk('public')->path($fileUrl);
+        }
+
+        // 3. Chuẩn hóa bỏ tiền tố /storage/ hoặc storage/
+        $cleaned = preg_replace('#^/?storage/#', '', $fileUrl);
+
+        if (Storage::disk('public')->exists($cleaned)) {
+            return Storage::disk('public')->path($cleaned);
+        }
+
+        if (Storage::disk('local')->exists($cleaned)) {
+            return Storage::disk('local')->path($cleaned);
+        }
+
+        // 4. Kiểm tra các đường dẫn tuyệt đối trực tiếp
+        $candidates = [
+            storage_path('app/public/' . $cleaned),
+            storage_path('app/' . $cleaned),
+            storage_path('app/private/' . $cleaned),
+            public_path($fileUrl),
+            public_path($cleaned),
+        ];
+
+        foreach ($candidates as $cand) {
+            if (file_exists($cand) && is_file($cand)) {
+                return $cand;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Xem trước file (stream inline)
      */
     public function previewDocument(int $documentId, User $viewer): StreamedResponse|BinaryFileResponse
     {
         $document = ContractDocument::findOrFail($documentId);
 
-        if (!Storage::disk('local')->exists($document->file_url)) {
+        $filePath = $this->resolvePhysicalFilePath($document->file_url);
+        if (!$filePath || !file_exists($filePath)) {
             abort(404, 'Tệp tài liệu vật lý không tồn tại trên máy chủ.');
         }
 
@@ -297,8 +347,6 @@ class ContractDocumentService
             'original_name' => $document->original_name,
             'role_id' => $viewer->role_id,
         ]);
-
-        $filePath = Storage::disk('local')->path($document->file_url);
 
         return response()->file($filePath, [
             'Content-Type' => $document->mime_type ?: 'application/octet-stream',
@@ -314,7 +362,8 @@ class ContractDocumentService
     {
         $document = ContractDocument::findOrFail($documentId);
 
-        if (!Storage::disk('local')->exists($document->file_url)) {
+        $filePath = $this->resolvePhysicalFilePath($document->file_url);
+        if (!$filePath || !file_exists($filePath)) {
             abort(404, 'Tệp tài liệu vật lý không tồn tại trên máy chủ.');
         }
 
@@ -325,7 +374,7 @@ class ContractDocumentService
             'role_id' => $downloader->role_id,
         ]);
 
-        return Storage::disk('local')->download($document->file_url, $document->original_name, [
+        return response()->download($filePath, $document->original_name, [
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

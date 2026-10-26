@@ -8,6 +8,8 @@ use App\Models\Contract;
 use App\Models\User;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
+use App\Enums\TransactionStatus;
+use App\Exceptions\StaleVersionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -186,53 +188,69 @@ class InvoiceService
     }
 
     /**
-     * Chỉnh sửa hóa đơn (Mục 3.4)
+     * Chỉnh sửa hóa đơn (Mục 3.4 & 3.12: Khóa lạc quan + bi quan)
      */
     public function updateInvoice(Invoice $invoice, array $data, ?User $actor = null): Invoice
     {
-        if ($invoice->status === InvoiceStatus::PAID) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã thanh toán không thể chỉnh sửa hoặc hủy.',
-            ], 409));
-        }
+        return DB::transaction(function () use ($invoice, $data, $actor) {
+            $locked = Invoice::lockForUpdate()->find($invoice->id);
+            if (!$locked) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn không tồn tại.',
+                ], 404));
+            }
 
-        if ($invoice->status === InvoiceStatus::CANCELLED) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã bị hủy trước đó.',
-            ], 409));
-        }
+            // Kiểm tra version (Khóa lạc quan - Mục 3.12)
+            if (isset($data['version']) && (int) $locked->version !== (int) $data['version']) {
+                throw new StaleVersionException(
+                    'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
+                    new \App\Http\Resources\InvoiceResource($locked->fresh(['contract.property', 'contract.customer', 'items', 'transactions', 'updater']))
+                );
+            }
 
-        $hasTransactions = $invoice->transactions()->exists() || (float)$invoice->paid_amount > 0;
+            if ($locked->status === InvoiceStatus::PAID) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã thanh toán không thể chỉnh sửa hoặc hủy.',
+                ], 409));
+            }
 
-        // Nếu đã có giao dịch: chỉ cho phép sửa note, title; chặn sửa tiền/hạng mục/hạn
-        if ($hasTransactions && !empty($data['items'])) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã phát sinh giao dịch thanh toán, không thể chỉnh sửa số tiền và hạng mục.',
-            ], 409));
-        }
+            if ($locked->status === InvoiceStatus::CANCELLED) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã bị hủy trước đó.',
+                ], 409));
+            }
 
-        return DB::transaction(function () use ($invoice, $data, $hasTransactions, $actor) {
+            // Chỉ tính giao dịch thành công
+            $hasTransactions = $locked->transactions()->where('status', TransactionStatus::SUCCESS)->exists() || (float)$locked->paid_amount > 0;
+
+            // Nếu đã có giao dịch: chỉ cho phép sửa note, title; chặn sửa tiền/hạng mục/hạn
+            if ($hasTransactions && !empty($data['items'])) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã phát sinh giao dịch thanh toán, không thể chỉnh sửa số tiền và hạng mục.',
+                ], 409));
+            }
+
             $oldData = [
-                'title' => $invoice->title,
-                'amount' => $invoice->amount,
-                'due_date' => $invoice->due_date?->format('Y-m-d'),
-                'note' => $invoice->note,
+                'title' => $locked->title,
+                'amount' => $locked->amount,
+                'due_date' => $locked->due_date?->format('Y-m-d'),
+                'note' => $locked->note,
             ];
 
             if (isset($data['title'])) {
-                $invoice->title = trim($data['title']);
+                $locked->title = trim($data['title']);
             }
             if (isset($data['note'])) {
-                $invoice->note = $data['note'];
+                $locked->note = $data['note'];
             }
             if (isset($data['due_date'])) {
-                $invoice->due_date = Carbon::parse($data['due_date'])->toDateString();
+                $locked->due_date = Carbon::parse($data['due_date'])->toDateString();
             }
             if (isset($data['billing_period_start'])) {
-                $invoice->billing_period_start = Carbon::parse($data['billing_period_start'])->toDateString();
+                $locked->billing_period_start = Carbon::parse($data['billing_period_start'])->toDateString();
             }
             if (isset($data['billing_period_end'])) {
-                $invoice->billing_period_end = Carbon::parse($data['billing_period_end'])->toDateString();
+                $locked->billing_period_end = Carbon::parse($data['billing_period_end'])->toDateString();
             }
 
             // Nếu chưa có giao dịch và có gửi items thì cập nhật lại hạng mục & tính lại amount
@@ -274,76 +292,97 @@ class InvoiceService
                     ]);
                 }
 
-                $invoice->amount = $calculatedAmount;
+                $locked->amount = $calculatedAmount;
 
                 // Xóa items cũ và chèn items mới
-                $invoice->items()->delete();
+                $locked->items()->delete();
                 foreach ($sanitizedItems as $item) {
-                    $invoice->items()->create($item);
+                    $locked->items()->create($item);
                 }
             }
 
-            $invoice->save();
+            // Tăng version và cập nhật updated_by (thao tác người dùng)
+            $locked->version = ($locked->version ?? 1) + 1;
+            $locked->updated_by = $actor?->id;
+            $locked->save();
 
             // Đồng bộ lại trạng thái quá hạn nếu cần
-            $this->syncPaymentStatus($invoice);
+            $this->syncPaymentStatus($locked);
 
-            $this->logActivity($actor?->id, 'UPDATE_INVOICE', $invoice->id, $oldData, [
-                'title' => $invoice->title,
-                'amount' => $invoice->amount,
-                'due_date' => $invoice->due_date?->format('Y-m-d'),
-                'note' => $invoice->note,
+            $this->logActivity($actor?->id, 'UPDATE_INVOICE', $locked->id, $oldData, [
+                'title' => $locked->title,
+                'amount' => $locked->amount,
+                'due_date' => $locked->due_date?->format('Y-m-d'),
+                'note' => $locked->note,
             ]);
 
-            return $invoice->load(['contract.property', 'contract.customer', 'items']);
-        });
+            return $locked->load(['contract.property', 'contract.customer', 'items', 'updater']);
+        }, 3);
     }
 
     /**
-     * Hủy hóa đơn (Mục 3.4)
+     * Hủy hóa đơn (Mục 3.4 & 3.12: Khóa lạc quan + bi quan)
      */
-    public function cancelInvoice(Invoice $invoice, string $reason, ?User $actor = null): Invoice
+    public function cancelInvoice(Invoice $invoice, string $reason, ?int $version = null, ?User $actor = null): Invoice
     {
-        if ($invoice->status === InvoiceStatus::PAID) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã thanh toán không thể chỉnh sửa hoặc hủy.',
-            ], 409));
-        }
+        return DB::transaction(function () use ($invoice, $reason, $version, $actor) {
+            $locked = Invoice::lockForUpdate()->find($invoice->id);
+            if (!$locked) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn không tồn tại.',
+                ], 404));
+            }
 
-        if ($invoice->status === InvoiceStatus::CANCELLED) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã bị hủy trước đó.',
-            ], 409));
-        }
+            // Kiểm tra version (Khóa lạc quan - Mục 3.12)
+            if ($version !== null && (int) $locked->version !== (int) $version) {
+                throw new StaleVersionException(
+                    'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
+                    new \App\Http\Resources\InvoiceResource($locked->fresh(['contract.property', 'contract.customer', 'items', 'transactions', 'updater']))
+                );
+            }
 
-        $hasTransactions = $invoice->transactions()->exists() || (float)$invoice->paid_amount > 0;
-        if ($hasTransactions) {
-            throw new HttpResponseException(response()->json([
-                'message' => 'Hóa đơn đã phát sinh giao dịch thanh toán, không thể hủy.',
-            ], 409));
-        }
+            if ($locked->status === InvoiceStatus::PAID) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã thanh toán không thể chỉnh sửa hoặc hủy.',
+                ], 409));
+            }
 
-        return DB::transaction(function () use ($invoice, $reason, $actor) {
-            $oldStatus = $invoice->status;
+            if ($locked->status === InvoiceStatus::CANCELLED) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã bị hủy trước đó.',
+                ], 409));
+            }
 
-            $invoice->status = InvoiceStatus::CANCELLED;
-            $invoice->cancel_reason = trim($reason);
-            $invoice->save();
+            $hasTransactions = $locked->transactions()->where('status', TransactionStatus::SUCCESS)->exists() || (float)$locked->paid_amount > 0;
+            if ($hasTransactions) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đã phát sinh giao dịch thanh toán, không thể hủy.',
+                ], 409));
+            }
 
-            $this->logActivity($actor?->id, 'CANCEL_INVOICE', $invoice->id, [
+            $oldStatus = $locked->status;
+
+            $locked->status = InvoiceStatus::CANCELLED;
+            $locked->cancel_reason = trim($reason);
+            $locked->version = ($locked->version ?? 1) + 1;
+            $locked->updated_by = $actor?->id;
+            $locked->save();
+
+            $this->logActivity($actor?->id, 'CANCEL_INVOICE', $locked->id, [
                 'status' => $oldStatus,
             ], [
                 'status' => InvoiceStatus::CANCELLED,
-                'cancel_reason' => $invoice->cancel_reason,
+                'cancel_reason' => $locked->cancel_reason,
             ]);
 
-            return $invoice;
-        });
+            return $locked;
+        }, 3);
     }
 
     /**
-     * Đồng bộ trạng thái thanh toán và số tiền đã trả (Mục 3.5)
+     * Đồng bộ trạng thái thanh toán và số tiền đã trả (Mục 3.5 & 4: Chỉ tính giao dịch thành công)
      * Hàm idempotent: chạy nhiều lần không làm thay đổi trạng thái nếu không có giao dịch mới.
+     * Lưu ý: Tiến trình tự động không tăng version (Mục 3.12a).
      */
     public function syncPaymentStatus(Invoice $invoice): Invoice
     {
@@ -352,7 +391,10 @@ class InvoiceService
             return $invoice;
         }
 
-        $paidAmount = (float) $invoice->transactions()->sum('amount');
+        // CHỈ cộng giao dịch thành công (status = 1)
+        $paidAmount = (float) $invoice->transactions()
+            ->where('status', TransactionStatus::SUCCESS)
+            ->sum('amount');
         $invoice->paid_amount = round($paidAmount, 2);
 
         $amount = (float) $invoice->amount;
@@ -360,7 +402,9 @@ class InvoiceService
         if ($paidAmount >= $amount && $amount > 0) {
             $invoice->status = InvoiceStatus::PAID;
             if (!$invoice->paid_at) {
-                $lastTxPaidAt = $invoice->transactions()->max('paid_at');
+                $lastTxPaidAt = $invoice->transactions()
+                    ->where('status', TransactionStatus::SUCCESS)
+                    ->max('paid_at');
                 $invoice->paid_at = $lastTxPaidAt ? Carbon::parse($lastTxPaidAt) : Carbon::now();
             }
         } else {

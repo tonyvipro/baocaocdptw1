@@ -43,12 +43,14 @@ export const invoiceApi = {
   },
 
   /**
-   * Hủy hóa đơn (bắt buộc nhập lý do hủy)
+   * Hủy hóa đơn (bắt buộc nhập lý do hủy, hỗ trợ version chống xung đột)
    */
-  cancelInvoice: async (id, cancelReason) => {
-    const response = await axios.post(`${BASE_URL}/invoices/${id}/cancel`, {
-      cancel_reason: cancelReason,
-    });
+  cancelInvoice: async (id, cancelReason, version = null) => {
+    const payload = { cancel_reason: cancelReason };
+    if (version !== null && version !== undefined) {
+      payload.version = version;
+    }
+    const response = await axios.post(`${BASE_URL}/invoices/${id}/cancel`, payload);
     return response.data;
   },
 

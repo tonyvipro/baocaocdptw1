@@ -100,7 +100,13 @@ class InvoiceController extends Controller
         $invoice = $this->invoiceService->getInvoiceDetail($id);
         Gate::authorize('cancel', $invoice);
 
-        $cancelled = $this->invoiceService->cancelInvoice($invoice, $request->validated()['cancel_reason'], $request->user());
+        $validated = $request->validated();
+        $cancelled = $this->invoiceService->cancelInvoice(
+            $invoice,
+            $validated['cancel_reason'],
+            $validated['version'] ?? null,
+            $request->user()
+        );
 
         return response()->json([
             'message' => 'Hủy hóa đơn thành công!',
