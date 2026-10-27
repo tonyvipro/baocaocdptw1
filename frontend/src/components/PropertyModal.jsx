@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState } from 'react';
 import {
   X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle,
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 import ExtendListingModal from './ExtendListingModal';
 import ChangePropertyStatusModal from './ChangePropertyStatusModal';
+import { propertyGallery } from '../utils/propertyImage';
 
 export default function PropertyModal({
   property,
@@ -43,14 +45,7 @@ export default function PropertyModal({
     )
   );
 
-  // Demo gallery image list
-  const galleryImages = [
-    property.image,
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80'
-  ];
+  const galleryImages = propertyGallery(prop);
 
   const handleShare = async () => {
     const url = new URL(window.location.href);
@@ -72,9 +67,9 @@ export default function PropertyModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
+        className="form-surface relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -141,7 +136,7 @@ export default function PropertyModal({
             {/* Main Photo Gallery */}
             <div className="lg:col-span-7 flex flex-col gap-2.5">
               <div className="relative h-64 sm:h-80 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group">
-                <img
+                <PropertyImage
                   src={galleryImages[activeImageIndex] || property.image}
                   alt={property.title}
                   className="w-full h-full object-cover transition-all duration-300"
@@ -173,7 +168,7 @@ export default function PropertyModal({
                 </div>
 
                 <div className="absolute bottom-3 right-3 bg-slate-950/75 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-md font-medium">
-                  {activeImageIndex + 1} / {galleryImages.length} ảnh
+                  {galleryImages.length ? Math.min(activeImageIndex + 1, galleryImages.length) : 0} / {galleryImages.length} ảnh
                 </div>
               </div>
 
@@ -187,7 +182,7 @@ export default function PropertyModal({
                       activeImageIndex === idx ? 'border-red-600 shadow-md scale-102' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                    <PropertyImage src={img} alt="thumbnail" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

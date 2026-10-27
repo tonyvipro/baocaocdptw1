@@ -613,8 +613,8 @@ export default function PropertyFilter({
       {/* MODAL 1: TỰ NHẬP KHOẢNG DIỆN TÍCH TÙY CHỌN (CUSTOM AREA RANGE)            */}
       {/* ========================================================================= */}
       {showCustomAreaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scaleUp">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scaleUp">
             <button
               type="button"
               onClick={() => setShowCustomAreaModal(false)}
@@ -724,8 +724,8 @@ export default function PropertyFilter({
       {/* MODAL 2: TỰ NHẬP KHOẢNG GIÁ TÙY CHỌN (CUSTOM PRICE RANGE)                  */}
       {/* ========================================================================= */}
       {showCustomPriceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scaleUp">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scaleUp">
             <button
               type="button"
               onClick={() => setShowCustomPriceModal(false)}

@@ -1,5 +1,7 @@
 import React from 'react';
-import { Search, MapPin, Building, DollarSign, Maximize2, Tag, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Building, Loader2, Tag } from 'lucide-react';
+import PropertySearchBar from './properties/PropertySearchBar';
+import ProjectSearchSelect from './properties/ProjectSearchSelect';
 
 export default function HeroSection({
   searchKeyword,
@@ -15,7 +17,12 @@ export default function HeroSection({
   projectsList,
   citiesList,
   typesList,
-  totalResults
+  totalResults,
+  searchLoading = false,
+  searchError = '',
+  onRetrySearch,
+  suggestions = [],
+  onSelectSuggestion
 }) {
   const trendingTags = [
     'Vinhomes Central Park',
@@ -26,14 +33,14 @@ export default function HeroSection({
   ];
 
   return (
-    <section className="relative py-16 md:py-24 text-white overflow-hidden border-b border-slate-800">
+    <section className="relative z-20 py-16 md:py-24 text-white overflow-visible border-b border-slate-800">
       {/* Video Background */}
       <video
         autoPlay
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover scale-105"
+        className="absolute inset-0 w-full h-full object-cover"
       >
         <source src="/hero-video.mp4" type="video/mp4" />
         Trình duyệt của bạn không hỗ trợ thẻ video.
@@ -55,12 +62,12 @@ export default function HeroSection({
         </div>
 
         {/* Real Estate Search Box (Kính Trong Suốt Nhìn Rõ Video Nền) */}
-        <div className="bg-black/15 hover:bg-black/20 backdrop-blur-[2px] rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] p-4 sm:p-6 text-white border border-white/30 transition-all">
+        <div className="bg-black/15 hover:bg-black/20 backdrop-blur-[2px] rounded-none shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] p-4 sm:p-6 text-white border border-white/30 transition-all">
           {/* Purpose Tab Bar */}
           <div className="flex items-center gap-1.5 pb-3 mb-4 border-b border-white/15 overflow-x-auto text-xs font-bold">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`px-4 py-2 rounded-none transition-all ${
                 activeTab === 'all' 
                   ? 'bg-white/20 text-white shadow-sm border border-white/40' 
                   : 'bg-black/20 text-slate-200 hover:text-white hover:bg-black/40 border border-white/10'
@@ -70,7 +77,7 @@ export default function HeroSection({
             </button>
             <button
               onClick={() => setActiveTab('sale')}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`px-4 py-2 rounded-none transition-all ${
                 activeTab === 'sale' 
                   ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
                   : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
@@ -80,7 +87,7 @@ export default function HeroSection({
             </button>
             <button
               onClick={() => setActiveTab('rent')}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`px-4 py-2 rounded-none transition-all ${
                 activeTab === 'rent' 
                   ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
                   : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
@@ -95,43 +102,11 @@ export default function HeroSection({
             
             {/* Input Keyword */}
             <div className="lg:col-span-4">
-              <label className="block text-[11px] font-bold text-white uppercase mb-1 tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                Từ Khóa / Dự Án / Địa Chỉ
-              </label>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/80" />
-                <input
-                  type="text"
-                  maxLength={250}
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value.slice(0, 250))}
-                  placeholder="Nhập tên dự án, đường, mã căn (tối đa 250 ký tự)..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white placeholder:text-slate-200/70 border border-white/25 focus:border-white/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 transition-all shadow-inner backdrop-blur-[1px]"
-                />
-              </div>
+              <PropertySearchBar value={searchKeyword} onChange={setSearchKeyword} isLoading={searchLoading} error={searchError} suggestions={suggestions} onSelect={onSelectSuggestion} />
             </div>
 
-            {/* Select Project */}
-            <div className="lg:col-span-3">
-              <label className="block text-[11px] font-bold text-white uppercase mb-1 tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                Dự Án Trọng Điểm
-              </label>
-              <div className="relative">
-                <Building className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/80 pointer-events-none" />
-                <select
-                  value={selectedProject}
-                  onChange={(e) => setSelectedProject(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white border border-white/25 focus:border-white/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 appearance-none transition-all shadow-inner cursor-pointer backdrop-blur-[1px]"
-                >
-                  <option value="all" className="bg-slate-900 text-white">Tất cả dự án</option>
-                  {projectsList.map((p) => (
-                    <option key={p} value={p} className="bg-slate-900 text-white">{p}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/80 text-xs">
-                  ▼
-                </div>
-              </div>
+            <div className="min-w-0 lg:col-span-3">
+              <ProjectSearchSelect projects={projectsList} value={selectedProject} onChange={setSelectedProject} />
             </div>
 
             {/* Select City / Region */}
@@ -144,7 +119,7 @@ export default function HeroSection({
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white border border-white/25 focus:border-white/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 appearance-none transition-all shadow-inner cursor-pointer backdrop-blur-[1px]"
+                  className="w-full pl-9 pr-8 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white border border-white/25 focus:border-white/70 rounded-none focus:outline-none focus:ring-2 focus:ring-red-500/40 appearance-none transition-all shadow-inner cursor-pointer backdrop-blur-[1px]"
                 >
                   <option value="all" className="bg-slate-900 text-white">Toàn quốc</option>
                   {citiesList.map((c) => (
@@ -164,14 +139,16 @@ export default function HeroSection({
                   const element = document.getElementById('listing-section');
                   if (element) element.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/40 transition-all cursor-pointer"
+                className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-none text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/40 transition-all cursor-pointer"
               >
-                <Search className="w-4 h-4" />
-                <span>Tìm Kiếm ({totalResults})</span>
+                {searchLoading ? <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin" /> : <Search aria-hidden="true" className="w-4 h-4" />}
+                <span>{searchLoading ? 'Đang tìm...' : `Tìm Kiếm (${totalResults})`}</span>
               </button>
             </div>
 
           </div>
+
+          {searchError && <div role="alert" className="mt-3 rounded-none border border-red-300/30 bg-red-950/60 px-3 py-2 text-xs text-red-100">{searchError}<button type="button" onClick={onRetrySearch} className="ml-2 font-semibold underline">Thử lại</button></div>}
 
           {/* Quick Trending Searches */}
           <div className="mt-3.5 pt-3 border-t border-white/15 flex flex-wrap items-center gap-2 text-xs text-slate-200">
@@ -182,7 +159,7 @@ export default function HeroSection({
               <button
                 key={tag}
                 onClick={() => setSearchKeyword(tag)}
-                className="px-2.5 py-1 rounded-md bg-black/25 hover:bg-black/45 text-slate-100 hover:text-white border border-white/20 font-medium transition-all text-[11px]"
+                className="px-2.5 py-1 rounded-none bg-black/25 hover:bg-black/45 text-slate-100 hover:text-white border border-white/20 font-medium transition-all text-[11px]"
               >
                 {tag}
               </button>

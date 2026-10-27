@@ -6,6 +6,7 @@ import CustomerForm from '../../components/customers/CustomerForm';
 import CustomerDetails from '../../components/customers/CustomerDetails';
 import CustomerWorkspace from '../../components/customers/CustomerWorkspace';
 import CrmDialog, { crmInput, CrmError } from '../../components/customers/CrmDialog';
+import useRecordLink from '../../hooks/useRecordLink';
 
 export const customerColumns = {
   management: ['Tên khách hàng', 'Công ty', 'Email', 'Số điện thoại', 'Nhóm khách hàng', 'Ngày tạo', 'Hành động'],
@@ -70,6 +71,7 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
     const timer = setTimeout(() => setNotice(''), 4000);
     return () => clearTimeout(timer);
   }, [notice]);
+  useRecordLink('customers', ({ id }) => { if (id) setSelectedId(id); });
 
   const selectView = next => {
     setView(next); setPage(1); setSearch(''); setSelectedId(null);
@@ -108,7 +110,8 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
   const actionLabel = tracking ? 'Xóa khỏi danh sách theo dõi' : 'Xóa thông tin khách hàng';
   const columns = customerColumns[view];
 
-  return <div className="space-y-4">
+  return <div className="space-y-5">
+    <header className="giang-page-heading"><p className="giang-eyebrow mb-1">3TV LAND / KHÁCH HÀNG</p><h1>{tracking ? 'Theo dõi khách hàng' : 'Quản lý khách hàng'}</h1><p className="mt-1 text-xs">Quản lý thông tin liên hệ và chăm sóc khách hàng trong cùng một không gian.</p></header>
     <nav className="flex gap-1 border-b border-slate-200" role="tablist" aria-label="Chức năng khách hàng">
       {[['management', 'Quản lý khách hàng'], ['tracking', 'Theo dõi khách hàng']].map(([key, label]) =>
         <button key={key} id={'customer-tab-' + key} type="button" role="tab" aria-selected={view === key} aria-controls="customer-list-panel" onClick={() => selectView(key)}
@@ -118,8 +121,8 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
     <section id="customer-list-panel" role="tabpanel" aria-labelledby={'customer-tab-' + view} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <header className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
         <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
-        <div className="flex items-center gap-2">
-          <label className="relative block"><span className="sr-only">Tìm khách hàng</span><Search size={15} className="absolute left-3 top-3 text-slate-400" />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <label className="relative block min-w-0 flex-1"><span className="sr-only">Tìm khách hàng</span><Search size={15} className="absolute left-3 top-3 text-slate-400" />
             <input type="search" maxLength={250} value={search} onChange={event => { setSearch(event.target.value.slice(0, 250)); setPage(1); }} placeholder="Tìm khách hàng..." className={crmInput + ' pl-9 sm:w-64'} />
           </label>
           <button type="button" title="Tải lại danh sách" aria-label="Tải lại danh sách khách hàng" disabled={loading} onClick={() => setRevision(value => value + 1)} className="rounded border border-slate-300 p-2.5 text-slate-500 disabled:opacity-40"><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /></button>

@@ -9,6 +9,8 @@ import ListingApprovalsManager from './ListingApprovalsManager';
 import ExtendListingModal from '../../components/ExtendListingModal';
 import ChangePropertyStatusModal from '../../components/ChangePropertyStatusModal';
 import BulkChangePropertyStatusModal from '../../components/BulkChangePropertyStatusModal';
+import useRecordLink from '../../hooks/useRecordLink';
+import PropertyImage from '../../components/properties/PropertyImage';
 
 export default function PropertiesManager() {
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
@@ -63,6 +65,23 @@ export default function PropertiesManager() {
 
   // Status Notification popup
   const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
+  useRecordLink('properties', async ({ id, search, tab, signal }) => {
+    if (tab === 'trash') { setActiveTab('trash'); return; }
+    if (!id) return;
+    setActiveTab('list');
+    if (search) setSearchTerm(search);
+    try {
+      const params = new URLSearchParams({ admin: '1', per_page: '100', search });
+      const response = await fetch('/api/properties?' + params, { signal, headers: getHeaders() });
+      if (!response.ok) throw new Error('Không tải được bất động sản từ liên kết.');
+      const result = await response.json();
+      if (!signal.aborted) {
+        const property = result.data?.find(item => Number(item.id) === id);
+        if (property) setViewingProperty(property);
+        else showToast('Bất động sản đã bị xóa hoặc không còn trong danh sách.', 'error');
+      }
+    } catch (error) { if (!signal.aborted) showToast(error.message, 'error'); }
+  });
 
   const showToast = (message, type = 'success') => {
     setToast({ type, message });
@@ -761,13 +780,11 @@ export default function PropertiesManager() {
 
                         <td className="py-3 px-3 border-b border-slate-50/50">
                           <div className="w-16 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 shadow-sm group-hover:shadow-md group-hover:border-blue-200 transition-all">
-                            <img
-                              src={prop.image || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&auto=format&fit=crop&q=80'}
+                            <PropertyImage
+                              src={prop.image}
                               alt={prop.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              onError={(e) => {
-                                e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&auto=format&fit=crop&q=80';
-                              }}
+
                             />
                           </div>
                         </td>
@@ -1543,8 +1560,8 @@ function PropertyDetailModal({ property, onClose, onEdit, onManageStatus }) {
   const curStatus = statusLabels[Number(property.status)] || { label: 'Chưa rõ', color: 'bg-slate-100 text-slate-700 border-slate-300' };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
+      <div className="form-surface relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1560,10 +1577,10 @@ function PropertyDetailModal({ property, onClose, onEdit, onManageStatus }) {
         <div className="p-6 overflow-y-auto space-y-5 text-xs">
           {/* Ảnh lớn */}
           <div className="w-full h-56 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-            <img 
+            <PropertyImage
               src={property.image} 
               className="w-full h-full object-cover" 
-              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&auto=format&fit=crop&q=80'; }}
+
             />
           </div>
 
@@ -1758,8 +1775,8 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
-      <div className="relative w-full max-w-xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
+      <div className="form-surface relative w-full max-w-xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5 text-amber-500" />

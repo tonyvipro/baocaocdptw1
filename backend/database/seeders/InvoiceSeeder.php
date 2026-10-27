@@ -59,6 +59,7 @@ class InvoiceSeeder extends Seeder
                     'code' => 'A101',
                 ], [
                     'title' => 'Căn hộ chung cư cao cấp A101',
+                    'image' => RepairDemoPropertyImagesSeeder::imageFor('A101'),
                     'address' => 'Phòng A101, Tầng 10, Tòa Landmark Plus, 208 Nguyễn Hữu Cảnh, Phường 22, Bình Thạnh, TP. Hồ Chí Minh',
                     'price' => 15000000,
                     'price_rent' => 15000000,

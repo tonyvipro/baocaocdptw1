@@ -20,6 +20,8 @@
     <php>
         <env name="APP_CONFIG_CACHE" value="bootstrap/cache/phpunit-no-config.php" force="true"/>
         <env name="APP_ENV" value="testing"/>
+        <env name="SCOUT_DRIVER" value="null" force="true"/>
+        <env name="SCOUT_QUEUE" value="false" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

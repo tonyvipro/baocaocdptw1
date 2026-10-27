@@ -1,3 +1,5 @@
+import useRecordLink from '../../hooks/useRecordLink';
+import { useConfirm } from '../../components/forms/ConfirmProvider';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Layers, Search, Plus, Filter, RefreshCw, Eye, Edit3, Trash2, X,
@@ -9,6 +11,17 @@ import { broadcastDataChange, subscribeDataChange } from '../../services/tabSync
 import ConflictWarningBanner from '../../components/ConflictWarningBanner';
 
 export default function CategoryManagement() {
+  const confirm = useConfirm();
+  useRecordLink('categories', async ({ id, signal }) => {
+    if (!id) return;
+    try {
+      const response = await fetch('/api/categories/' + id, { signal, headers: { Accept: 'application/json' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Không thể tải danh mục.');
+      if (!signal.aborted) handleOpenDetailModal(result.data);
+    } catch (error) { if (error.name !== 'AbortError') showToast(error.message, 'error'); }
+  });
+
   // 1. KHÔI PHỤC BỘ LỌC TỪ LOCALSTORAGE KHI F5 (F5 RELOAD PERSISTENCE)
   const savedFilter = (() => {
     try {
@@ -71,6 +84,7 @@ export default function CategoryManagement() {
 
   // Giải tỏa xung đột khi người dùng chọn Tải lại dữ liệu
   const handleResolveConflict = () => {
+    setShowAddEditModal(false); setShowDeleteModal(false); setCurrentCategory(null);
     setConflictEvent(null);
     setConflictLocked(false);
     fetchCategories(currentPage);
@@ -114,6 +128,7 @@ export default function CategoryManagement() {
       const res = await fetch(`/api/categories?${params.toString()}`, {
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
@@ -210,6 +225,7 @@ export default function CategoryManagement() {
       return;
     }
     setCategoryToDelete(cat);
+    setShowAddEditModal(false); setShowDetailModal(false);
     setShowDeleteModal(true);
   };
 
@@ -227,12 +243,13 @@ export default function CategoryManagement() {
       return;
     }
 
+    if (modalMode === 'edit' && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu các thay đổi của danh mục này?" }))) return;
     setActionLoading(true);
     try {
       const token = localStorage.getItem('3tv_token') || '';
       const headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
@@ -244,6 +261,7 @@ export default function CategoryManagement() {
         headers,
         body: JSON.stringify({
           ...formData,
+          ...(modalMode === 'edit' ? { version: currentCategory.version } : {}),
           name: trimmedName,
           description: (formData.description || '').slice(0, 250),
         })
@@ -291,8 +309,10 @@ export default function CategoryManagement() {
       const token = localStorage.getItem('3tv_token') || '';
       const res = await fetch(`/api/categories/${categoryToDelete.id}`, {
         method: 'DELETE',
+        body: JSON.stringify({ version: categoryToDelete.version }),
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
@@ -338,8 +358,10 @@ export default function CategoryManagement() {
       const token = localStorage.getItem('3tv_token') || '';
       const res = await fetch(`/api/categories/${cat.id}/status`, {
         method: 'PATCH',
+        body: JSON.stringify({ version: cat.version }),
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
@@ -397,13 +419,13 @@ export default function CategoryManagement() {
       )}
 
       {/* HEADER SECTION: TIÊU ĐỀ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-5 rounded-2xl shadow-xl">
+      <div className="giang-page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <span className="p-2.5 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
             <Layers className="w-6 h-6" />
           </span>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Quản Lý Danh Mục
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -412,9 +434,9 @@ export default function CategoryManagement() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-950/60 px-3.5 py-2 rounded-xl border border-slate-800 self-start sm:self-auto">
+        <div className="flex items-center gap-2 text-xs text-slate-400 bg-white px-3.5 py-2 rounded-xl border border-slate-200 self-start sm:self-auto">
           <span>Tổng số danh mục:</span>
-          <span className="font-bold text-white font-mono">{pagination.total || categories.length}</span>
+          <span className="font-bold text-slate-900 font-mono">{pagination.total || categories.length}</span>
         </div>
       </div>
 
@@ -428,7 +450,7 @@ export default function CategoryManagement() {
       )}
 
       {/* THANH CÔNG CỤ TÌM KIẾM & NÚT THÊM DANH MỤC (BỐ CỤC GỌN GÀNG NGAY TRÊN BẢNG) */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-xl">
+      <div className="bg-white backdrop-blur-md border border-slate-200 rounded-2xl p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-xl">
         {/* Nhóm Input Tìm kiếm & Lọc trạng thái */}
         <div className="flex flex-col sm:flex-row items-center gap-3 flex-1">
           {/* Input Tìm kiếm Real-time (Giới hạn tối đa 250 ký tự) */}
@@ -440,19 +462,19 @@ export default function CategoryManagement() {
               value={searchTerm}
               onChange={handleSearchChange}
               placeholder="Tìm theo ID (CAT-001) hoặc tên danh mục (tối đa 250 ký tự)..."
-              className="w-full pl-9 pr-14 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition"
+              className="w-full pl-9 pr-14 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition"
             />
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
               {searchTerm && (
                 <button
                   onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-                  className="text-slate-400 hover:text-white"
+                  className="text-slate-400 hover:text-slate-900"
                   title="Xóa tìm kiếm"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <span className="text-[10px] font-mono text-slate-500 bg-slate-800/80 px-1 rounded">
+              <span className="text-[10px] font-mono text-slate-500 bg-slate-50 px-1 rounded">
                 {searchTerm.length}/250
               </span>
             </div>
@@ -464,7 +486,7 @@ export default function CategoryManagement() {
             <select
               value={statusFilter}
               onChange={handleStatusFilterChange}
-              className="w-full sm:w-auto px-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-red-500 cursor-pointer"
+              className="w-full sm:w-auto px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-red-500 cursor-pointer"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
@@ -474,11 +496,11 @@ export default function CategoryManagement() {
         </div>
 
         {/* Nhóm Số lượng mỗi trang, Làm mới & Nút [THÊM DANH MỤC MỚI] */}
-        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
           <select
             value={perPage}
             onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
-            className="px-2.5 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs text-slate-300 focus:outline-none cursor-pointer"
+            className="px-2.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
             <option value="8">8 / trang</option>
             <option value="15">15 / trang</option>
@@ -488,7 +510,7 @@ export default function CategoryManagement() {
           <button
             onClick={() => handleResolveConflict()}
             title="Làm mới dữ liệu"
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 transition cursor-pointer"
+            className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-200 text-slate-700 border border-slate-200 transition cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-red-500' : ''}`} />
           </button>
@@ -498,10 +520,10 @@ export default function CategoryManagement() {
             onClick={handleOpenCreateModal}
             disabled={conflictLocked}
             title={conflictLocked ? 'Thao tác tạm khóa do phát hiện thay đổi ở tab khác. Vui lòng tải lại dữ liệu!' : 'Thêm danh mục mới'}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all ${
+            className={`primary-action flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition-all ${
               conflictLocked
-                ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                : 'bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-red-900/30 border border-red-500/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
+                ? 'bg-slate-50 text-slate-500 border border-slate-200 cursor-not-allowed opacity-60'
+                : 'bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-slate-900 shadow-red-900/30 border border-red-500/40 hover:scale-[1.02] active:scale-[0.98] cursor-pointer'
             }`}
           >
             {conflictLocked ? <Lock className="w-4 h-4 text-amber-400" /> : <Plus className="w-4 h-4" />}
@@ -511,11 +533,11 @@ export default function CategoryManagement() {
       </div>
 
       {/* BẢNG DỮ LIỆU DANH MỤC (TABLE VIEW) */}
-      <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-white backdrop-blur-md border border-slate-200 rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="bg-white border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="py-3.5 px-4 w-24">ID Danh Mục</th>
                 <th className="py-3.5 px-4">Tên Danh Mục</th>
                 <th className="py-3.5 px-4 hidden md:table-cell">Mô Tả</th>
@@ -529,12 +551,12 @@ export default function CategoryManagement() {
                 // Skeleton loading rows
                 [...Array(perPage)].map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-800 rounded w-16" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-800 rounded w-32" /></td>
-                    <td className="py-4 px-4 hidden md:table-cell"><div className="h-4 bg-slate-800 rounded w-48" /></td>
-                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-800 rounded w-12 mx-auto" /></td>
-                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-800 rounded w-20 mx-auto" /></td>
-                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-800 rounded w-16 mx-auto" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-50 rounded w-16" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-50 rounded w-32" /></td>
+                    <td className="py-4 px-4 hidden md:table-cell"><div className="h-4 bg-slate-50 rounded w-48" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-50 rounded w-12 mx-auto" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-50 rounded w-20 mx-auto" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-50 rounded w-16 mx-auto" /></td>
                   </tr>
                 ))
               ) : categories.length === 0 ? (
@@ -542,7 +564,7 @@ export default function CategoryManagement() {
                   <td colSpan="6" className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center">
                       <Layers className="w-12 h-12 text-slate-700 mb-3" />
-                      <p className="text-sm font-semibold text-slate-300">Không tìm thấy danh mục nào phù hợp</p>
+                      <p className="text-sm font-semibold text-slate-700">Không tìm thấy danh mục nào phù hợp</p>
                       <p className="text-xs text-slate-500 mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bấm Thêm danh mục mới</p>
                     </div>
                   </td>
@@ -551,23 +573,23 @@ export default function CategoryManagement() {
                 categories.map((cat) => (
                   <tr
                     key={cat.id}
-                    className="hover:bg-slate-800/40 transition-colors group"
+                    className="hover:bg-slate-50 transition-colors group"
                   >
                     {/* ID Danh mục */}
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-300 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/80 text-[11px] text-red-400">
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-700 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-[11px] text-red-400">
                         {cat.code || `CAT-${String(cat.id).padStart(3, '0')}`}
                       </span>
                     </td>
 
                     {/* Tên danh mục & Icon */}
-                    <td className="py-3.5 px-4 font-semibold text-white">
+                    <td className="py-3.5 px-4 font-semibold text-slate-900">
                       <div className="flex items-center gap-2.5">
-                        <span className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 shrink-0">
+                        <span className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 shrink-0">
                           {renderCategoryIcon(cat.icon)}
                         </span>
                         <div>
-                          <p className="font-bold text-slate-100 group-hover:text-red-400 transition-colors">
+                          <p className="font-bold text-slate-700 group-hover:text-red-400 transition-colors">
                             {cat.name}
                           </p>
                           <span className="text-[10px] text-slate-500 font-mono">
@@ -583,8 +605,8 @@ export default function CategoryManagement() {
                     </td>
 
                     {/* Số lượng BĐS liên quan */}
-                    <td className="py-3.5 px-4 text-center font-bold text-slate-300">
-                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-800 text-[11px] text-slate-300 border border-slate-700/50">
+                    <td className="py-3.5 px-4 text-center font-bold text-slate-700">
+                      <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-50 text-[11px] text-slate-700 border border-slate-200">
                         {cat.properties_count || 0} tin
                       </span>
                     </td>
@@ -597,10 +619,10 @@ export default function CategoryManagement() {
                         title={conflictLocked ? 'Đã tạm khóa do phát hiện thay đổi ở tab khác. Vui lòng tải lại dữ liệu!' : 'Bấm để chuyển đổi trạng thái'}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
                           conflictLocked
-                            ? 'opacity-50 cursor-not-allowed bg-slate-800 text-slate-500 border border-slate-700'
+                            ? 'opacity-50 cursor-not-allowed bg-slate-50 text-slate-500 border border-slate-200'
                             : cat.status === 'active'
                               ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 hover:scale-105 cursor-pointer'
-                              : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:scale-105 cursor-pointer'
+                              : 'bg-slate-50 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:scale-105 cursor-pointer'
                         }`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${cat.status === 'active' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
@@ -615,7 +637,7 @@ export default function CategoryManagement() {
                         <button
                           onClick={() => handleOpenDetailModal(cat)}
                           title="Xem chi tiết danh mục"
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white transition cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-600 text-slate-700 hover:text-slate-900 transition cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -627,8 +649,8 @@ export default function CategoryManagement() {
                           title={conflictLocked ? 'Đã tạm khóa do phát hiện thay đổi ở tab khác. Vui lòng tải lại dữ liệu!' : 'Chỉnh sửa danh mục'}
                           className={`p-1.5 rounded-lg transition ${
                             conflictLocked
-                              ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed opacity-50'
-                              : 'bg-slate-800 hover:bg-amber-600 text-slate-300 hover:text-white cursor-pointer'
+                              ? 'bg-slate-50 text-slate-600 cursor-not-allowed opacity-50'
+                              : 'bg-slate-50 hover:bg-amber-600 text-slate-700 hover:text-slate-900 cursor-pointer'
                           }`}
                         >
                           {conflictLocked ? <Lock className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
@@ -641,8 +663,8 @@ export default function CategoryManagement() {
                           title={conflictLocked ? 'Đã tạm khóa do phát hiện thay đổi ở tab khác. Vui lòng tải lại dữ liệu!' : 'Xóa danh mục'}
                           className={`p-1.5 rounded-lg transition ${
                             conflictLocked
-                              ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed opacity-50'
-                              : 'bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white cursor-pointer'
+                              ? 'bg-slate-50 text-slate-600 cursor-not-allowed opacity-50'
+                              : 'bg-slate-50 hover:bg-red-600 text-slate-700 hover:text-slate-900 cursor-pointer'
                           }`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -657,9 +679,9 @@ export default function CategoryManagement() {
         </div>
 
         {/* PHÂN TRANG (PAGINATION) */}
-        <div className="p-4 bg-slate-950/60 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+        <div className="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
           <div>
-            Hiển thị <span className="font-bold text-white">{pagination.from || 0}</span> - <span className="font-bold text-white">{pagination.to || 0}</span> trong tổng số <span className="font-bold text-white">{pagination.total || 0}</span> danh mục
+            Hiển thị <span className="font-bold text-slate-900">{pagination.from || 0}</span> - <span className="font-bold text-slate-900">{pagination.to || 0}</span> trong tổng số <span className="font-bold text-slate-900">{pagination.total || 0}</span> danh mục
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -667,7 +689,7 @@ export default function CategoryManagement() {
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1 || loading}
-              className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               title="Trang trước"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -692,7 +714,7 @@ export default function CategoryManagement() {
                   className={`min-w-8 h-8 px-2 rounded-lg font-bold text-xs transition cursor-pointer ${
                     currentPage === pageNumber
                       ? 'bg-red-600 text-white shadow-md shadow-red-900/40'
-                      : 'bg-slate-800/80 border border-slate-700/80 hover:bg-slate-700 text-slate-300'
+                      : 'bg-slate-50 border border-slate-200 hover:bg-slate-200 text-slate-700'
                   }`}
                 >
                   {pageNumber}
@@ -704,7 +726,7 @@ export default function CategoryManagement() {
             <button
               onClick={() => setCurrentPage(Math.min(pagination.last_page || 1, currentPage + 1))}
               disabled={currentPage >= (pagination.last_page || 1) || loading}
-              className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              className="p-2 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-200 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               title="Trang sau"
             >
               <ChevronRight className="w-4 h-4" />
@@ -717,21 +739,21 @@ export default function CategoryManagement() {
       {/* MODAL 1: THÊM MỚI / CHỈNH SỬA (GLASSMORPHISM UI - YÊU CẦU 10: MAXLENGTH 250) */}
       {/* ======================================================== */}
       {showAddEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-scale-up">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="form-surface bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-scale-up">
             <button
               onClick={() => setShowAddEditModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-50 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-              <span className="p-2 rounded-xl bg-red-600/20 text-red-500 border border-red-500/30">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+              <span className="p-2 rounded-none bg-blue-50 text-blue-600 border border-blue-200">
                 {modalMode === 'create' ? <Plus className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
               </span>
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-bold text-slate-900">
                   {modalMode === 'create' ? 'Thêm Danh Mục Mới' : 'Cập Nhật Danh Mục'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -751,7 +773,7 @@ export default function CategoryManagement() {
               {/* Tên danh mục (maxLength 250) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Tên danh mục <span className="text-red-500">*</span>
                   </label>
                   <span className="text-[10px] font-mono text-slate-500">
@@ -769,7 +791,7 @@ export default function CategoryManagement() {
                     if (formErrors.name) setFormErrors({ ...formErrors, name: null });
                   }}
                   placeholder="Ví dụ: Căn hộ cao cấp, Nhà phố liền kề (Tối đa 250 ký tự)..."
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 />
                 {formErrors.name && (
                   <p className="text-[11px] text-rose-400 mt-1">{formErrors.name}</p>
@@ -779,7 +801,7 @@ export default function CategoryManagement() {
               {/* Mô tả (maxLength 250) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Mô tả chi tiết
                   </label>
                   <span className="text-[10px] font-mono text-slate-500">
@@ -795,20 +817,20 @@ export default function CategoryManagement() {
                     setFormData({ ...formData, description: val });
                   }}
                   placeholder="Mô tả phạm vi áp dụng, đặc tính loại hình bất động sản (Tối đa 250 ký tự)..."
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 />
               </div>
 
               {/* Trạng thái & Biểu tượng */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Trạng thái
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-red-500 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-red-500 cursor-pointer"
                   >
                     <option value="active">Đang hoạt động</option>
                     <option value="inactive">Tạm dừng (Ẩn)</option>
@@ -816,13 +838,13 @@ export default function CategoryManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Biểu tượng hiển thị
                   </label>
                   <select
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-red-500 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-red-500 cursor-pointer"
                   >
                     <option value="Building2">Building (Căn hộ/Tòa nhà)</option>
                     <option value="Home">Home (Nhà phố/Liền kề)</option>
@@ -837,11 +859,11 @@ export default function CategoryManagement() {
               </div>
 
               {/* Nút hành động */}
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2.5">
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowAddEditModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+                  className="px-4 py-2 bg-slate-50 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
@@ -863,54 +885,54 @@ export default function CategoryManagement() {
       {/* MODAL 2: XEM CHI TIẾT DANH MỤC */}
       {/* ======================================================== */}
       {showDetailModal && currentCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-slate-900/95 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-scale-up">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="form-surface bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl relative animate-scale-up">
             <button
               onClick={() => setShowDetailModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-50 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-              <span className="p-3 rounded-2xl bg-slate-800 border border-slate-700">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200">
+              <span className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 {renderCategoryIcon(currentCategory.icon)}
               </span>
               <div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-red-400 border border-slate-700">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-50 text-red-400 border border-slate-200">
                   {currentCategory.code || `CAT-${currentCategory.id}`}
                 </span>
-                <h3 className="text-lg font-bold text-white mt-1">
+                <h3 className="text-lg font-bold text-slate-900 mt-1">
                   {currentCategory.name}
                 </h3>
               </div>
             </div>
 
             <div className="py-4 space-y-3 text-xs">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200">
                 <span className="text-slate-400">Đường dẫn tĩnh (Slug):</span>
-                <span className="font-mono text-slate-200">/{currentCategory.slug}</span>
+                <span className="font-mono text-slate-700">/{currentCategory.slug}</span>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200">
                 <span className="text-slate-400">Trạng thái vận hành:</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                   currentCategory.status === 'active'
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-slate-800 text-slate-400'
+                    : 'bg-slate-50 text-slate-400'
                 }`}>
                   {currentCategory.status === 'active' ? 'Đang hoạt động' : 'Tạm dừng'}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200">
                 <span className="text-slate-400">Tin đăng thuộc danh mục:</span>
-                <span className="font-bold text-white">{currentCategory.properties_count || 0} bất động sản</span>
+                <span className="font-bold text-slate-900">{currentCategory.properties_count || 0} bất động sản</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div className="p-3 rounded-xl bg-white border border-slate-200">
                 <span className="text-slate-400 block mb-1">Mô tả danh mục:</span>
-                <p className="text-slate-300 leading-relaxed">
+                <p className="text-slate-700 leading-relaxed">
                   {currentCategory.description || 'Không có mô tả chi tiết.'}
                 </p>
               </div>
@@ -921,7 +943,7 @@ export default function CategoryManagement() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2">
+            <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   setShowDetailModal(false);
@@ -930,8 +952,8 @@ export default function CategoryManagement() {
                 disabled={conflictLocked}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
                   conflictLocked
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                    : 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer'
+                    ? 'bg-slate-50 text-slate-500 cursor-not-allowed opacity-50'
+                    : 'bg-amber-600 hover:bg-amber-500 text-slate-900 cursor-pointer'
                 }`}
               >
                 {conflictLocked ? <Lock className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
@@ -939,7 +961,7 @@ export default function CategoryManagement() {
               </button>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-slate-50 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Đóng
               </button>
@@ -952,23 +974,23 @@ export default function CategoryManagement() {
       {/* MODAL 3: XÁC NHẬN XÓA (CONFIRM DELETE) */}
       {/* ======================================================== */}
       {showDeleteModal && categoryToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative animate-scale-up text-center">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="form-surface bg-white border border-slate-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative animate-scale-up text-center">
             <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/30 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-white mb-2">
+            <h3 className="text-base font-bold text-slate-900 mb-2">
               Xác Nhận Xóa Danh Mục?
             </h3>
             <p className="text-xs text-slate-400 mb-6">
-              Bạn có chắc chắn muốn xóa danh mục <span className="font-bold text-white">"{categoryToDelete.name}"</span> ({categoryToDelete.code || categoryToDelete.id})? Bản ghi sẽ được xóa khỏi cơ sở dữ liệu.
+              Bạn có chắc chắn muốn xóa danh mục <span className="font-bold text-slate-900">"{categoryToDelete.name}"</span> ({categoryToDelete.code || categoryToDelete.id})? Bản ghi sẽ được xóa khỏi cơ sở dữ liệu.
             </p>
 
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={() => { setShowDeleteModal(false); setCategoryToDelete(null); }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-slate-50 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Hủy bỏ
               </button>

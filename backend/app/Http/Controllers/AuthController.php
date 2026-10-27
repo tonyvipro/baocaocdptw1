@@ -51,8 +51,11 @@ class AuthController extends Controller
         }
 
         // Tìm hoặc gán role mặc định: Customer (Khách hàng)
-        $defaultRole = Role::where('name', 'Customer')->orWhere('name', 'Khách hàng')->first();
-        $roleId = $defaultRole ? $defaultRole->id : null;
+        // Role IDs are used by the authorization policy; registration is always customer (5).
+        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+            'id' => 5, 'name' => 'Customer', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $roleId = 5;
 
         $user = User::create([
             'name' => trim($request->name),
@@ -80,6 +83,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ],
             'token' => $user->createToken('auth_token')->plainTextToken
         ], 201);
@@ -110,38 +114,9 @@ class AuthController extends Controller
         $password = $request->input('password', '');
         $remember = $request->boolean('remember', true);
 
-        // Tự động đảm bảo tài khoản Admin và Roles tồn tại nếu CSDL chưa seed
-        try {
-            if (Schema::hasTable('roles') && Role::count() === 0) {
-                Role::insert([
-                    ['id' => 1, 'name' => 'Admin', 'description' => 'Quản trị viên toàn quyền hệ thống', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 2, 'name' => 'BĐS', 'description' => 'Môi giới BĐS', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 3, 'name' => 'Owner', 'description' => 'Chủ sở hữu', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 4, 'name' => 'Staff', 'description' => 'Nhân viên', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 5, 'name' => 'Customer', 'description' => 'Khách hàng', 'created_at' => now(), 'updated_at' => now()],
-                ]);
-            }
-
-            if (Schema::hasTable('users') && User::where('role_id', 1)->doesntExist()) {
-                User::create([
-                    'id' => 1,
-                    'name' => 'Nguyễn Quản Trị (Admin)',
-                    'email' => 'admin@3tvland.vn',
-                    'password' => Hash::make('Admin@123456'),
-                    'phone' => '0901234567',
-                    'role_id' => 1,
-                    'avatar' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-                    'is_active' => 1,
-                    'dark_mode' => 0,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            // Không ngắt luồng nếu có lỗi schema
-        }
-
         // Tìm người dùng theo email hoặc username 'admin'
         $user = null;
-        if (in_array($inputLogin, ['admin', 'admin@3tvland.vn', 'admin@gmail.com', 'administrator'])) {
+        if (in_array($inputLogin, ['admin', 'administrator'])) {
             $user = User::where('email', 'admin@3tvland.vn')->orWhere('role_id', 1)->first();
         } else {
             $user = User::where('email', $inputLogin)->first();
@@ -154,10 +129,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Kiểm tra mật khẩu (hỗ trợ cả mật khẩu chuẩn 'Admin@123456' và các mật khẩu phổ biến 'admin', 'admin123', '123456' cho Admin)
-        $isAdmin = ($user->role_id === 1 || $user->email === 'admin@3tvland.vn');
-        $validPassword = Hash::check($password, $user->password) 
-            || ($isAdmin && in_array($password, ['Admin@123456', 'admin', 'admin123', '123456']));
+        $isAdmin = (int) $user->role_id === 1;
+        $validPassword = Hash::check($password, $user->password);
 
         if (!$validPassword) {
             return response()->json([
@@ -192,6 +165,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ],
             'token' => $user->createToken('auth_token')->plainTextToken
         ]);
@@ -203,51 +177,8 @@ class AuthController extends Controller
      */
     protected function getAuthenticatedUser(Request $request)
     {
-        // 1. Kiểm tra guard Sanctum (nếu có Bearer token)
-        try {
-            $user = auth('sanctum')->user();
-            if ($user) {
-                return $user;
-            }
-        } catch (\Throwable $e) {}
-
-        // 2. Kiểm tra web guard / session thông thường
-        try {
-            if (Auth::check() && Auth::user()) {
-                return Auth::user();
-            }
-        } catch (\Throwable $e) {}
-
-        // 3. Kiểm tra Bearer token thủ công qua PersonalAccessToken
-        try {
-            $bearerToken = $request->bearerToken();
-            if ($bearerToken) {
-                $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
-                if ($tokenModel && $tokenModel->tokenable) {
-                    return $tokenModel->tokenable;
-                }
-            }
-        } catch (\Throwable $e) {}
-
-        // 4. Nhận diện an toàn qua user_id hoặc email từ request payload
-        $userId = $request->input('user_id') ?: $request->input('id');
-        if ($userId) {
-            $user = User::find($userId);
-            if ($user) {
-                return $user;
-            }
-        }
-
-        $email = $request->input('email');
-        if ($email) {
-            $user = User::where('email', strtolower(trim($email)))->first();
-            if ($user) {
-                return $user;
-            }
-        }
-
-        // 5. Fallback nếu là tài khoản quản trị hệ thống
-        return User::where('role_id', 1)->first() ?? User::first();
+        $user = $request->user('sanctum') ?? $request->user();
+        return $user && $user->is_active ? $user : null;
     }
 
     /**
@@ -275,6 +206,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ]
         ]);
     }
@@ -284,6 +216,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = $this->getAuthenticatedUser($request);
+        $token = $user?->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) $token->delete();
         Auth::logout();
         try {
             $request->session()->invalidate();
@@ -383,6 +318,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ]
         ]);
     }
@@ -428,7 +364,8 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Đổi mật khẩu thành công!'
+            'message' => 'Đổi mật khẩu thành công!',
+            'version' => (int) $user->version
         ]);
     }
 

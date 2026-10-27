@@ -470,8 +470,8 @@ export default function InvoiceDetailPage({ invoiceId: propInvoiceId, onBack }) 
 
       {/* MODAL GỬI EMAIL */}
       {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-indigo-600" /> Gửi hóa đơn qua email
@@ -548,8 +548,8 @@ export default function InvoiceDetailPage({ invoiceId: propInvoiceId, onBack }) 
 
       {/* MODAL HỦY HÓA ĐƠN */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-rose-600 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-rose-600" /> Xác nhận hủy hóa đơn

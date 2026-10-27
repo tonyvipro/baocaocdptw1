@@ -1,5 +1,7 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState } from 'react';
 import { Bed, Bath, Maximize2, MapPin, Heart, SlidersHorizontal, Check, Camera, ShieldCheck, User, Share2, CheckCheck } from 'lucide-react';
+import { propertyGallery } from '../utils/propertyImage';
 
 export default function PropertyCard({
   property,
@@ -29,8 +31,8 @@ export default function PropertyCard({
       <div className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all duration-300 p-4 flex flex-col md:flex-row gap-5 relative overflow-hidden">
         {/* Thumbnail Image */}
         <div className="relative md:w-72 h-52 md:h-48 rounded-xl overflow-hidden shrink-0 bg-slate-100 cursor-pointer" onClick={() => onSelect(property)}>
-          <img
-            src={property.image}
+          <PropertyImage
+            src={propertyGallery(property)[0]}
             alt={property.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
@@ -46,7 +48,7 @@ export default function PropertyCard({
 
           <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/75 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-md font-medium">
             <Camera className="w-3.5 h-3.5" />
-            <span>5 ảnh</span>
+            <span>{propertyGallery(property).length} ảnh{propertyGallery(property)[0]?.startsWith('/property-images/') ? ' · Ảnh minh họa' : ''}</span>
           </div>
         </div>
 
@@ -163,8 +165,8 @@ export default function PropertyCard({
       
       {/* Property Thumbnail Image */}
       <div className="relative h-52 overflow-hidden bg-slate-100 cursor-pointer" onClick={() => onSelect(property)}>
-        <img
-          src={property.image}
+        <PropertyImage
+          src={propertyGallery(property)[0]}
           alt={property.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
@@ -229,7 +231,7 @@ export default function PropertyCard({
 
         <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 bg-slate-950/70 text-white text-[10px] px-2 py-0.5 rounded-md backdrop-blur-md">
           <Camera className="w-3 h-3" />
-          <span>5 ảnh</span>
+          <span>{propertyGallery(property).length} ảnh{propertyGallery(property)[0]?.startsWith('/property-images/') ? ' · Ảnh minh họa' : ''}</span>
         </div>
       </div>
 

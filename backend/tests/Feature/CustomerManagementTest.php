@@ -81,7 +81,7 @@ class CustomerManagementTest extends TestCase
 
     public function test_timeline_next_activity_timezone_completion_and_soft_delete_keep_history_consistent(): void
     {
-        $this->travelTo(now()->setDate(2026, 10, 19)->setTime(5, 0));
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-19T05:00:00Z'));
         $this->actingAs($this->manager());
         $id = $this->postJson('/api/customers', $this->customer())->json('data.id');
         $this->postJson("/api/customers/$id/interactions", ['type' => 'call', 'summary' => 'Mới nhất', 'occurred_at' => '2026-10-19T11:00:00+07:00'])->assertCreated();
@@ -93,7 +93,7 @@ class CustomerManagementTest extends TestCase
         $this->getJson("/api/customers/$id")->assertJsonPath('interactions.data.0.occurred_at', '2026-10-19T04:00:00.000000Z');
         $this->travel(4)->hours();
         $this->getJson('/api/customers?care=overdue')->assertJsonPath('meta.total', 1);
-        $this->patchJson("/api/customers/$id/activities/{$activity['id']}/complete")->assertOk();
+        $this->patchJson("/api/customers/$id/activities/{$activity['id']}/complete", ['version' => Customer::find($id)->version])->assertOk();
         $this->patchJson("/api/customers/$id/activities/{$activity['id']}/complete")->assertOk();
         $this->getJson("/api/customers/$id")->assertJsonPath('interactions.total', 3)
             ->assertJsonPath('data.last_interaction.summary', 'Gọi lại hôm nay')->assertJsonPath('data.next_activity.title', 'Xem nhà ngày mai');
@@ -131,7 +131,7 @@ class CustomerManagementTest extends TestCase
         $this->patchJson("/api/customers/$id/activities/$second/cancel", ['version' => 4])->assertOk();
         $this->patchJson("/api/customers/$id/activities/$second/complete")->assertUnprocessable();
         $this->getJson("/api/customers/$id")->assertJsonPath('data.next_activity.id', $first)->assertJsonPath('interactions.total', 0);
-        $this->patchJson("/api/customers/$id/activities/$first/complete")->assertOk();
+        $this->patchJson("/api/customers/$id/activities/$first/complete", ['version' => Customer::find($id)->version])->assertOk();
         $this->getJson("/api/customers/$id")->assertJsonPath('data.next_activity', null)->assertJsonPath('interactions.total', 1);
         $this->patchJson("/api/customers/$id/activities/$first", array_merge($newPlan, ['version' => 6]))->assertUnprocessable();
         $this->patchJson("/api/customers/$id/activities/$first/cancel", ['version' => 6])->assertUnprocessable();

@@ -331,7 +331,7 @@ export default function StatisticalReport() {
         className="bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden flex flex-col font-sans printable-report"
       >
         {/* Header Báo Cáo */}
-        <div className="p-5 pb-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="giang-page-heading flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
@@ -346,7 +346,7 @@ export default function StatisticalReport() {
 
           <div className="text-right text-xs text-slate-500">
             <p>Thời điểm xuất: <span className="font-semibold text-slate-700">{reportData.meta?.generated_at || `${currentDate} ${currentTime}`}</span></p>
-            <p className="mt-0.5">Dữ liệu: <span className="text-emerald-700 font-medium">Truy vấn Database chuẩn 100%</span></p>
+            <p className="mt-0.5">Dữ liệu: <span className="text-emerald-700 font-medium">Cập nhật từ hệ thống</span></p>
           </div>
         </div>
 

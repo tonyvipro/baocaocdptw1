@@ -5,6 +5,7 @@ import DemandDialog from '../../components/demands/DemandDialog';
 import { crmDate } from '../../services/customers';
 import { demandBudget, demandDigits, demandRequest, demandStatusStyles } from '../../services/demands';
 import { broadcastDataChange, subscribeDataChange } from '../../services/tabSync';
+import useRecordLink from '../../hooks/useRecordLink';
 
 export const demandColumns = ['ID Nhu cầu', 'Tên khách hàng', 'Loại BĐS', 'Ngân sách', 'Khu vực', 'Trạng thái', 'Ngày tạo', 'Hành động'];
 const emptyFilters = { property_type_id: '', budget_min: '', budget_max: '', area: '', status: '' };
@@ -30,6 +31,7 @@ export default function DemandManagement({ currentUser }) {
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  useRecordLink('demands', ({ id }) => { if (id) setDialog({ mode: 'view', id }); });
 
   useEffect(() => {
     if (!allowed) { setLoading(false); return; }
@@ -87,8 +89,8 @@ export default function DemandManagement({ currentUser }) {
   if (!allowed) return <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-500">Vui lòng đăng nhập bằng tài khoản Admin hoặc Môi giới để quản lý nhu cầu.</p>;
 
   return <div className="space-y-4">
-    <header className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
-      <div><h2 className="text-xl font-bold text-slate-900">QUẢN LÝ NHU CẦU</h2><p className="mt-1 text-xs text-slate-500">Theo dõi và xử lý yêu cầu tìm kiếm bất động sản của khách hàng.</p></div>
+    <header className="giang-page-heading flex flex-col justify-between gap-4 xl:flex-row xl:items-center">
+      <div><p className="giang-eyebrow mb-1">3TV LAND / NHU CẦU</p><h2>Quản lý nhu cầu</h2><p className="mt-1 text-xs text-slate-500">Theo dõi và xử lý yêu cầu tìm kiếm bất động sản của khách hàng.</p></div>
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-0 flex-1 sm:flex-none"><span className="sr-only">Tìm kiếm nhu cầu</span><Search size={16} className="absolute left-3 top-3 text-slate-400" />
           <input type="search" maxLength={250} value={search} onChange={event => { setSearch(event.target.value.slice(0, 250)); setPage(1); }} placeholder="Tìm kiếm nhu cầu..." className={crmInput + ' pl-9 sm:w-60'} />
@@ -128,7 +130,7 @@ export default function DemandManagement({ currentUser }) {
               <td className="px-3 py-2"><div className="flex justify-end gap-1">
                 <button type="button" title="Xem chi tiết nhu cầu" aria-label={'Xem nhu cầu ' + row.code} onClick={() => setDialog({ mode: 'view', id: row.id })} className="rounded p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600"><Eye size={16} /></button>
                 <button type="button" title="Chỉnh sửa nhu cầu" aria-label={'Sửa nhu cầu ' + row.code} onClick={() => edit(row.id)} className="rounded p-2 text-slate-500 hover:bg-slate-100"><Edit3 size={16} /></button>
-                <button type="button" title="Xóa nhu cầu" aria-label={'Xóa nhu cầu ' + row.code} onClick={() => { setDeleting(row); setDeleteError(''); }} className="rounded p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
+                <button type="button" title="Xóa nhu cầu" aria-label={'Xóa nhu cầu ' + row.code} onClick={() => { setDialog(null); setDeleting(row); setDeleteError(''); }} className="rounded p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
               </div></td>
             </tr>)}
         </tbody>

@@ -15,9 +15,13 @@ class RecordUserActivity
     {
         $path = $request->path();
         $actor = $request->bearerToken() ? auth('sanctum')->user() : $request->user();
+        $request->attributes->set('audit.actor', $actor ? clone $actor : null);
         $contractId = preg_match('~^api/contracts/(\d+)(?:/status)?$~', $path, $match) ? (int) $match[1] : null;
         $oldStatus = $contractId && in_array($request->method(), ['PUT', 'PATCH']) ? Contract::whereKey($contractId)->value('status') : null;
-        $response = $next($request);
+        $oldContract = $contractId ? Contract::find($contractId)?->getAttributes() : null;
+        $request->attributes->set('audit.enabled', true);
+        try { $response = $next($request); }
+        finally { $request->attributes->set('audit.enabled', false); }
         if (!in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE']) || $response->getStatusCode() < 200 || $response->getStatusCode() >= 300) return $response;
         try {
             if (in_array($path, ['api/login', 'api/register'])) $actor = auth()->user();
@@ -52,13 +56,19 @@ class RecordUserActivity
                 $table = 'customer_demands'; $details = 'Nhu cầu ND-'.(1000 + (int) $recordId);
             }
             if (!$action) return $response;
-            $log = ActivityLog::create(['user_id' => $actor->id, 'action' => $action, 'table_name' => $table, 'record_id' => $recordId,
-                'new_data' => ['description' => $details], 'ip_address' => $request->ip()]);
+            $observedId = $request->attributes->get('audit.logs', [])[$table.':'.$recordId] ?? null;
+            if (in_array($table, ['users', 'customers', 'customer_demands'], true) && !in_array($action, ['LOGIN', 'LOGOUT'], true) && !$observedId) return $response;
+            $changes = $table === 'contracts' && $oldContract && $contract
+                ? app(\App\Services\AuditChanges::class)->changes($table, $oldContract, $contract->getAttributes()) : [];
+            if ($changes) $details .= ': '.app(\App\Services\AuditChanges::class)->describe($changes);
+            $log = $observedId ? ActivityLog::findOrFail($observedId) : ActivityLog::create([
+                'user_id' => $actor->id, 'action' => $action, 'table_name' => $table, 'record_id' => $recordId,
+                'new_data' => ['description' => $details, 'changes' => $changes], 'ip_address' => $request->ip()]);
             $inbox = app(NotificationInbox::class);
-            if ($action === 'PROFILE_UPDATE') $inbox->publish($actor, 'profile', 'Thông tin hồ sơ của bạn đã được cập nhật.', 'profile:'.$log->id);
+            if ($action === 'PROFILE_UPDATE') $inbox->publish($actor, 'profile', 'Thông tin hồ sơ của bạn đã được cập nhật.', 'profile:'.$log->id, target: ['table' => 'users', 'id' => $actor->id]);
             if ($action === 'CONTRACT_SIGN' && $contract) {
                 foreach (User::whereIn('id', array_filter([$actor->id, $contract->customer_id, $contract->broker_id]))->where('is_active', true)->get() as $recipient) {
-                    $inbox->publish($recipient, 'contract', 'Hợp đồng '.$contract->contract_code.' đã được ký và chuyển sang hiệu lực.', 'contract-sign:'.$log->id);
+                    $inbox->publish($recipient, 'contract', 'Hợp đồng '.$contract->contract_code.' đã được ký và chuyển sang hiệu lực.', 'contract-sign:'.$log->id, target: ['table' => 'contracts', 'id' => $contract->id]);
                 }
             }
         } catch (\Throwable $error) { report($error); }

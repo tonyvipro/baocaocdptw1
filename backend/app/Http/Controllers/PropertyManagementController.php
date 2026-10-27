@@ -22,7 +22,7 @@ class PropertyManagementController extends Controller
     private function rules(bool $create): array
     {
         $rules = [
-            'title' => ($create ? 'required' : 'sometimes').'|string|max:255',
+            'title' => ($create ? 'required' : 'sometimes').'|string|max:250',
             'purpose' => ($create ? 'required' : 'sometimes').'|in:sale,rent,project',
             'type' => ($create ? 'required' : 'sometimes').'|string|max:100',
             'status' => 'sometimes|integer|between:0,4',
@@ -37,12 +37,17 @@ class PropertyManagementController extends Controller
             'lat' => 'nullable|numeric|between:-90,90',
             'lng' => 'nullable|numeric|between:-180,180',
             'expire_date' => 'nullable|date|after:now',
-            'description' => 'nullable|string|max:50000',
-            'image' => 'nullable|url:http,https|max:4096',
+            'description' => 'nullable|string|max:250',
+            'image' => ['nullable', 'string', 'max:250', function ($attribute, $value, $fail) {
+                $local = preg_match('~^/(?:property-images|uploads|storage)/[A-Za-z0-9/_% .-]+\.(?:jpe?g|png|webp|gif)$~iD', $value)
+                    && !str_contains($value, '..') && !str_contains($value, '//');
+                $remote = filter_var($value, FILTER_VALIDATE_URL) && in_array(strtolower(parse_url($value, PHP_URL_SCHEME) ?? ''), ['http', 'https'], true);
+                if (!$local && !$remote) $fail('Đường dẫn ảnh phải là URL HTTP/HTTPS hoặc ảnh cục bộ hợp lệ.');
+            }],
             'deposit' => 'nullable|numeric|min:0',
         ];
         foreach (['address', 'street', 'district', 'city', 'developer', 'project', 'furniture', 'owner_name', 'owner_phone', 'legal', 'legal_status', 'direction', 'available_date', 'management_fee', 'rent_period_min', 'unit_price'] as $field) {
-            $rules[$field] = 'nullable|string|max:255';
+            $rules[$field] = 'nullable|string|max:250';
         }
         foreach (['price', 'price_sale', 'price_rent', 'area'] as $field) {
             array_unshift($rules[$field], 'bail', function ($attribute, $value, $fail) {
@@ -57,7 +62,7 @@ class PropertyManagementController extends Controller
     private function validationMessages(): array
     {
         return [
-            'title.max' => 'Tiêu đề bất động sản không được vượt quá 255 ký tự.',
+            'title.max' => 'Tiêu đề bất động sản không được vượt quá 250 ký tự.',
             'price.regex' => 'Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e.',
             'price.numeric' => 'Mức giá phải là số.',
             'price.max' => 'Mức giá không được vượt quá 9.999.999.999.999 VNĐ.',
@@ -65,7 +70,7 @@ class PropertyManagementController extends Controller
             'area.numeric' => 'Diện tích phải là số.',
             'area.max' => 'Diện tích không được vượt quá 100.000.000 m².',
             'area.gt' => 'Diện tích phải lớn hơn 0.',
-            'address.max' => 'Địa chỉ chi tiết không được vượt quá 255 ký tự.',
+            'address.max' => 'Địa chỉ chi tiết không được vượt quá 250 ký tự.',
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Models\BrokerAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class BrokerController extends Controller
 {
@@ -82,7 +83,7 @@ class BrokerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:250',
             'code' => 'nullable|string|max:50|unique:brokers,code',
-            'phone' => 'nullable|string|max:50',
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
             'email' => 'nullable|email|max:250',
             'level' => 'required|string|max:100',
             'deals_count' => 'nullable|integer|min:0',
@@ -149,7 +150,7 @@ class BrokerController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:250',
                 'code' => 'required|string|max:50|unique:brokers,code,' . $id,
-                'phone' => 'nullable|string|max:50',
+                'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
                 'email' => 'nullable|email|max:250',
                 'level' => 'required|string|max:100',
                 'deals_count' => 'nullable|integer|min:0',
@@ -198,6 +199,8 @@ class BrokerController extends Controller
         try {
             $broker = Broker::findOrFail($id);
             $name = $broker->name;
+            abort_if($broker->assignments()->whereIn('status', ['pending', 'processing'])->exists(), 422,
+                'Hãy chuyển các yêu cầu đang xử lý cho môi giới khác trước khi xóa.');
             $broker->delete();
 
             return response()->json([
@@ -288,12 +291,12 @@ class BrokerController extends Controller
     public function storeAssignment(Request $request)
     {
         $validated = $request->validate([
-            'request_code' => 'nullable|string|max:50',
+            'request_code' => 'nullable|string|max:50|unique:broker_assignments,request_code',
             'customer_name' => 'required|string|max:250',
-            'customer_phone' => 'nullable|string|max:50',
+            'customer_phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
             'customer_email' => 'nullable|email|max:250',
             'property_location' => 'required|string|max:250',
-            'broker_id' => 'required|exists:brokers,id',
+            'broker_id' => ['required', Rule::exists('brokers', 'id')->whereNull('deleted_at')->whereIn('status', ['active', 'busy'])],
             'assigned_date' => 'required|date',
             'status' => 'required|string|in:pending,processing,completed,cancelled',
             'notes' => 'nullable|string|max:250',
@@ -354,12 +357,12 @@ class BrokerController extends Controller
             $assignment = BrokerAssignment::findOrFail($id);
 
             $validated = $request->validate([
-                'request_code' => 'required|string|max:50',
+                'request_code' => ['required', 'string', 'max:50', Rule::unique('broker_assignments', 'request_code')->ignore($id)],
                 'customer_name' => 'required|string|max:250',
-                'customer_phone' => 'nullable|string|max:50',
+                'customer_phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
                 'customer_email' => 'nullable|email|max:250',
                 'property_location' => 'required|string|max:250',
-                'broker_id' => 'required|exists:brokers,id',
+                'broker_id' => ['required', Rule::exists('brokers', 'id')->whereNull('deleted_at')],
                 'assigned_date' => 'required|date',
                 'status' => 'required|string|in:pending,processing,completed,cancelled',
                 'notes' => 'nullable|string|max:250',
@@ -407,6 +410,7 @@ class BrokerController extends Controller
     {
         try {
             $assignment = BrokerAssignment::findOrFail($id);
+            abort_if($assignment->status === 'completed', 422, 'Không thể hủy phân công đã hoàn thành.');
             $assignment->status = 'cancelled';
             if ($request->filled('notes')) {
                 $assignment->notes = mb_substr(trim($request->input('notes')), 0, 250);

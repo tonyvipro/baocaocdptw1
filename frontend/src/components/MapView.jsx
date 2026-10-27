@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { validCoordinates } from '../utils/property';
@@ -54,7 +55,7 @@ export default function MapView({ properties = [], onSelectProperty }) {
             <Popup className="custom-leaflet-popup">
               <div className="w-68 p-2.5 bg-white text-slate-800 rounded-lg">
                 <div className="relative h-32 rounded-lg overflow-hidden mb-2 bg-slate-100 group">
-                  <img
+                  <PropertyImage
                     src={prop.image}
                     alt={prop.title}
                     className="w-full h-full object-cover"

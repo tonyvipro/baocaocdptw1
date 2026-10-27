@@ -61,7 +61,7 @@ try {
   const html = renderToStaticMarkup(React.createElement(Page, { currentUser: { id: 1, role_id: 1 } }));
   const headings = [...html.match(/<thead[\s\S]*?<\/thead>/)[0].matchAll(/<th\s[^>]*>(.*?)<\/th>/g)].map(match => match[1]);
   assert.deepEqual(headings, ['ID Nhu cầu', 'Tên khách hàng', 'Loại BĐS', 'Ngân sách', 'Khu vực', 'Trạng thái', 'Ngày tạo', 'Hành động']);
-  assert.match(html, /QUẢN LÝ NHU CẦU/); assert.match(html, /THÊM NHU CẦU MỚI/);
+  assert.match(html, /Quản lý nhu cầu/i); assert.match(html, /THÊM NHU CẦU MỚI/);
   assert.match(html, /Bộ lọc/); assert.match(html, /aria-busy="true"/);
   assert.match(html, /type="search" maxLength="250"/);
   const denied = renderToStaticMarkup(React.createElement(Page, { currentUser: { id: 5, role_id: 5 } }));

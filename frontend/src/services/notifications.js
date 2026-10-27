@@ -30,3 +30,9 @@ export async function downloadActivityLogs() {
 export const notificationDate = value => value ? new Date(value).toLocaleString('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
 }) : '—';
+
+export function notificationDestination(destination) {
+  const url = destination?.url;
+  return typeof url === 'string' && (url === '?modal=profile' || /^#(?:admin\/[a-z-]+(?:[/?]|$)|my-contracts(?:\/\d+)?$|my-invoices$)/.test(url))
+    ? { url, label: destination.label || 'Xem dữ liệu' } : null;
+}

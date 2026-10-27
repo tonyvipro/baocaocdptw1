@@ -295,8 +295,8 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
 
       {/* MODAL CHI TIẾT HÓA ĐƠN KHÁCH HÀNG (HÌNH 46) */}
       {detailInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-8">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="form-surface bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <div>
                 <span className="text-xs text-blue-600 font-bold uppercase tracking-wider block">

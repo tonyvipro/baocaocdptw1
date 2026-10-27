@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(\App\Http\Middleware\RequestDiagnostics::class);
+        $middleware->append(\App\Http\Middleware\ValidateInputPolicy::class);
         $middleware->web(append: [\App\Http\Middleware\RecordUserActivity::class]);
         $middleware->validateCsrfTokens(except: [
             'api/*',

@@ -88,21 +88,6 @@ export const updateProfile = async (profileData) => {
     }
     return response.data;
   } catch (error) {
-    // Nếu backend gặp sự cố hoặc 401 do phiên, vẫn lưu an toàn thông tin vào localStorage cho user
-    if (savedUser) {
-      const updatedUser = {
-        ...savedUser,
-        name: profileData.name || savedUser.name,
-        phone: profileData.phone || savedUser.phone,
-        avatar: profileData.avatar || savedUser.avatar,
-      };
-      localStorage.setItem('3tv_user', JSON.stringify(updatedUser));
-      return {
-        status: 'success',
-        message: 'Cập nhật hồ sơ thành công!',
-        user: updatedUser
-      };
-    }
     const message = error.response?.data?.message || 'Cập nhật hồ sơ thất bại!';
     throw new Error(message);
   }

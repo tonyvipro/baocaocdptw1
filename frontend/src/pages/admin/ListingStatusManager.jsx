@@ -1,3 +1,4 @@
+import PropertyImage from '../../components/properties/PropertyImage';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   SlidersHorizontal, CheckCircle2, Clock, Tag, Calendar, EyeOff,
@@ -734,13 +735,11 @@ export default function ListingStatusManager() {
                           <td className="py-3 px-4">
                             <div className="flex items-start gap-3">
                               <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                                <img
-                                  src={p.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200'}
+                                <PropertyImage
+                                  src={p.image || p.images?.[0]?.image_url || p.images?.[0]?.image}
                                   alt={p.title}
                                   className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200';
-                                  }}
+
                                 />
                                 <span className={`absolute bottom-0 left-0 right-0 text-[9px] font-extrabold text-white text-center py-0.2 ${
                                   p.purpose === 'rent' ? 'bg-blue-600/90' : 'bg-rose-600/90'

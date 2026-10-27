@@ -1,0 +1,124 @@
+/* Scoped to Giang's management screens and account forms. */
+:is(.giang-workspace, .giang-dialog) {
+  --form-accent: #c82032;
+  --form-ink: #14233d;
+  --form-border: #d8e0e9;
+  --form-muted: #64748b;
+  color: var(--form-ink);
+}
+.giang-workspace { background: #f3f5f9; }
+.giang-workspace > * { min-width: 0; max-width: 100%; }
+.giang-workspace :is(.grid, .grid > *, fieldset, form) { min-width: 0; }
+.giang-workspace :is(div, section)[class~="bg-white"][class~="border"]:not(.form-surface) {
+  border-color: #e1e6ed; border-radius: 0;
+  box-shadow: 0 3px 14px -8px rgb(20 35 61 / 18%);
+}
+.giang-page-heading {
+  position: relative; border: 1px solid #e1e6ed; border-left: 3px solid var(--form-accent);
+  border-radius: 0 !important; padding: 1.35rem 1.5rem;
+  background: linear-gradient(110deg, #fff 65%, #f0f3f8) !important;
+  box-shadow: 0 3px 14px -8px rgb(20 35 61 / 18%) !important;
+}
+.giang-page-heading :is(h1, h2) {
+  color: var(--form-ink); font-size: clamp(1.1rem, 1.6vw, 1.5rem);
+  font-weight: 750; letter-spacing: -.025em; line-height: 1.45;
+}
+.giang-page-heading p { color: var(--form-muted); line-height: 1.7; }
+.giang-eyebrow { color: #9a4150; font-size: .625rem; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
+.giang-workspace .overflow-x-auto { max-width: 100%; overscroll-behavior-x: contain; }
+.giang-workspace table:not([class*="min-w-"]) { min-width: 52rem; }
+.giang-workspace thead { background: #edf1f7; color: #485873; }
+.giang-workspace th { white-space: nowrap; font-size: .6875rem; font-weight: 700; letter-spacing: .035em; padding-top: 1rem; padding-bottom: 1rem; }
+.giang-workspace tbody td { border-color: #edf0f5; line-height: 1.6; }
+.giang-workspace tbody tr { transition: background-color .15s; }
+.giang-workspace tbody tr:hover { background-color: #f7f9fc; }
+.giang-workspace button[role="tab"] { border-radius: 0; }
+.giang-workspace button[role="tab"][aria-selected="true"] { border-color: var(--form-accent); color: #b51e30; background: #fff4f5; }
+:is(.giang-workspace, .giang-dialog) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea) {
+  min-width: 0; max-width: 100%; min-height: 2.75rem;
+  border: 1px solid var(--form-border); border-radius: 0 !important;
+  background-color: #fafbfd; color: var(--form-ink); font-size: .875rem; line-height: 1.5;
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+:is(.giang-workspace, .giang-dialog) :is(input, textarea)::placeholder { color: #94a0b1; font-weight: 400; }
+:is(.giang-workspace, .giang-dialog) :is(input, select, textarea):focus {
+  outline: none; border-color: #a45260; background-color: #fff; box-shadow: 0 0 0 3px rgb(200 32 50 / 9%);
+}
+:is(.giang-workspace, .giang-dialog) :is(input, select, textarea)[aria-invalid="true"] { border-color: #dc2626; }
+:is(.giang-workspace, .giang-dialog) :is(input, select, textarea):disabled { background-color: #eef1f5; color: #718096; }
+:is(.giang-workspace, .giang-dialog) input:is([type="checkbox"], [type="radio"]) { accent-color: var(--form-accent); }
+:is(.giang-workspace, .giang-dialog) button { border-radius: 0; }
+:is(.giang-workspace, .giang-dialog) button:focus-visible { outline: 2px solid #c82032; outline-offset: 3px; }
+:is(.giang-workspace, .giang-dialog) button:disabled { cursor: not-allowed; }
+:is(.giang-dialog, .giang-workspace .form-surface) {
+  min-width: 0; width: 100%; max-width: min(var(--dialog-width, 42rem), calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 1.5rem); overflow-y: auto; overflow-wrap: anywhere;
+  border: 1px solid #dce2ea; border-top: 3px solid #c82032; border-radius: 0 !important;
+  background: #fff; box-shadow: 0 24px 80px -20px rgb(8 19 39 / 40%);
+}
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-sm { --dialog-width: 24rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-md { --dialog-width: 28rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-lg { --dialog-width: 32rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-xl { --dialog-width: 36rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-2xl { --dialog-width: 42rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-4xl { --dialog-width: 56rem; }
+:is(.giang-dialog, .giang-workspace .form-surface).max-w-6xl { --dialog-width: 72rem; }
+:is(.giang-dialog, .giang-workspace .form-surface) :is(form, fieldset, label, .grid, .grid > *, header > div) { min-width: 0; }
+:is(.giang-dialog, .giang-workspace .form-surface) [class*="overflow-y-auto"] { min-height: 0; }
+:is(.giang-dialog, .giang-workspace .form-surface) label { line-height: 1.6; }
+:is(.giang-dialog, .giang-workspace .form-surface) button[type="submit"],
+.giang-workspace .primary-action, .giang-primary {
+  min-height: 2.75rem; padding-inline: 1.25rem;
+  border: 1px solid #b71d2d !important; background: #c82032 !important; color: #fff !important;
+  font-weight: 650; box-shadow: 0 4px 10px -5px rgb(168 29 46 / 45%);
+  transition: background-color .15s, box-shadow .15s;
+}
+:is(.giang-dialog, .giang-workspace .form-surface) button[type="submit"]:hover,
+.giang-workspace .primary-action:hover, .giang-primary:hover { background: #ac1b2b !important; }
+:is(.giang-dialog, .giang-workspace .form-surface) button[type="submit"] *, .giang-primary * { color: inherit; }
+.giang-dialog-heading { background: #15233c; color: #fff; padding: 1.4rem 1.5rem; border-bottom: 1px solid #263852; }
+.giang-dialog-heading :is(h2, h3) { color: #fff; font-size: 1.125rem; font-weight: 700; letter-spacing: -.02em; }
+.giang-dialog-heading p { color: #b9c6d8; line-height: 1.6; }
+.giang-dialog-heading .giang-eyebrow { color: #e7a6ad; margin-bottom: .4rem; }
+.giang-dialog-heading button { color: #cbd5e1; border: 1px solid #3b4960; }
+.giang-dialog-heading button:hover { background: #2b3d58; color: #fff; }
+.giang-dialog-body { background: linear-gradient(#f6f8fb, #fff 7rem); }
+.giang-workspace .giang-toolbar { padding: 1rem; border: 1px solid #e1e6ed; background: #fff; }
+.giang-workspace .primary-action * { color: inherit; }
+.giang-form-section { padding: 1rem 1.15rem; background: #f7f9fc; border: 1px solid #e3e8ef; }
+.giang-form-section-title { display: flex; align-items: center; gap: .5rem; color: #1d304e; font-size: .8125rem; font-weight: 700; margin-bottom: 1rem; }
+.giang-form-section-title svg { color: #ba2638; }
+.giang-profile { --dialog-width: 42rem; }
+.giang-profile-tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid #e3e8ef; padding-inline: 1.5rem; }
+.giang-profile-tabs button { padding: 1rem 0; color: #768399; font-size: .8125rem; font-weight: 650; border-bottom: 2px solid transparent; }
+.giang-profile-tabs button[aria-pressed="true"] { color: #b51e30; border-color: #c82032; }
+.giang-profile-field { display: block; font-size: .75rem; font-weight: 600; color: #475569; }
+.giang-profile-field > span:first-child { display: block; margin-bottom: .5rem; }
+.giang-profile-field input { width: 100%; padding: .75rem 1rem; }
+.giang-profile-field button { color: #64748b; }
+.giang-auth .giang-auth-heading { background: radial-gradient(ellipse at top left, #314460, #111e35 75%); padding: 2rem 1.5rem 1.25rem; }
+.giang-auth .giang-auth-heading > p { color: #b9c6d8; line-height: 1.65; }
+.giang-auth label { font-weight: 650; }
+.giang-auth button[type="submit"] { min-height: 3rem; }
+.giang-auth .giang-auth-close { color: #cad5e5; border: 1px solid #41516b; }
+.giang-auth .giang-auth-close:hover { color: #fff; background: #293b56; }
+.search-combobox > div > input { min-height: 2.75rem; border-radius: 0; }
+.search-combobox [role="listbox"] [role="option"][aria-selected="true"] { background: #fff1f2; border-left: 3px solid #c82032; }
+.search-combobox [role="listbox"] [role="option"]:hover { background: #fff7f7; }
+.search-combobox [role="listbox"] [role="option"] svg { color: #c82032; }
+.admin-sidebar-nav button { text-align: left; }
+/* Confirmation still hides underlying editors throughout the app. */
+.app-dialog-layer[data-suspended="true"], .admin-page-content[data-suspended="true"] { visibility: hidden !important; pointer-events: none !important; }
+@media (max-width: 767px) {
+  .giang-page-heading { padding: 1rem; }
+  .giang-page-heading > div { min-width: 0; max-width: 100%; }
+  .giang-dialog-heading { padding: 1.15rem; }
+  :is(.giang-dialog, .giang-workspace .form-surface) footer { flex-wrap: wrap; gap: .65rem; }
+  :is(.giang-dialog, .giang-workspace .form-surface) footer button { flex: 1 1 auto; }
+  .giang-workspace [role="tablist"] { overflow-x: auto; }
+  .giang-workspace [role="tablist"] button { flex-shrink: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.giang-workspace, .giang-dialog) * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media print { .giang-page-heading { box-shadow: none !important; } }

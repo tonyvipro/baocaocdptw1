@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
-import { downloadActivityLogs, notificationDate, notificationRequest } from '../src/services/notifications.js';
+import { downloadActivityLogs, notificationDate, notificationDestination, notificationRequest } from '../src/services/notifications.js';
 
 const original = { fetch: globalThis.fetch, localStorage: globalThis.localStorage, window: globalThis.window };
 try {
@@ -54,7 +54,12 @@ try {
   const { default: Page } = await server.ssrLoadModule('/src/pages/NotificationsPage.jsx');
   const page = renderToStaticMarkup(React.createElement(Page, { currentUser: { id: 1, role_id: 1 } }));
   const columns = [...page.matchAll(/<thead[\s\S]*?<\/thead>/g)].map(match => [...match[0].matchAll(/<th\s[^>]*>(.*?)<\/th>/g)].map(cell => cell[1]));
-  assert.deepEqual(columns, [['Ngày', 'Loại thông báo', 'Nội dung', 'Trạng thái'], ['Ngày', 'Người dùng', 'Hoạt động', 'Chi tiết']]);
+  assert.deepEqual(columns, [['Ngày', 'Loại thông báo', 'Nội dung', 'Trạng thái', 'Thao tác'], ['Ngày', 'Người dùng', 'Hoạt động', 'Chi tiết', 'Thao tác']]);
+  const { ActivityAction } = await server.ssrLoadModule('/src/pages/NotificationsPage.jsx');
+  const action = renderToStaticMarkup(React.createElement(ActivityAction, { destination: { url: '#admin/demands?record=7', label: 'Xem nhu cầu' } }));
+  assert.match(action, /href="#admin\/demands\?record=7"/);
+  assert.equal(notificationDestination({ url: 'https://evil.example' }), null);
+  assert.equal(notificationDestination({ url: 'javascript:alert(1)' }), null);
   assert.match(page, /Đánh dấu tất cả là đã đọc/);
   assert.match(page, /Tải xuống Nhật ký/);
   assert.match(page, /aria-busy="true"/);

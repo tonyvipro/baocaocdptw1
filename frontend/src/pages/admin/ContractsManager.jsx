@@ -10,6 +10,7 @@ import ContractExtensionHistoryModal from '../../components/ContractExtensionHis
 import ContractDocumentListModal from '../../components/ContractDocumentListModal';
 import ContractA4Document from '../../components/ContractA4Document';
 import AdminContractDetailPage from './AdminContractDetailPage';
+import useRecordLink from '../../hooks/useRecordLink';
 
 export default function ContractsManager({ currentUser }) {
   const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'extend'
@@ -28,6 +29,15 @@ export default function ContractsManager({ currentUser }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [highValueFilter, setHighValueFilter] = useState('');
+  useRecordLink('contracts', async ({ id, signal }) => {
+    if (!id) return;
+    try {
+      const response = await fetch('/api/contracts/' + id, { signal, headers: getHeaders() });
+      if (!response.ok) throw new Error('Hợp đồng không còn tồn tại hoặc bạn không có quyền truy cập.');
+      const result = await response.json();
+      if (!signal.aborted) setViewingContract(result.data);
+    } catch (error) { if (!signal.aborted) setError(error.message); }
+  });
   const [deleteLoading, setDeleteLoading] = useState(null);
 
   // Form State
@@ -1003,8 +1013,8 @@ export default function ContractsManager({ currentUser }) {
 
       {/* MODAL 1: CẬP NHẬT TRẠNG THÁI HỢP ĐỒNG (Spec Hình 40) */}
       {statusModalContract && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-extrabold text-slate-900">Quản Lý Trạng Thái Hợp Đồng</h4>

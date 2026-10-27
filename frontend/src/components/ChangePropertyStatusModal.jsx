@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState, useEffect } from 'react';
 import { 
   X, CheckCircle2, XCircle, Clock, Tag, Calendar, AlertTriangle, 
@@ -213,9 +214,9 @@ export default function ChangePropertyStatusModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-fadeIn font-sans">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto animate-fadeIn font-sans">
       <div 
-        className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col max-h-[92vh] my-6"
+        className="form-surface relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col max-h-[92vh] my-6"
         onClick={(e) => e.stopPropagation()}
       >
         
@@ -310,11 +311,11 @@ export default function ChangePropertyStatusModal({
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 overflow-hidden">
                   <div className="w-14 h-12 rounded-xl overflow-hidden bg-slate-200 border border-slate-300/60 shrink-0">
-                    <img 
-                      src={property.image || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&auto=format&fit=crop&q=80'} 
+                    <PropertyImage
+                      src={property.image}
                       alt={property.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&auto=format&fit=crop&q=80'; }}
+
                     />
                   </div>
                   <div className="overflow-hidden">

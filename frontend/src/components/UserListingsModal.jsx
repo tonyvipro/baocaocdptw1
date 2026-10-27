@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState, useEffect } from 'react';
 import { 
   X, Building2, MapPin, Edit, Trash2, Eye, Calendar, PlusCircle, 
@@ -120,8 +121,8 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-slate-50 rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn flex flex-col max-h-[90vh]">
+    <div className="app-dialog-layer fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className="form-surface bg-slate-50 rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 sticky top-0 z-10 shadow-sm shrink-0">
           <div className="flex items-center gap-3">
@@ -321,7 +322,7 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                         <td className="py-3 px-4">
                           <div className="w-16 h-12 rounded-lg overflow-hidden border border-slate-200 relative">
                             {property.images && property.images.length > 0 ? (
-                              <img src={property.images[0].image_url} alt={property.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <PropertyImage src={property.images[0].image_url} alt={property.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             ) : (
                               <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                                 <Building2 className="w-4 h-4 text-slate-300" />
@@ -498,8 +499,8 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
 
         {/* Detail Inspection Modal for User */}
         {selectedDetail && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-fadeIn border border-slate-100">
+          <div className="app-dialog-layer fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="form-surface bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-fadeIn border border-slate-100">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">

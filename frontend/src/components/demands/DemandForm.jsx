@@ -1,3 +1,4 @@
+import { useConfirm } from '../forms/ConfirmProvider';
 import React, { useEffect, useId, useState } from 'react';
 import { Save, Search } from 'lucide-react';
 import { demandBudget, demandDigits, demandRequest } from '../../services/demands';
@@ -5,6 +6,7 @@ import { customerRequest } from '../../services/customers';
 import { crmInput, crmButton, CrmError, CrmSelectOptions } from '../customers/CrmDialog';
 
 export default function DemandForm({ demand, options, busy, onBusy, onClose, onSaved }) {
+  const confirm = useConfirm();
   const id = useId();
   const [form, setForm] = useState(() => ({ customer_id: demand?.customer_id || '', property_type_id: demand?.property_type_id || '',
     budget_min: demand?.budget_min ?? '', budget_max: demand?.budget_max ?? '', area: demand?.area || '', status: demand?.status || 'processing', notes: demand?.notes || '' }));
@@ -37,6 +39,7 @@ export default function DemandForm({ demand, options, busy, onBusy, onClose, onS
     event.preventDefault();
     setError(''); setErrors({});
     if (Number(form.budget_max) < Number(form.budget_min)) { setErrors({ budget_max: ['Ngân sách đến phải lớn hơn hoặc bằng ngân sách từ.'] }); return; }
+    if (Boolean(demand) && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu các thay đổi của nhu cầu này?" }))) return;
     onBusy(true);
     try {
       const result = await demandRequest(demand ? '/' + demand.id : '', { method: demand ? 'PUT' : 'POST',
@@ -55,7 +58,8 @@ export default function DemandForm({ demand, options, busy, onBusy, onClose, onS
   const customerOptions = selectedCustomer && !customers.some(customer => customer.id === selectedCustomer.id) ? [selectedCustomer, ...customers] : customers;
   return <form onSubmit={save}>
     <CrmError error={error} />
-    <fieldset disabled={busy} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <fieldset disabled={busy} className="giang-form-section grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <legend className="px-2 text-xs font-bold text-slate-700">Thông tin nhu cầu</legend>
       <div className="space-y-2 sm:col-span-2">
         <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
           <span>Tìm khách hàng theo tên, email hoặc SĐT</span>

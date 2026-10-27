@@ -10,7 +10,7 @@ export function validatePropertyForm(data) {
     const number = Number(value);
     if (!Number.isFinite(number) || number > max || (positive ? number <= 0 : number < 0)) return `${label} phải ${positive ? 'lớn hơn 0' : 'từ 0'} và không vượt quá ${max.toLocaleString('vi-VN')}.`;
   }
-  if (String(data.address ?? '').length > 255) return 'Địa chỉ chi tiết không được vượt quá 255 ký tự.';
+  if (String(data.address ?? '').length > 250) return 'Địa chỉ chi tiết không được vượt quá 250 ký tự.';
   return '';
 }
 

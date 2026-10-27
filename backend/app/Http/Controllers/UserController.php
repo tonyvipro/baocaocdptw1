@@ -102,6 +102,8 @@ class UserController extends Controller
                 'status' => 'error',
                 'message' => 'Tài khoản này không tồn tại hoặc đã bị xóa trước đó.'
             ], 404);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return response()->json([
                 'status' => 'error',
@@ -127,16 +129,11 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:users,name',
+            'name' => 'required|string|max:250|unique:users,name',
             'email' => [
-                'required', 'string', 'email', 'max:255', 'unique:users,email',
-                function ($attribute, $value, $fail) {
-                    if (!str_ends_with(strtolower($value), '@gmail.com')) {
-                        $fail('Email bắt buộc phải có đuôi @gmail.com.');
-                    }
-                }
+                'required', 'string', 'email', 'max:250', 'unique:users,email',
             ],
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8|max:32',
             'role_id' => 'required|exists:roles,id',
             'is_active' => 'boolean'
         ], [
@@ -164,16 +161,11 @@ class UserController extends Controller
             $user = User::findOrFail($id);
             
             $validated = $request->validate([
-                'name' => 'sometimes|string|max:255|unique:users,name,'.$id,
+                'name' => 'sometimes|string|max:250|unique:users,name,'.$id,
                 'email' => [
-                    'sometimes', 'string', 'email', 'max:255', 'unique:users,email,'.$id,
-                    function ($attribute, $value, $fail) {
-                        if (!str_ends_with(strtolower($value), '@gmail.com')) {
-                            $fail('Email bắt buộc phải có đuôi @gmail.com.');
-                        }
-                    }
+                    'sometimes', 'string', 'email', 'max:250', 'unique:users,email,'.$id,
                 ],
-                'password' => 'nullable|string|min:6',
+                'password' => 'nullable|string|min:8|max:32',
                 'role_id' => 'sometimes|exists:roles,id',
                 'is_active' => 'boolean',
                 'last_updated_at' => 'nullable|string'

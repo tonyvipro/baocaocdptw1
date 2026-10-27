@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState, useEffect } from 'react';
 import { X, SlidersHorizontal, ChevronDown } from 'lucide-react';
 const value = v => v === null || v === undefined || v === '' ? 'Chưa cập nhật' : v;
@@ -40,7 +41,7 @@ export default function CompareDrawer({ comparedList, onRemove, onClear, onSelec
           <caption className="sr-only">Đối chiếu thông số bất động sản</caption>
           <thead><tr><th scope="col" className="sticky left-0 z-10 min-w-[120px] bg-white p-3 text-left text-xs text-slate-500">TIÊU CHÍ</th>
             {comparedList.map(p => <th scope="col" key={p.code || p.id} className="min-w-[220px] max-w-[300px] p-3 text-left align-top">
-              <div className="relative mb-3"><img src={p.image} alt="" className="h-28 w-full rounded-xl bg-slate-100 object-cover" /><button aria-label={`Bỏ so sánh ${p.title}`} onClick={() => onRemove(p)} className="absolute right-2 top-2 rounded-full bg-white p-1.5 shadow"><X size={14} /></button></div>
+              <div className="relative mb-3"><PropertyImage src={p.image} alt="" className="h-28 w-full rounded-xl bg-slate-100 object-cover" /><button aria-label={`Bỏ so sánh ${p.title}`} onClick={() => onRemove(p)} className="absolute right-2 top-2 rounded-full bg-white p-1.5 shadow"><X size={14} /></button></div>
               <p className="text-xs text-blue-600">{p.code}</p><p className="mt-1 line-clamp-2 font-semibold text-slate-900">{p.title || p.project}</p>
               <button onClick={() => onSelectProperty(p)} className="mt-2 text-xs text-blue-600">Xem chi tiết →</button>
             </th>)}

@@ -1,3 +1,5 @@
+import useRecordLink from '../../hooks/useRecordLink';
+import { useConfirm } from '../../components/forms/ConfirmProvider';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users, UserCheck, Briefcase, Plus, Search, Filter, RefreshCw, Eye, Edit3, Trash2,
@@ -25,6 +27,20 @@ const formatDate = (dateStr) => {
 };
 
 export default function BrokerManagement() {
+  const confirm = useConfirm();
+  useRecordLink('brokers', async ({ id, tab, signal }) => {
+    if (!id) return;
+    try {
+      const assignment = tab === 'assignments';
+      const response = await fetch('/api/' + (assignment ? 'broker-assignments/' : 'brokers/') + id, { signal, headers: { Accept: 'application/json' } });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Không thể tải dữ liệu.');
+      if (signal.aborted) return;
+      setActiveTab(assignment ? 'assignments' : 'brokers');
+      if (assignment) handleOpenViewAssignment(result.data);
+      else { setSelectedBroker(result.data); setShowViewBrokerModal(true); }
+    } catch (error) { if (error.name !== 'AbortError') showToast(error.message, 'error'); }
+  });
   // ========================================================
   // 1. QUẢN LÝ TAB & GIỮ TRẠNG THÁI KHI F5 (F5 TAB PERSISTENCE)
   // ========================================================
@@ -49,7 +65,9 @@ export default function BrokerManagement() {
 
   // Đồng bộ hash URL
   useEffect(() => {
-    window.location.hash = `#admin/brokers?tab=${activeTab}`;
+    const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    params.set('tab', activeTab);
+    window.location.hash = '#admin/brokers?' + params;
   }, [activeTab]);
 
   // ========================================================
@@ -75,11 +93,7 @@ export default function BrokerManagement() {
   }, []);
 
   const handleResolveConflict = () => {
-    setConflictEvent(null);
-    setConflictLocked(false);
-    fetchBrokers();
-    fetchAssignments();
-    showToast('Đã đồng bộ lại dữ liệu mới nhất từ hệ thống!', 'success');
+    window.location.reload();
   };
 
   // ========================================================
@@ -144,6 +158,7 @@ export default function BrokerManagement() {
       const res = await fetch(`/api/brokers?${params.toString()}`, {
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       });
@@ -227,6 +242,7 @@ export default function BrokerManagement() {
 
   const handleOpenDeleteBroker = (broker) => {
     setSelectedBroker(broker);
+    setShowAddBrokerModal(false); setShowEditBrokerModal(false); setShowViewBrokerModal(false);
     setShowDeleteBrokerModal(true);
   };
 
@@ -242,6 +258,7 @@ export default function BrokerManagement() {
       return;
     }
 
+    if (isEdit && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu thay đổi thông tin môi giới này?" }))) return;
     setBrokerFormActionLoading(true);
     try {
       const token = localStorage.getItem('3tv_token') || '';
@@ -252,7 +269,7 @@ export default function BrokerManagement() {
         ...brokerFormData,
         name: brokerFormData.name.slice(0, 250),
         notes: (brokerFormData.notes || '').slice(0, 250),
-        ...(isEdit ? { last_updated_at: selectedBroker.updated_at } : {})
+        ...(isEdit ? { version: selectedBroker.version, last_updated_at: selectedBroker.updated_at } : {})
       };
 
       const res = await fetch(url, {
@@ -303,6 +320,7 @@ export default function BrokerManagement() {
       const token = localStorage.getItem('3tv_token') || '';
       const res = await fetch(`/api/brokers/${selectedBroker.id}`, {
         method: 'DELETE',
+        body: JSON.stringify({ version: selectedBroker.version }),
         headers: {
           'Accept': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -471,6 +489,7 @@ export default function BrokerManagement() {
   const handleOpenCancelAssignment = (assignment) => {
     setSelectedAssignment(assignment);
     setCancelNotes('');
+    setShowAddAssignmentModal(false); setShowEditAssignmentModal(false); setShowViewAssignmentModal(false);
     setShowCancelAssignmentModal(true);
   };
 
@@ -489,6 +508,7 @@ export default function BrokerManagement() {
       return;
     }
 
+    if (isEdit && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu thay đổi hoặc điều chuyển phân công này?" }))) return;
     setAssignmentFormActionLoading(true);
     try {
       const token = localStorage.getItem('3tv_token') || '';
@@ -500,7 +520,7 @@ export default function BrokerManagement() {
         customer_name: assignmentFormData.customer_name.slice(0, 250),
         property_location: assignmentFormData.property_location.slice(0, 250),
         notes: (assignmentFormData.notes || '').slice(0, 250),
-        ...(isEdit ? { last_updated_at: selectedAssignment.updated_at } : {})
+        ...(isEdit ? { version: selectedAssignment.version, last_updated_at: selectedAssignment.updated_at } : {})
       };
 
       const res = await fetch(url, {
@@ -556,6 +576,7 @@ export default function BrokerManagement() {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
+          version: selectedAssignment.version,
           notes: cancelNotes.slice(0, 250)
         })
       });
@@ -741,7 +762,7 @@ export default function BrokerManagement() {
       {activeTab === 'brokers' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fade-in">
           {/* Header & Tiêu đề Tab 1 */}
-          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/80 to-white">
+          <div className="giang-page-heading flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-blue-100 text-blue-700">
@@ -812,7 +833,7 @@ export default function BrokerManagement() {
               <button
                 onClick={handleOpenAddBroker}
                 disabled={conflictLocked}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
+                className={`primary-action flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
                   conflictLocked
                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
                     : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 active:scale-95'
@@ -826,7 +847,7 @@ export default function BrokerManagement() {
 
           {/* Bảng danh sách môi giới */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[1050px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
                   <th className="py-3.5 px-6">Tên Môi giới</th>
@@ -1010,7 +1031,7 @@ export default function BrokerManagement() {
       {activeTab === 'assignments' && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-fade-in">
           {/* Header & Tiêu đề Tab 2 */}
-          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-slate-50/80 to-white">
+          <div className="giang-page-heading flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-indigo-100 text-indigo-700">
@@ -1083,7 +1104,7 @@ export default function BrokerManagement() {
               <button
                 onClick={handleOpenAddAssignment}
                 disabled={conflictLocked}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
+                className={`primary-action flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black shadow-md transition-all cursor-pointer ${
                   conflictLocked
                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/20 active:scale-95'
@@ -1097,10 +1118,10 @@ export default function BrokerManagement() {
 
           {/* Bảng danh sách phân công */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[1050px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                  <th className="py-3.5 px-6">ID Yêu cầu</th>
+                  <th className="min-w-[150px] whitespace-nowrap py-3.5 px-6">ID Yêu cầu</th>
                   <th className="py-3.5 px-4">Tên khách hàng</th>
                   <th className="py-3.5 px-4">Địa điểm BĐS</th>
                   <th className="py-3.5 px-4">Môi giới được phân công</th>
@@ -1129,8 +1150,8 @@ export default function BrokerManagement() {
                   assignments.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group">
                       {/* ID Yêu cầu */}
-                      <td className="py-4 px-6 font-mono font-bold text-slate-700">
-                        <span className="px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <td className="whitespace-nowrap py-4 px-6 font-mono font-bold text-slate-700">
+                        <span className="inline-flex whitespace-nowrap px-2.5 py-1 rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {item.request_code}
                         </span>
                       </td>
@@ -1287,9 +1308,9 @@ export default function BrokerManagement() {
 
       {/* Modal Thêm / Sửa Môi giới */}
       {(showAddBrokerModal || showEditBrokerModal) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="giang-dialog-heading flex shrink-0 items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-blue-100 text-blue-700">
                   {showEditBrokerModal ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -1373,9 +1394,9 @@ export default function BrokerManagement() {
                   </label>
                   <input
                     type="text"
-                    maxLength={50}
+                    maxLength={11}
                     value={brokerFormData.phone}
-                    onChange={(e) => setBrokerFormData({ ...brokerFormData, phone: e.target.value.slice(0, 50) })}
+                    onChange={(e) => setBrokerFormData({ ...brokerFormData, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
                     placeholder="VD: 0901234567"
                     className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -1471,7 +1492,7 @@ export default function BrokerManagement() {
                 type="button"
                 onClick={() => handleSaveBroker(showEditBrokerModal)}
                 disabled={brokerFormActionLoading}
-                className="flex items-center gap-2 px-5 py-2 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
+                className="primary-action flex items-center gap-2 px-5 py-2 text-xs font-black text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
               >
                 {brokerFormActionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{showEditBrokerModal ? 'Cập nhật thay đổi' : 'Lưu môi giới'}</span>
@@ -1483,9 +1504,9 @@ export default function BrokerManagement() {
 
       {/* Modal Chi tiết Môi giới (Xem) */}
       {showViewBrokerModal && selectedBroker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
+            <div className="giang-dialog-heading flex shrink-0 items-center justify-between gap-3">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <Eye className="w-5 h-5 text-blue-600" />
                 Hồ sơ chi tiết môi giới
@@ -1560,8 +1581,8 @@ export default function BrokerManagement() {
 
       {/* Modal Xóa Môi giới */}
       {showDeleteBrokerModal && selectedBroker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 text-center space-y-4">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -1598,9 +1619,9 @@ export default function BrokerManagement() {
 
       {/* Modal Tạo / Sửa Phân công */}
       {(showAddAssignmentModal || showEditAssignmentModal) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="giang-dialog-heading flex shrink-0 items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="p-2 rounded-xl bg-indigo-100 text-indigo-700">
                   {showEditAssignmentModal ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -1664,9 +1685,9 @@ export default function BrokerManagement() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Số điện thoại KH</label>
                   <input
                     type="text"
-                    maxLength={50}
+                    maxLength={11}
                     value={assignmentFormData.customer_phone}
-                    onChange={(e) => setAssignmentFormData({ ...assignmentFormData, customer_phone: e.target.value.slice(0, 50) })}
+                    onChange={(e) => setAssignmentFormData({ ...assignmentFormData, customer_phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 11) })}
                     placeholder="VD: 0912345678"
                     className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
@@ -1796,7 +1817,7 @@ export default function BrokerManagement() {
                 type="button"
                 onClick={() => handleSaveAssignment(showEditAssignmentModal)}
                 disabled={assignmentFormActionLoading}
-                className="flex items-center gap-2 px-5 py-2 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition disabled:opacity-50"
+                className="primary-action flex items-center gap-2 px-5 py-2 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition disabled:opacity-50"
               >
                 {assignmentFormActionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{showEditAssignmentModal ? 'Cập nhật phân công' : 'Lưu phân công'}</span>
@@ -1808,9 +1829,9 @@ export default function BrokerManagement() {
 
       {/* Modal Chi tiết Phân công (Xem) */}
       {showViewAssignmentModal && selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
+            <div className="giang-dialog-heading flex shrink-0 items-center justify-between gap-3">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <Eye className="w-5 h-5 text-indigo-600" />
                 Chi tiết nội dung phân công
@@ -1894,8 +1915,8 @@ export default function BrokerManagement() {
 
       {/* Modal Hủy Phân công */}
       {showCancelAssignmentModal && selectedAssignment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-4">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <XCircle className="w-6 h-6" />
             </div>

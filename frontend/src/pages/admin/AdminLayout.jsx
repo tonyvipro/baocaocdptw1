@@ -27,6 +27,9 @@ import NotificationBell from '../../components/NotificationBell';
 import NotificationsPage from '../NotificationsPage';
 import { Bell } from 'lucide-react';
 
+// Giang's nine admin screens cover management, reporting and CRM features.
+const GIANG_MENUS = new Set(['dashboard', 'categories', 'brokers', 'customers', 'demands', 'notifications', 'users', 'roles', 'reports']);
+
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
   // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
   const getInitialActiveMenu = () => {
@@ -141,12 +144,12 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   const menuItems = getMenuItems();
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans">
+    <div className="admin-shell flex h-dvh w-full bg-slate-50 overflow-hidden font-sans">
       
       {/* Sidebar Mobile Overlay */}
       {!sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          className="app-dialog-layer fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(true)}
         />
       )}
@@ -154,7 +157,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       {/* Left Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50 no-print
-        w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out
+        w-64 shrink-0 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out
         ${sidebarOpen ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
       `}>
         {/* Logo Area */}
@@ -197,7 +200,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="admin-sidebar-nav flex-1 overflow-y-auto py-4 px-3 space-y-1">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 px-3">
             Menu Quản Lý
           </div>
@@ -205,15 +208,15 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
             <button
               key={item.id}
               onClick={() => handleSelectMenu(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              className={`w-full min-w-0 flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeMenu === item.id 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : 'hover:bg-slate-800 hover:text-white text-slate-400'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
-                <span>{item.label}</span>
+              <div className="flex min-w-0 flex-1 items-start gap-3 text-left">
+                <item.icon className={`mt-0.5 h-4 w-4 shrink-0 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
+                <span className="min-w-0 whitespace-normal break-normal text-left leading-5">{item.label}</span>
               </div>
               {item.badgeCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500 text-slate-950 animate-pulse shadow-xs">
@@ -284,7 +287,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         </header>
 
         {/* Dynamic Page Content */}
-        <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <div className={`admin-page-content min-w-0 flex-1 overflow-auto p-3 sm:p-5 lg:p-6 ${GIANG_MENUS.has(activeMenu) ? 'giang-workspace' : ''}`}>
           {activeMenu === 'dashboard' && <DashboardOverview />}
           {activeMenu === 'demands' && <DemandManagement key={currentUser?.id || 'guest'} currentUser={currentUser} />}
           {activeMenu === 'notifications' && <NotificationsPage key={currentUser?.id || 'guest'} currentUser={currentUser} embedded />}
