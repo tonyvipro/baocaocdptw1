@@ -7,6 +7,9 @@ use App\Http\Controllers\ContractDocumentController;
 use App\Http\Controllers\CustomerContractController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyInvoiceController;
+
+Route::get('/search/properties', \App\Http\Controllers\PropertySearchController::class)
+    ->middleware('throttle:120,1');
 use App\Http\Controllers\Api\RentPaymentController;
 use App\Http\Controllers\Api\MetaController;
 

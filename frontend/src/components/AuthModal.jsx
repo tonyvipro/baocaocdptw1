@@ -140,20 +140,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
       {/* Modal Card */}
-      <div className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200">
+      <div role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'} className="form-surface giang-dialog giang-auth relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-none shadow-2xl border border-slate-200">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
+          aria-label="Đóng đăng nhập và đăng ký"
+          className="giang-auth-close absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="bg-slate-900 px-6 pt-6 pb-4 text-white text-center">
+        <div className="giang-auth-heading text-white text-center">
+          <p className="mb-4 text-[10px] font-bold tracking-[.25em]">3TV LAND / TÀI KHOẢN</p>
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-600 text-white mb-2 shadow-xs">
             <ShieldCheck className="w-5 h-5" />
           </div>

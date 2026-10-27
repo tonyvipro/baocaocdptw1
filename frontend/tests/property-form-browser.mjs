@@ -17,7 +17,7 @@ try {
   });
   await page.route('**/api/properties/22', async route => {
     writes.push(route.request().url());
-    await route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ message: 'Địa chỉ chi tiết không được vượt quá 255 ký tự.', errors: { address: ['Địa chỉ quá dài.'] } }) });
+    await route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ message: 'Địa chỉ chi tiết không được vượt quá 250 ký tự.', errors: { address: ['Địa chỉ quá dài.'] } }) });
   });
   await page.goto('http://localhost:3000/#admin/properties', { waitUntil: 'domcontentloaded' });
   const price = page.getByRole('textbox', { name: 'Mức giá', exact: true });
@@ -76,12 +76,12 @@ try {
   await page.getByText('Mức giá phải từ 0 và không vượt quá 9.999.999.999.999.', { exact: true }).waitFor();
   assert.equal(writes.length, 0);
   const address = page.getByRole('textbox', { name: 'Địa chỉ chi tiết', exact: true });
-  assert.equal(await address.getAttribute('maxlength'), '255');
+  assert.equal(await address.getAttribute('maxlength'), '250');
   await address.fill('Đ'.repeat(300));
-  assert.ok((await address.inputValue()).length <= 255);
+  assert.ok((await address.inputValue()).length <= 250);
   await price.fill('25000000000');
   await page.getByRole('button', { name: 'Cập nhật thông tin' }).click();
-  await page.getByText('Địa chỉ chi tiết không được vượt quá 255 ký tự.', { exact: true }).waitFor();
+  await page.getByText('Địa chỉ chi tiết không được vượt quá 250 ký tự.', { exact: true }).waitFor();
   assert.deepEqual(writes, ['http://localhost:3000/api/properties/22']);
   assert.equal(await page.getByText('Vui lòng đăng nhập lại.', { exact: true }).count(), 0);
   assert.deepEqual(errors, []);

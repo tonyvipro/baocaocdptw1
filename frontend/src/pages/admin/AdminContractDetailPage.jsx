@@ -559,8 +559,8 @@ export default function AdminContractDetailPage({
 
       {/* Confirm Delete Doc Modal */}
       {deleteDocTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 no-print">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 no-print">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center gap-3 text-red-600 mb-3">
               <AlertTriangle className="w-6 h-6 shrink-0" />
               <h3 className="font-bold text-base text-slate-900">Xác nhận xóa tài liệu</h3>
@@ -591,8 +591,8 @@ export default function AdminContractDetailPage({
 
       {/* Reject Extension Modal */}
       {rejectModalExt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 no-print">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 no-print">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-red-600">
                 <XCircle className="w-5 h-5 shrink-0" />

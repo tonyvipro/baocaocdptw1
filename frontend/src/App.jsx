@@ -3,6 +3,9 @@ import { readPropertyList } from './utils/property';
 import { watchCatalog, filterCatalog, availableRecentViews } from './utils/propertyCatalog';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
+import usePropertySearch from './hooks/usePropertySearch';
+import { rankSearchCatalog } from './services/propertySearch';
+import { propertySuggestions } from './utils/searchSuggestions';
 import StatsBar from './components/StatsBar';
 import PropertyFilter from './components/PropertyFilter';
 import PropertyCard from './components/PropertyCard';
@@ -94,6 +97,7 @@ export default function App() {
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
   const [searchKeyword, setSearchKeyword] = useState('');
+  const smartSearch = usePropertySearch(searchKeyword);
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
   const [selectedDeveloper, setSelectedDeveloper] = useState('all');
@@ -425,8 +429,9 @@ export default function App() {
 
   // Filtered & Sorted Properties
   const filteredProperties = useMemo(() => {
-    return filterCatalog(properties, { purpose: activeTab, search: searchKeyword, project: selectedProject, city: selectedCity, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
-  }, [properties, activeTab, searchKeyword, selectedProject, selectedCity, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
+    const catalog = searchKeyword.trim() ? rankSearchCatalog(properties, smartSearch.ids) : properties;
+    return filterCatalog(catalog, { purpose: activeTab, project: selectedProject, city: selectedCity, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+  }, [properties, activeTab, searchKeyword, smartSearch.ids, selectedProject, selectedCity, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
 
   useEffect(() => {
     const code = new URL(window.location.href).searchParams.get('property');
@@ -588,6 +593,14 @@ export default function App() {
         citiesList={citiesList}
         typesList={typesList}
         totalResults={filteredProperties.length}
+        searchLoading={smartSearch.isLoading}
+        searchError={smartSearch.error}
+        onRetrySearch={smartSearch.retry}
+        suggestions={propertySuggestions(properties, smartSearch.ids, searchKeyword)}
+        onSelectSuggestion={item => {
+          if (item.kind === 'project') { setSelectedProject(item.value); setSearchKeyword(''); }
+          else { setSearchKeyword(item.property.title.slice(0, 250)); handleSelectProperty(item.property); }
+        }}
       />
 
       {/* Market Indicator Bar */}
@@ -640,11 +653,16 @@ export default function App() {
         />
 
         {/* Loading State */}
-        {loading ? (
+        {loading || smartSearch.isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-slate-200">
             <RefreshCw className="w-8 h-8 text-red-600 animate-spin mb-3" />
-            <p className="text-slate-800 font-bold text-sm">Đang tải danh sách bất động sản...</p>
+            <p role="status" className="text-slate-800 font-bold text-sm">{smartSearch.isLoading ? 'Đang tìm bất động sản phù hợp...' : 'Đang tải danh sách bất động sản...'}</p>
             <p className="text-slate-400 text-xs mt-1">Đang đồng bộ dữ liệu từ hệ thống</p>
+          </div>
+        ) : smartSearch.error ? (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+            <p>{smartSearch.error}</p>
+            <button type="button" onClick={smartSearch.retry} className="mt-3 rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700">Thử lại tìm kiếm</button>
           </div>
         ) : filteredProperties.length === 0 ? (
           /* Empty State */

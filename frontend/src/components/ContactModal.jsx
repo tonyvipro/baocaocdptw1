@@ -16,8 +16,8 @@ export default function ContactModal({ property, onClose, currentUser, onOpenAut
 
   if (!currentUser) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
-        <div className="relative w-full max-w-md bg-white rounded-xl shadow-xl p-6 text-center border border-slate-200">
+      <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
+        <div className="form-surface relative w-full max-w-md bg-white rounded-xl shadow-xl p-6 text-center border border-slate-200">
           <button
             onClick={onClose}
             className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -67,9 +67,9 @@ export default function ContactModal({ property, onClose, currentUser, onOpenAut
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs">
       <div 
-        className="relative w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200"
+        className="form-surface relative w-full max-w-lg bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200"
         onClick={(e) => e.stopPropagation()}
       >
         <button

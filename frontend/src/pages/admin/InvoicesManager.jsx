@@ -619,8 +619,8 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
 
       {/* MODAL LẬP / SỬA HÓA ĐƠN THỦ CÔNG */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 my-8">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="form-surface bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 my-8">
             <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -834,8 +834,8 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
 
       {/* MODAL HỦY HÓA ĐƠN */}
       {cancelModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <h3 className="text-lg font-bold text-rose-600 mb-2 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-rose-600" /> Xác nhận hủy hóa đơn
             </h3>
@@ -879,8 +879,8 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
 
       {/* MODAL GỬI EMAIL */}
       {emailModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="form-surface bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <h3 className="text-lg font-bold text-indigo-700 mb-2 flex items-center gap-2">
               <Mail className="w-5 h-5 text-indigo-600" /> Gửi hóa đơn qua email
             </h3>

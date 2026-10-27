@@ -60,7 +60,8 @@ class PropertySeeder extends Seeder
                         'city' => $item['city'] ?? 'TP. Hồ Chí Minh',
                         'lat' => $item['lat'] ?? null,
                         'lng' => $item['lng'] ?? null,
-                        'image' => $item['image'] ?? null,
+                        'image' => str_contains($item['image'] ?? '', 'photo-1502005229762-ee1b2b8ab00f')
+                            ? RepairDemoPropertyImagesSeeder::imageFor($item['code']) : ($item['image'] ?? null),
                         'badge' => $item['badge'] ?? null,
                         'badge_class' => $item['badge_class'] ?? null,
                         'owner_name' => $item['owner_name'] ?? null,

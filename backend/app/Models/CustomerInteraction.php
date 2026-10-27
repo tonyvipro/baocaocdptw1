@@ -9,7 +9,7 @@ class CustomerInteraction extends Model
     protected $fillable = ['customer_id', 'actor_id', 'type', 'summary', 'occurred_at'];
     protected function casts(): array
     {
-        return ['occurred_at' => 'datetime'];
+        return ['occurred_at' => \App\Casts\UtcDateTime::class];
     }
     public function actor()
     {

@@ -76,7 +76,7 @@ class NotificationTest extends TestCase
         $contract = $this->contract($customer, $broker, ['status' => 1, 'end_date' => '2026-10-23']);
         $foreign = $this->contract($other, null, ['status' => 1, 'end_date' => '2026-10-21']);
         foreach ([$contract, $foreign] as $row) {
-            foreach ([0, 1] as $status) DB::table('invoices')->insert(['contract_id' => $row->id, 'title' => 'Tiền thuê', 'type' => 'rent', 'amount' => 1000000,
+            foreach ([0, 1] as $status) DB::table('invoices')->insert(['invoice_no' => 'TEST-'.$row->id.'-'.$status, 'issue_date' => '2026-10-01', 'contract_id' => $row->id, 'title' => 'Tiền thuê', 'type' => 'rent', 'amount' => 1000000,
                 'due_date' => '2026-10-19', 'status' => $status, 'created_at' => now(), 'updated_at' => now()]);
         }
         $this->actingAs($customer)->getJson('/api/notifications')->assertOk()->assertJsonPath('notifications.meta.total', 3);
@@ -119,7 +119,7 @@ class NotificationTest extends TestCase
         $this->assertDatabaseCount('activity_logs', 0);
         $this->postJson('/api/login', ['email' => $user->email, 'password' => 'real-test-password'])->assertOk();
         $this->assertDatabaseHas('activity_logs', ['user_id' => $user->id, 'action' => 'LOGIN']);
-        $this->postJson('/api/profile', ['name' => 'Tên mới', 'phone' => '0901234567'])->assertOk();
+        $this->postJson('/api/profile', ['name' => 'Tên mới', 'phone' => '0901234567', 'version' => $user->fresh()->version])->assertOk();
         $this->assertDatabaseHas('activity_logs', ['user_id' => $user->id, 'action' => 'PROFILE_UPDATE']);
         $this->assertEquals(1, $user->notifications()->count());
         $this->postJson('/api/profile', ['name' => '', 'phone' => 'abc'])->assertUnprocessable();
@@ -155,5 +155,31 @@ class NotificationTest extends TestCase
         $token = $user->createToken('test')->plainTextToken;
         $this->withToken($token)->getJson('/api/notifications')->assertOk()->assertJsonPath('notifications.meta.total', 1);
         $this->withToken($token)->patchJson('/api/notifications/read-all')->assertOk()->assertJsonPath('updated', 1);
+    }
+
+    public function test_destinations_target_records_and_enrichment_preserves_read_state(): void
+    {
+        $admin = $this->user(1);
+        $customer = $this->user();
+        $contract = $this->contract($customer);
+        $inbox = app(NotificationInbox::class);
+        $inbox->publish($admin, 'contract', 'Hợp đồng đã cập nhật', 'linked-contract');
+        $admin->notifications()->update(['read_at' => now()]);
+        $oldReadAt = $admin->notifications()->first()->read_at->toISOString();
+        $inbox->publish($admin, 'contract', 'Hợp đồng đã cập nhật', 'linked-contract', target: ['table' => 'contracts', 'id' => $contract->id]);
+        ActivityLog::create(['user_id' => $admin->id, 'action' => 'DEMAND_UPDATE', 'table_name' => 'customer_demands', 'record_id' => 7]);
+        $this->actingAs($admin)->getJson('/api/notifications')->assertOk()
+            ->assertJsonPath('notifications.data.0.destination.url', '#admin/contracts?record='.$contract->id)
+            ->assertJsonPath('logs.data.0.destination.url', '#admin/demands?record=7');
+        $this->assertSame($oldReadAt, $admin->notifications()->first()->read_at->toISOString());
+
+        $inbox->publish($customer, 'contract', 'Hợp đồng của bạn', 'linked-customer', target: ['table' => 'contracts', 'id' => $contract->id]);
+        $this->actingAs($customer)->getJson('/api/notifications')
+            ->assertJsonPath('notifications.data.0.destination.url', '#my-contracts/'.$contract->id);
+        $destinations = app(\App\Services\ActivityDestination::class);
+        $this->assertSame('#admin/contracts?record='.$contract->id, $destinations->notification($admin, ['contract_id' => $contract->id])['url']);
+        $this->assertNull($destinations->record($customer, 'customer_demands', 7));
+        $this->assertNull($destinations->notification($admin, ['target' => ['table' => 'https://evil.example', 'id' => 1]]));
+        $this->assertSame('#admin/properties?tab=trash', $destinations->record($admin, 'properties', 7, 'DELETE')['url']);
     }
 }

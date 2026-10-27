@@ -1,6 +1,8 @@
+import { useConfirm } from '../components/forms/ConfirmProvider';
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Edit, Trash2, Plus, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Eye, Edit, Trash2, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { broadcastDataChange, subscribeDataChange } from '../services/tabSync';
+import useRecordLink from '../hooks/useRecordLink';
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('3tv_token');
@@ -30,6 +32,7 @@ const apiFetch = async (url, options = {}) => {
   return res.json();
 };
 export default function UserManagement() {
+  const confirm = useConfirm();
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -84,6 +87,7 @@ export default function UserManagement() {
   };
 
   const confirmDelete = (id) => {
+    setIsModalOpen(false);
     setConfirmModal({ isOpen: true, userId: id });
   };
 
@@ -91,7 +95,7 @@ export default function UserManagement() {
     const id = confirmModal.userId;
     setConfirmModal({ isOpen: false, userId: null });
     try {
-      await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/users/${id}`, { method: 'DELETE', body: JSON.stringify({ version: users.find(user => user.id === id)?.version }) });
       showMessage('success', 'Xóa người dùng thành công.');
       fetchUsers(pagination.current, search);
     } catch (err) {
@@ -104,6 +108,7 @@ export default function UserManagement() {
   const cancelDelete = () => {
     setConfirmModal({ isOpen: false, userId: null });
   };
+  useRecordLink('users', ({ id }) => { if (id) handleViewClick(id); });
 
   const handleEditClick = async (id) => {
     try {
@@ -140,12 +145,9 @@ export default function UserManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (modalMode === 'edit' && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu các thay đổi của tài khoản này?" }))) return;
     setLoading(true);
     
-    // Đóng form ngay lập tức theo chuẩn thiết kế mới
-    setIsModalOpen(false);
-    showMessage('success', modalMode === 'add' ? 'Đang thêm người dùng...' : 'Đang cập nhật thông tin...');
-
     try {
       if (modalMode === 'add') {
         const res = await apiFetch('/api/users', {
@@ -155,7 +157,7 @@ export default function UserManagement() {
         showMessage('success', 'Thêm người dùng mới thành công.');
         broadcastDataChange({ entity: 'users', action: 'create', id: res.user?.id, name: formData.name });
       } else if (modalMode === 'edit') {
-        const updateData = { ...formData, last_updated_at: currentUser.updated_at };
+        const updateData = { ...formData, version: currentUser.version, last_updated_at: currentUser.updated_at };
         if (!updateData.password) delete updateData.password;
         
         await apiFetch(`/api/users/${currentUser.id}`, {
@@ -165,29 +167,21 @@ export default function UserManagement() {
         showMessage('success', 'Cập nhật thông tin thành công.');
         broadcastDataChange({ entity: 'users', action: 'update', id: currentUser.id, name: formData.name });
       }
+      setIsModalOpen(false);
       fetchUsers(pagination.current, search);
     } catch (err) {
       showMessage('error', err.message || 'Đã có lỗi xảy ra.');
-      // Wait for error message to finish showing before re-opening the form
-      setTimeout(() => {
-        setIsModalOpen(true);
-      }, 2500);
+
     } finally {
       setLoading(false);
     }
   };
 
-  const openAddModal = () => {
-      setFormData({ name: '', email: '', password: '', role_id: 2, is_active: true });
-      setModalMode('add');
-      setIsModalOpen(true);
-  };
-
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5">
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">QUẢN LÝ NGƯỜI DÙNG</h1>
+      <div className="giang-page-heading flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div><p className="giang-eyebrow mb-1">3TV LAND / TÀI KHOẢN</p><h1>Quản lý người dùng</h1><p className="mt-1 text-xs">Tra cứu hồ sơ, trạng thái hoạt động và thông tin tài khoản.</p></div>
       </div>
 
       {statusMessage && (
@@ -201,7 +195,7 @@ export default function UserManagement() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+      <div className="giang-toolbar flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="relative w-full md:w-1/3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input 
@@ -213,13 +207,6 @@ export default function UserManagement() {
             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent text-sm"
           />
         </div>
-        <button 
-          onClick={openAddModal}
-          className="w-full md:w-auto px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 uppercase text-sm"
-        >
-          <Plus className="w-4 h-4" />
-          <span>THÊM NGƯỜI DÙNG MỚI</span>
-        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -302,10 +289,10 @@ export default function UserManagement() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100 shrink-0">
-              <h3 className="font-bold text-lg text-slate-800 uppercase">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+          <div className="form-surface bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="giang-dialog-heading flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg text-white">
                 {modalMode === 'add' ? 'Thêm Người Dùng' : modalMode === 'edit' ? 'Chỉnh Sửa Người Dùng' : 'Chi Tiết Người Dùng'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X className="w-5 h-5" /></button>
@@ -365,8 +352,8 @@ export default function UserManagement() {
 
       {/* Custom Confirm Delete Modal */}
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+        <div className="app-dialog-layer fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+          <div className="form-surface bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
             <div className="p-5 flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
                 <Trash2 className="w-6 h-6 text-red-500" />

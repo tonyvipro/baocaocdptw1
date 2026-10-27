@@ -131,8 +131,8 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn">
+    <div className="app-dialog-layer fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className="form-surface bg-white rounded-3xl w-full max-w-4xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn">
         {/* Header */}
         <div className="bg-slate-900 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
                   <label className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">Tiêu đề tin (*):</label>
                   <input
                     type="text"
-                    name="title" maxLength={255}
+                    name="title" maxLength={250}
                     value={formData.title}
                     onChange={handleChange}
                     placeholder="Ví dụ: Bán căn hộ 3PN Vinhomes view sông cực đẹp..."

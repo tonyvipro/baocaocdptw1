@@ -62,10 +62,11 @@ class AdminPropertyListingTest extends TestCase
             $this->getJson($url.'&admin=1')->assertOk()->assertJsonPath('meta.total', 1);
         }
         $this->getJson('/api/properties?search=House')->assertOk()->assertJsonCount(0);
-        foreach (['%', '_', "' OR 1=1 --"] as $keyword) {
+        foreach (['%', '_'] as $keyword) {
             $this->getJson('/api/properties?'.http_build_query(['search' => $keyword]))
                 ->assertOk()->assertJsonCount(0);
         }
+        $this->getJson('/api/properties?'.http_build_query(['search' => "' OR 1=1 --"]))->assertUnprocessable();
         $this->getJson('/api/properties?search[]=invalid')->assertUnprocessable();
         $this->getJson('/api/properties?search='.str_repeat('a', 251))->assertUnprocessable();
     }

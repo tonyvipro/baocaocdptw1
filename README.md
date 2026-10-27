@@ -1,6 +1,14 @@
 # 3TV Land - Báo Cáo Chuyên Đề Phát Triển Web 1
 
+## Tìm kiếm thông minh với Meilisearch
+
+Hướng dẫn từng bước và toàn bộ code: [docs/MEILISEARCH.md](docs/MEILISEARCH.md). Chạy `node scripts/setup-meilisearch-env.mjs` từ thư mục gốc để tạo khóa trước khi khởi động Docker. Ô **Tìm kiếm thông minh** trên banner gọi Laravel Scout qua `/api/search/properties`, có debounce, hỗ trợ lỗi gõ và kết hợp các bộ lọc trong danh sách chính. Sau khi Meilisearch sẵn sàng, chạy `docker compose exec backend php artisan scout:sync-index-settings` và `docker compose exec backend php artisan scout:import 'App\Models\Property'` để index dữ liệu hiện có; không cần seed lại.
+
 ## Quản lý nhu cầu
+
+Dữ liệu mẫu bổ sung: `CustomerDemandDemoSeeder` tạo 10 nhu cầu và `LowPricePropertyDemoSeeder` tạo 15 BĐS kiểm thử giá 1.000–5.000 VNĐ. Chạy migration `2026_10_26_160000_add_seed_key_to_customer_demands.php` trước, rồi chạy riêng từng seeder bằng `docker compose exec backend php artisan db:seed --class=CustomerDemandDemoSeeder` và `docker compose exec backend php artisan db:seed --class=LowPricePropertyDemoSeeder`. Chạy lại không ghi đè hoặc khôi phục bản ghi đã xóa. Không cần chạy toàn bộ DatabaseSeeder.
+
+Ảnh mẫu hợp lệ được lưu trong `frontend/public/property-images`, component `PropertyImage` dùng ảnh cục bộ và hiển thị trạng thái chưa có ảnh nếu nguồn bị lỗi. Lệnh `node scripts/cache-property-images.mjs` cập nhật cache ảnh từ API đang chạy. Cột **Thao tác** trong Thông báo & Nhật ký mở chức năng hoặc chi tiết bản ghi liên quan, theo quyền tài khoản hiện tại.
 
 Đăng nhập bằng Admin hoặc Broker và mở **Quản lý nhu cầu** trong dashboard: `http://localhost:3001/#admin/demands`.
 
@@ -96,6 +104,7 @@ baocaocdptw1/
 Mở Terminal / PowerShell tại thư mục gốc `baocaocdptw1` và chạy lệnh:
 
 ```bash
+node scripts/setup-meilisearch-env.mjs
 docker compose up -d --build
 ```
 *(Nếu dùng Docker bản cũ: `docker-compose up -d --build`)*
@@ -147,3 +156,9 @@ composer install
 php artisan serve --host=127.0.0.1 --port=8080
 ```
 Truy cập: `http://127.0.0.1:8080`. Vite chuyển tiếp các yêu cầu `/api`, `/uploads`, `/storage` tới địa chỉ này.
+
+## Rà soát nhập liệu và cập nhật đồng thời
+
+Xem [kết quả kiểm tra 16 chức năng, quy tắc nhập liệu và cách triển khai](docs/INPUT_AND_CONCURRENCY_AUDIT.md).
+
+Giao diện mới: [gợi ý tìm kiếm dự án, biểu mẫu góc vuông và nhật ký trước/sau](docs/INTERFACE_SEARCH_AUDIT.md).

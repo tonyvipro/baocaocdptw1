@@ -219,6 +219,7 @@ class RentDemoSeeder extends Seeder
                         'code' => $unit['code'],
                     ], [
                         'title' => $unit['title'],
+                        'image' => RepairDemoPropertyImagesSeeder::imageFor($unit['code']),
                         'address' => $unit['address'],
                         'price' => $unit['amount'],
                         'price_rent' => $unit['amount'],

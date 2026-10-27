@@ -656,8 +656,8 @@ export default function PropertyTypesManager() {
       {/* 4. MODAL THÊM / CHỈNH SỬA DANH MỤC PHÂN LOẠI                              */}
       {/* ========================================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="form-surface bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
             
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -814,8 +814,8 @@ export default function PropertyTypesManager() {
       {/* 5. MODAL XÁC NHẬN XÓA DANH MỤC                                            */}
       {/* ========================================================================= */}
       {deletingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="form-surface bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
             <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 font-bold">
               <Trash2 className="w-6 h-6" />
             </div>

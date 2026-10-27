@@ -230,8 +230,8 @@ export default function DocumentPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-5 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+    <div className="app-dialog-layer fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-5 bg-slate-900/80 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="form-surface bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden border border-slate-200">
         
         {/* Header */}
         <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between gap-4 shrink-0">

@@ -120,7 +120,11 @@ class CustomerDemandController extends Controller
     private function checkVersion(Request $request, CustomerDemand $demand): void
     {
         $data = $request->validate(['version' => 'required|integer|min:1']);
-        abort_if((int) $data['version'] !== $demand->version, 409, 'Nhu cầu vừa được cập nhật. Vui lòng tải lại trước khi sửa hoặc xóa.');
+        if ((int) $data['version'] !== $demand->version) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'code' => 'STALE_VERSION', 'message' => 'Nhu cầu vừa được cập nhật. Vui lòng tải lại trước khi sửa hoặc xóa.',
+            ], 409));
+        }
     }
 
     public function update(Request $request, int $id)

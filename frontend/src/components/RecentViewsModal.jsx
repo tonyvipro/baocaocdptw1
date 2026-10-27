@@ -1,3 +1,4 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState, useMemo } from 'react';
 import { 
   Clock, 
@@ -82,9 +83,9 @@ export default function RecentViewsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden"
+        className="form-surface bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -250,7 +251,7 @@ export default function RecentViewsModal({
                     }}
                   >
                     <div className="relative w-24 h-20 sm:w-28 sm:h-20 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-100">
-                      <img
+                      <PropertyImage
                         src={item.image}
                         alt={item.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

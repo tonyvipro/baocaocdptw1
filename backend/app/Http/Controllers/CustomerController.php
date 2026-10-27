@@ -76,7 +76,7 @@ class CustomerController extends Controller
             else $query->whereHas('activities', function ($q) use ($filters, $pending, $start, $end) {
                 $pending($q);
                 match ($filters['care']) {
-                    'overdue' => $q->where('scheduled_at', '<', now()),
+                    'overdue' => $q->where('scheduled_at', '<', now('UTC')),
                     'today' => $q->whereBetween('scheduled_at', [$start, $end]),
                     'upcoming' => $q->where('scheduled_at', '>', $end),
                 };
@@ -134,7 +134,11 @@ class CustomerController extends Controller
     private function checkVersion(Request $request, Customer $customer): void
     {
         $data = $request->validate(['version' => 'required|integer|min:1']);
-        abort_if((int) $data['version'] !== (int) $customer->version, 409, 'Khách hàng vừa được cập nhật. Vui lòng tải lại trước khi sửa hoặc xóa.');
+        if ((int) $data['version'] !== (int) $customer->version) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'code' => 'STALE_VERSION', 'message' => 'Khách hàng vừa được cập nhật. Vui lòng tải lại trước khi sửa hoặc xóa.',
+            ], 409));
+        }
     }
 
     public function update(Request $request, int $id)
@@ -243,11 +247,12 @@ class CustomerController extends Controller
     public function completeActivity(Request $request, int $id, int $activityId)
     {
         $user = $this->manager($request);
-        return DB::transaction(function () use ($user, $id, $activityId) {
+        return DB::transaction(function () use ($request, $user, $id, $activityId) {
             $customer = $this->visible($user)->lockForUpdate()->findOrFail($id);
             $activity = $customer->activities()->lockForUpdate()->findOrFail($activityId);
             abort_if($activity->status === 'cancelled', 422, 'Lịch chăm sóc này đã được hủy.');
             if ($activity->status === 'pending') {
+                $this->checkVersion($request, $customer);
                 $activity->update(['status' => 'completed', 'completed_at' => now()]);
                 $customer->interactions()->create(['type' => $activity->type, 'summary' => $activity->title, 'occurred_at' => now(), 'actor_id' => $user->id]);
                 $customer->increment('version');

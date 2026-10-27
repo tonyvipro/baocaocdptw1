@@ -1,9 +1,11 @@
+import { useConfirm } from '../forms/ConfirmProvider';
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
 import { customerRequest } from '../../services/customers';
 import CrmDialog, { crmInput, crmButton, CrmError, CrmSelectOptions } from './CrmDialog';
 
 export default function CustomerForm({ customer, options, onClose, onSaved, mode = 'management' }) {
+  const confirm = useConfirm();
   const [form, setForm] = useState(() => ({
     name: customer?.name || '', company: customer?.company || '', source: customer?.source || '',
     email: customer?.email || '', phone: customer?.phone || '', notes: customer?.notes || '',
@@ -21,6 +23,7 @@ export default function CustomerForm({ customer, options, onClose, onSaved, mode
   };
   const save = async event => {
     event.preventDefault();
+    if (true && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu các thay đổi của khách hàng này?" }))) return;
     setSaving(true); setError(''); setErrors({});
     try {
       const data = { ...form, assigned_to: form.assigned_to ? Number(form.assigned_to) : null, version: customer.version };
@@ -37,7 +40,8 @@ export default function CustomerForm({ customer, options, onClose, onSaved, mode
   return <CrmDialog title="Chỉnh sửa thông tin khách hàng" onClose={() => { if (!saving) onClose(); }}>
     <form onSubmit={save}>
       <CrmError error={error} />
-      <fieldset disabled={saving} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <fieldset disabled={saving} className="giang-form-section grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <legend className="px-2 text-xs font-bold text-slate-700">Thông tin khách hàng</legend>
         {field('name', 'Tên khách hàng', 'text', true)}{field('company', 'Công ty')}
         {mode === 'management' ? <>
           {field('email', 'Email', 'email')}{field('phone', 'Số điện thoại (10–11 số)', 'tel')}

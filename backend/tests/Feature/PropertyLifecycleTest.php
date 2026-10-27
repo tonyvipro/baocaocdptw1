@@ -42,10 +42,10 @@ class PropertyLifecycleTest extends TestCase
         $this->assertDatabaseMissing('properties', ['id' => $id]);
     }
 
-    public function test_property_title_accepts_255_characters_and_rejects_256_on_create_and_update(): void
+    public function test_property_title_accepts_250_characters_and_rejects_251_on_create_and_update(): void
     {
         $this->actingAs($this->user(1));
-        $title = str_repeat('đ', 255);
+        $title = str_repeat('đ', 250);
         $id = $this->postJson('/api/properties', array_merge($this->payload(), ['title' => $title]))
             ->assertCreated()->json('data.id');
         $tooLong = $title.'đ';
@@ -170,7 +170,7 @@ class PropertyLifecycleTest extends TestCase
             $this->postJson('/api/properties', array_merge($this->payload(), $invalid))->assertStatus(422)->assertJsonValidationErrors($field);
         }
         $this->actingAs($this->user(1));
-        $this->postJson('/api/properties', array_merge($this->payload(), ['price' => '25000000000.00', 'area' => '300.25', 'address' => str_repeat('Đ', 255)]))->assertCreated();
+        $this->postJson('/api/properties', array_merge($this->payload(), ['price' => '25000000000.00', 'area' => '300.25', 'address' => str_repeat('Đ', 250)]))->assertCreated();
     }
 
     public function test_quick_hide_and_bulk_hide_need_no_reason_and_can_be_reversed(): void

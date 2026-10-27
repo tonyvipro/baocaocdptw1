@@ -14,6 +14,12 @@ class ReportController extends Controller
      */
     public function getStatistics(Request $request)
     {
+        $request->validate([
+            'report_type' => 'sometimes|in:overview,finance,operation,tenant',
+            'report_period' => 'sometimes|in:today,this_week,this_month,this_quarter,this_year,custom',
+            'start_date' => 'nullable|required_if:report_period,custom|date_format:Y-m-d',
+            'end_date' => 'nullable|required_if:report_period,custom|date_format:Y-m-d|after_or_equal:start_date',
+        ]);
         $reportType = $request->query('report_type', 'overview');
         $reportPeriod = $request->query('report_period', 'this_month');
         $startDateParam = $request->query('start_date');

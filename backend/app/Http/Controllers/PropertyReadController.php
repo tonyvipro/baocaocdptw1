@@ -19,8 +19,7 @@ class PropertyReadController extends Controller
         $price = $property->price ?? $property->$field;
         if ($price !== null) {
             $property->$field = $price;
-            $property->{$field.'_text'} = $rent ? round((float) $price / 1e6, 2).' triệu/tháng'
-                : ((float) $price >= 1e9 ? round((float) $price / 1e9, 2).' tỷ' : round((float) $price / 1e6, 2).' triệu');
+            $property->{$field.'_text'} = \App\Support\PropertyPrice::format((float) $price, $rent);
         }
         return $property;
     }
@@ -29,7 +28,7 @@ class PropertyReadController extends Controller
     {
         // A reachable, empty database is an empty catalog, never demo data.
         $ownListings = $request->boolean('all') || $request->boolean('mine');
-        $query = Property::with('propertyType');
+        $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
         if ($ownListings) {
             abort_unless($request->user() && $request->user()->is_active, 401, 'Vui lòng đăng nhập lại.');
             $query->where('user_id', $request->user()->id);
@@ -50,7 +49,7 @@ class PropertyReadController extends Controller
 
     public function index(Request $request)
     {
-        $query = Property::with('propertyType');
+        $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
         \App\Support\PropertySearch::apply($query, $request);
         foreach (['type', 'purpose', 'city'] as $field) {
             if ($request->filled($field) && $request->input($field) !== 'all') {
