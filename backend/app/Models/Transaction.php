@@ -27,11 +27,19 @@ class Transaction extends Model
         'note',
         'recorded_by',
         'client_token',
+        'gateway',
+        'gateway_order_id',
+        'gateway_txn_id',
+        'qr_content',
+        'pay_url',
+        'expires_at',
+        'failure_reason',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
+        'expires_at' => 'datetime',
         'status' => 'integer',
     ];
 
@@ -67,12 +75,25 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'recorded_by');
     }
 
+    public function gatewayLogs()
+    {
+        return $this->hasMany(PaymentGatewayLog::class, 'transaction_id');
+    }
+
     /**
      * Scope chỉ lấy các giao dịch thành công (status = 1)
      */
     public function scopeSuccessful($query)
     {
         return $query->where('status', TransactionStatus::SUCCESS);
+    }
+
+    /**
+     * Scope lấy các giao dịch đang chờ (status = 0)
+     */
+    public function scopePending($query)
+    {
+        return $query->where('status', TransactionStatus::PENDING);
     }
 
     public function getPaymentMethodLabelAttribute(): string

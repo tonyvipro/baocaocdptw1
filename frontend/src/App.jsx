@@ -26,6 +26,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import MyContractsPage from './pages/customer/MyContractsPage';
 import MyContractDetailPage from './pages/customer/MyContractDetailPage';
 import MyInvoicesPage from './pages/customer/MyInvoicesPage';
+import MockGatewayPayPage from './pages/MockGatewayPayPage';
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -454,6 +455,15 @@ export default function App() {
 
   const rentCount = properties.filter((p) => p.purpose === 'rent').length;
   const saleCount = properties.filter((p) => p.purpose === 'sale').length;
+
+  // Tuyến đường mô phỏng thanh toán cổng giả lập (MockGateway)
+  const isMockGatewayRoute =
+    window.location.pathname.startsWith('/mock-gateway/pay') ||
+    (window.location.hash || '').startsWith('#mock-gateway/pay');
+
+  if (isMockGatewayRoute) {
+    return <MockGatewayPayPage onGoBack={goHome} />;
+  }
 
   // Nếu đang ở chế độ admin, render nguyên cụm layout admin
   if (currentAppMode === 'admin') {

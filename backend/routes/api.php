@@ -11,6 +11,7 @@ use App\Http\Controllers\MyInvoiceController;
 Route::get('/search/properties', \App\Http\Controllers\PropertySearchController::class)
     ->middleware('throttle:120,1');
 use App\Http\Controllers\Api\RentPaymentController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\MetaController;
 
 // Public Metadata API
@@ -75,4 +76,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rent-payments/payable', [RentPaymentController::class, 'payable']);
     Route::get('/rent-payments/{id}', [RentPaymentController::class, 'show']);
     Route::post('/invoices/{id}/payments', [RentPaymentController::class, 'recordPayment']);
+
+    // Thanh Toán & Công Nợ API (Spec Hình 45 & Mục 6.3)
+    Route::get('/payments/debts', [PaymentController::class, 'debts']);
+    Route::get('/payments/debts/summary', [PaymentController::class, 'summary']);
+    Route::get('/payments/debts/{invoice}', [PaymentController::class, 'showDebt']);
+    Route::get('/invoices/{invoice}/payments', [PaymentController::class, 'invoiceTransactions']);
+    Route::post('/invoices/{invoice}/payments/qr', [PaymentController::class, 'createQrPayment']);
+    Route::get('/payment-transactions/{transaction_code}', [PaymentController::class, 'showTransaction']);
+    Route::post('/payment-transactions/{transaction_code}/cancel', [PaymentController::class, 'cancelQrPayment']);
+    Route::post('/payment-transactions/{id}/cancel-manual', [PaymentController::class, 'cancelManualPayment']);
 });
+
+// Cổng thanh toán công khai (Public IPN Callback & Redirect Return)
+Route::post('/payments/{gateway}/ipn', [PaymentController::class, 'handleIpn'])
+    ->middleware('throttle:120,1');
+Route::get('/payments/{gateway}/return', [PaymentController::class, 'handleReturn']);
+
+// Cổng giả lập MockGateway (Chỉ bật trên Local / Testing)
+Route::get('/mock-gateway/pay/{transaction_code}', [PaymentController::class, 'mockPaymentInfo']);
+Route::post('/mock-gateway/pay/{transaction_code}/{action}', [PaymentController::class, 'mockPaymentAction']);
+

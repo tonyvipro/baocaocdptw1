@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractExtension;
 use App\Models\User;
 use App\Notifications\ContractExtensionNotification;
+use App\Services\PropertyAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,7 @@ class ProcessContractExpiryCommand extends Command
 
     protected $description = 'Rà soát hợp đồng sắp hết hạn (30, 15, 7 ngày) gửi thông báo, và chuyển hợp đồng quá hạn sang trạng thái Hết hiệu lực';
 
-    public function handle(): int
+    public function handle(PropertyAvailabilityService $availabilityService): int
     {
         $today = Carbon::today();
         $this->info("Bắt đầu xử lý rà soát trạng thái và hạn hợp đồng ngày {$today->toDateString()}...");
@@ -84,6 +85,13 @@ class ProcessContractExpiryCommand extends Command
             if (!$hasPendingExtension) {
                 $contract->update(['status' => 3]); // 3: Đã hết hạn / Đã thanh lý
                 $expiredCount++;
+
+                // Đồng bộ tính khả dụng BĐS (Phần B)
+                try {
+                    $availabilityService->syncForContract($contract);
+                } catch (\Throwable $e) {
+                    Log::error("Lỗi đồng bộ BĐS khi HĐ {$contract->id} hết hạn: " . $e->getMessage());
+                }
 
                 $this->warn(" - HĐ {$contract->contract_code} đã hết hiệu lực và chuyển sang trạng thái 3.");
             }

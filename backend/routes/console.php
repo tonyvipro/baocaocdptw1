@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('contracts:process-expiry')->dailyAt('00:00');
 Schedule::command('invoices:generate-rent')->dailyAt('00:15');
 Schedule::command('invoices:mark-overdue')->dailyAt('00:20');
+Schedule::command('payments:expire-pending')->everyMinute()->withoutOverlapping();
+Schedule::command('properties:sync-availability')->dailyAt('01:00')->withoutOverlapping();
+
 
 Artisan::command('brokers:sync-users', function () {
     $created = 0;
