@@ -17,7 +17,14 @@ class Property extends Model
 
     protected function casts(): array
     {
-        return ['status' => 'integer', 'bedrooms' => 'integer', 'bathrooms' => 'integer', 'floors' => 'integer', 'area' => 'float'];
+        return [
+            'status' => 'integer',
+            'bedrooms' => 'integer',
+            'bathrooms' => 'integer',
+            'floors' => 'integer',
+            'area' => 'float',
+            'closed_at' => 'datetime',
+        ];
     }
 
     public function searchableAs(): string
@@ -78,6 +85,11 @@ class Property extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function closedContract()
+    {
+        return $this->belongsTo(Contract::class, 'closed_contract_id');
     }
 
     /**

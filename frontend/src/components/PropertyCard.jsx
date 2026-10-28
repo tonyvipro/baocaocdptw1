@@ -39,11 +39,17 @@ export default function PropertyCard({
           />
           
           <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
-            <span className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold text-white shadow-md tracking-wider ${
-              isRent ? 'bg-blue-600' : 'bg-red-600'
-            }`}>
-              {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
-            </span>
+            {Number(property.status) === 2 ? (
+              <span className="px-2.5 py-1 rounded-md text-[11px] font-black text-amber-200 bg-slate-900/90 border border-slate-700 shadow-md tracking-wider">
+                {property.closed_reason === 'sold' || !isRent ? 'ĐÃ BÁN' : 'ĐÃ CHO THUÊ'}
+              </span>
+            ) : (
+              <span className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold text-white shadow-md tracking-wider ${
+                isRent ? 'bg-blue-600' : 'bg-red-600'
+              }`}>
+                {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+              </span>
+            )}
           </div>
 
           <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-slate-900/75 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-md font-medium">
@@ -174,11 +180,17 @@ export default function PropertyCard({
 
         {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-          <span className={`px-2.5 py-1 rounded-md text-[11px] font-black text-white shadow-md tracking-wider ${
-            isRent ? 'bg-blue-600' : 'bg-red-600'
-          }`}>
-            {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
-          </span>
+          {Number(property.status) === 2 ? (
+            <span className="px-2.5 py-1 rounded-md text-[11px] font-black text-amber-200 bg-slate-900/90 border border-slate-700 shadow-md tracking-wider">
+              {property.closed_reason === 'sold' || !isRent ? 'ĐÃ BÁN' : 'ĐÃ CHO THUÊ'}
+            </span>
+          ) : (
+            <span className={`px-2.5 py-1 rounded-md text-[11px] font-black text-white shadow-md tracking-wider ${
+              isRent ? 'bg-blue-600' : 'bg-red-600'
+            }`}>
+              {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
+            </span>
+          )}
           {property.badge && (
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold text-white bg-slate-900/80 backdrop-blur-md shadow-xs">
               {property.badge}

@@ -8,6 +8,7 @@ class InvoiceType
     public const DEPOSIT = 'deposit';
     public const SERVICE = 'service';
     public const OTHER = 'other';
+    public const SALE = 'sale';
 
     public static function all(): array
     {
@@ -16,6 +17,7 @@ class InvoiceType
             self::DEPOSIT,
             self::SERVICE,
             self::OTHER,
+            self::SALE,
         ];
     }
 
@@ -26,6 +28,7 @@ class InvoiceType
             self::DEPOSIT => 'Tiền cọc',
             self::SERVICE => 'Phí dịch vụ/tiện ích',
             self::OTHER => 'Khoản thu khác',
+            self::SALE => 'Mua bán BĐS',
             default => 'Không xác định',
         };
     }

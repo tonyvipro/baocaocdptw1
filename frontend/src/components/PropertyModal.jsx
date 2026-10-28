@@ -130,6 +130,34 @@ export default function PropertyModal({
         {/* Modal Scrollable Body */}
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-6">
 
+          {/* Băng rôn BĐS đã giao dịch (thuê/bán) - Mục 4.5 Spec */}
+          {Number(prop.status) === 2 && (
+            <div className="p-4 rounded-xl bg-slate-900 text-white border border-slate-700 shadow-md flex items-center justify-between flex-wrap gap-3 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-amber-400/20 text-amber-300">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-amber-200">
+                    {prop.closed_reason === 'sold' || !isRent
+                      ? 'Bất động sản này đã được bán.'
+                      : 'Bất động sản này đã được cho thuê.'}
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Hợp đồng đã có hiệu lực thành công. Bất động sản này hiện không còn khả dụng để đặt lịch xem.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors border border-white/20 cursor-pointer"
+              >
+                Khám phá BĐS khác
+              </button>
+            </div>
+          )}
+
           {/* Top Gallery & Quick Pricing Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
 
@@ -451,15 +479,25 @@ export default function PropertyModal({
             >
               Đóng lại
             </button>
-            <button
-              onClick={() => {
-                onClose();
-                onOpenContact(prop);
-              }}
-              className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
-            >
-              Đặt Lịch Xem Bất Động Sản
-            </button>
+            {Number(prop.status) === 2 ? (
+              <button
+                disabled
+                className="px-4 py-2 rounded-xl bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed border border-slate-300"
+                title="Bất động sản này đã được thuê hoặc bán, không thể đặt lịch xem."
+              >
+                {prop.closed_reason === 'sold' || !isRent ? 'Đã được bán' : 'Đã được cho thuê'}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenContact(prop);
+                }}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
+              >
+                Đặt Lịch Xem Bất Động Sản
+              </button>
+            )}
           </div>
         </div>
 

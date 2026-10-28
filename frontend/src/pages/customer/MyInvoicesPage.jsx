@@ -6,6 +6,8 @@ import {
   CreditCard, MapPin, DollarSign, Home, AlertCircle
 } from 'lucide-react';
 import invoiceApi from '../../services/invoiceApi';
+import PaymentRecordModal from '../../components/PaymentRecordModal';
+import QrPaymentModal from '../../components/QrPaymentModal';
 
 export default function MyInvoicesPage({ currentUser, onGoHome }) {
   const [invoices, setInvoices] = useState([]);
@@ -25,6 +27,10 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
   const [detailInvoice, setDetailInvoice] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Modal Thanh toán QR (Phân hệ 9)
+  const [payingInvoice, setPayingInvoice] = useState(null);
+  const [activeQrData, setActiveQrData] = useState(null);
 
   const fetchMyInvoices = useCallback(async (page = 1) => {
     try {
@@ -247,6 +253,15 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {Number(inv.status) !== 1 && Number(inv.status) !== 3 && (
+                      <button
+                        onClick={() => setPayingInvoice(inv)}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-colors shadow-2xs cursor-pointer"
+                        title="Quét mã QR thanh toán ngay"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" /> Thanh toán
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDownloadPdf(inv)}
                       className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors border border-slate-200"
@@ -383,6 +398,19 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
               >
                 Đóng
               </button>
+              {Number(detailInvoice.status) !== 1 && Number(detailInvoice.status) !== 3 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = detailInvoice;
+                    setDetailInvoice(null);
+                    setPayingInvoice(target);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  <CreditCard className="w-4 h-4" /> Thanh toán QR
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => handleDownloadPdf(detailInvoice)}
@@ -395,6 +423,39 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Khởi tạo Thanh toán (Khách hàng dùng tab QR) */}
+      {payingInvoice && (
+        <PaymentRecordModal
+          isOpen={Boolean(payingInvoice)}
+          onClose={() => setPayingInvoice(null)}
+          initialInvoice={payingInvoice}
+          allowManual={currentUser?.role_id === 1 || currentUser?.role_id === 2}
+          onSuccessRecord={() => {
+            setPayingInvoice(null);
+            fetchMyInvoices(pagination.currentPage);
+          }}
+          onOpenQrGenerated={(qrData, inv) => {
+            setActiveQrData({ qrData, invoice: inv });
+          }}
+        />
+      )}
+
+      {/* Modal Hiển thị mã QR và Polling trạng thái */}
+      {activeQrData && (
+        <QrPaymentModal
+          isOpen={Boolean(activeQrData)}
+          onClose={(wasSuccess) => {
+            setActiveQrData(null);
+            // Chỉ khi người dùng bấm đóng form sau khi thanh toán thành công thì mới reload
+            if (wasSuccess) {
+              window.location.reload();
+            }
+          }}
+          qrData={activeQrData.qrData}
+          invoice={activeQrData.invoice}
+        />
       )}
     </div>
   );
