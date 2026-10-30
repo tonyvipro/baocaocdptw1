@@ -1,3 +1,4 @@
+import PropertyImage from '../../components/properties/PropertyImage';
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, CheckCircle2, XCircle, Clock, AlertTriangle, Search, Filter, 
@@ -608,8 +609,8 @@ export default function ListingApprovalsManager() {
                       <td className="py-3.5 px-3">
                         <div className="flex items-center gap-3 max-w-sm">
                           <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                            <img 
-                              src={prop.image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300'} 
+                            <PropertyImage
+                              src={prop.image}
                               alt={prop.title}
                               className="w-full h-full object-cover"
                             />
@@ -757,8 +758,8 @@ export default function ListingApprovalsManager() {
               >
                 {/* Image & Top Badges */}
                 <div className="relative h-44 bg-slate-100 overflow-hidden">
-                  <img 
-                    src={prop.image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=500'} 
+                  <PropertyImage
+                    src={prop.image}
                     alt={prop.title}
                     className="w-full h-full object-cover"
                   />
@@ -907,8 +908,8 @@ export default function ListingApprovalsManager() {
       {/* MODAL 1: THẨM ĐỊNH TOÀN DIỆN CHI TIẾT BẤT ĐỘNG SẢN (FULL INSPECTION MODAL) */}
       {/* ========================================================================= */}
       {inspectingProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="form-surface bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scale-up">
             
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
@@ -961,11 +962,11 @@ export default function ListingApprovalsManager() {
                 {/* Left: Images Gallery */}
                 <div className="space-y-3">
                   <div className="relative h-64 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
-                    <img 
+                    <PropertyImage
                       src={
                         inspectingProperty.images && inspectingProperty.images.length > 0 
                           ? inspectingProperty.images[activeImageIndex]?.image_url || inspectingProperty.images[activeImageIndex]?.image || inspectingProperty.image
-                          : inspectingProperty.image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600'
+                          : inspectingProperty.image
                       } 
                       alt="Property" 
                       className="w-full h-full object-cover"
@@ -986,7 +987,7 @@ export default function ListingApprovalsManager() {
                             activeImageIndex === idx ? 'border-amber-500 ring-2 ring-amber-500/20' : 'border-slate-200 opacity-60 hover:opacity-100'
                           }`}
                         >
-                          <img src={img.image_url || img.image} className="w-full h-full object-cover" />
+                          <PropertyImage src={img.image_url || img.image} className="w-full h-full object-cover" />
                         </button>
                       ))}
                     </div>
@@ -1145,8 +1146,8 @@ export default function ListingApprovalsManager() {
       {/* MODAL 2: TỪ CHỐI TIN ĐĂNG VỚI LÝ DO (REJECT REASON DIALOG)                */}
       {/* ========================================================================= */}
       {rejectingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-scale-up border border-slate-100">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="form-surface bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-5 animate-scale-up border border-slate-100">
             
             <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">

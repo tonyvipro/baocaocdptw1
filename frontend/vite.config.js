@@ -9,7 +9,9 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    port: 3000,
+    host: true,
+    port: 3001,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -20,6 +22,24 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
+      },
+      '/storage': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-charts': ['chart.js', 'react-chartjs-2'],
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-icons': ['lucide-react'],
+        },
       },
     },
   },

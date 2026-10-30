@@ -1,5 +1,7 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import PropertyImage from './properties/PropertyImage';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { validCoordinates } from '../utils/property';
 import L from 'leaflet';
 import { Eye, MapPin, Building2, Bed, Bath, Maximize2 } from 'lucide-react';
 
@@ -14,32 +16,21 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+function FitResults({ properties }) {
+  const map = useMap();
+  useEffect(() => {
+    if (properties.length) map.fitBounds(properties.map(p => [Number(p.lat), Number(p.lng)]), { padding: [35, 35], maxZoom: 15 });
+  }, [map, properties]);
+  return null;
+}
+
 export default function MapView({ properties = [], onSelectProperty }) {
   // Default center coordinates (TP.HCM)
   const defaultCenter = [10.7769, 106.7009];
 
-  // Map coordinates fallback if null
-  const getCoordinates = (p, index) => {
-    if (p.lat && p.lng && !isNaN(p.lat) && !isNaN(p.lng) && p.lat !== 0 && p.lng !== 0) {
-      return [p.lat, p.lng];
-    }
-    // Fallback coordinates dispersed around HCM City
-    const offsets = [
-      [10.7769, 106.7009], // Quận 1
-      [10.7412, 106.7196], // Quận 7
-      [10.7878, 106.7495], // TP Thủ Đức (Quận 2)
-      [10.8505, 106.7719], // TP Thủ Đức (Quận 9)
-      [10.8000, 106.6900], // Bình Thạnh
-      [10.7600, 106.6600], // Quận 10
-      [10.8200, 106.6800]  // Gò Vấp
-    ];
-    return offsets[index % offsets.length];
-  };
-
-  const validProperties = properties.map((p, idx) => ({
-    ...p,
-    mapCoords: getCoordinates(p, idx)
-  }));
+  const validProperties = properties.filter(
+    validCoordinates
+  );
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-xl p-2 relative h-[680px]">
@@ -49,6 +40,7 @@ export default function MapView({ properties = [], onSelectProperty }) {
         scrollWheelZoom={true}
         className="w-full h-full rounded-xl z-10"
       >
+        <FitResults properties={validProperties} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -57,13 +49,13 @@ export default function MapView({ properties = [], onSelectProperty }) {
         {validProperties.map((prop) => (
           <Marker
             key={prop.code || prop.id}
-            position={prop.mapCoords}
+            position={[Number(prop.lat), Number(prop.lng)]}
             icon={customIcon}
           >
             <Popup className="custom-leaflet-popup">
               <div className="w-68 p-2.5 bg-white text-slate-800 rounded-lg">
                 <div className="relative h-32 rounded-lg overflow-hidden mb-2 bg-slate-100 group">
-                  <img
+                  <PropertyImage
                     src={prop.image}
                     alt={prop.title}
                     className="w-full h-full object-cover"
@@ -91,7 +83,7 @@ export default function MapView({ properties = [], onSelectProperty }) {
                   <span>•</span>
                   <span>{prop.bathrooms} WC</span>
                 </div>
-                
+
                 <p className="text-sm font-black text-red-600 mb-2.5">
                   {prop.purpose === 'rent' ? prop.price_rent_text : prop.price_sale_text}
                 </p>

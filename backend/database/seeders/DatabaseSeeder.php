@@ -191,10 +191,13 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($users as $user) {
-            DB::table('users')->updateOrInsert(['id' => $user['id']], array_merge($user, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+            // Chỉ thêm nếu user chưa tồn tại để không ghi đè thông tin & avatar admin đã cập nhật
+            if (DB::table('users')->where('id', $user['id'])->doesntExist()) {
+                DB::table('users')->insert(array_merge($user, [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]));
+            }
         }
 
         // 6. Service Packages (Spec 4.2.1.21)
@@ -216,6 +219,9 @@ class DatabaseSeeder extends Seeder
             AppointmentSeeder::class,
             UserManagementSeeder::class,
             StatisticalSeeder::class,
+            CustomerSeeder::class,
+            InvoiceSeeder::class,
+            PaymentSeeder::class,
         ]);
     }
 }

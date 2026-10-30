@@ -3,10 +3,14 @@ import {
   Building2, Plus, Search, Filter, RefreshCw, Eye, Edit, Trash2, RotateCcw, 
   CheckCircle2, XCircle, AlertTriangle, Clock, MapPin, DollarSign, Home, 
   Layers, Compass, ShieldCheck, Check, Calendar, ArrowRight, ArrowLeft,
-  X, CheckSquare, Square, Tag, ExternalLink, CalendarPlus, AlertCircle
+  X, CheckSquare, Square, Tag, ExternalLink, CalendarPlus, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
 import ListingApprovalsManager from './ListingApprovalsManager';
 import ExtendListingModal from '../../components/ExtendListingModal';
+import ChangePropertyStatusModal from '../../components/ChangePropertyStatusModal';
+import BulkChangePropertyStatusModal from '../../components/BulkChangePropertyStatusModal';
+import useRecordLink from '../../hooks/useRecordLink';
+import PropertyImage from '../../components/properties/PropertyImage';
 
 export default function PropertiesManager() {
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
@@ -55,10 +59,29 @@ export default function PropertiesManager() {
   const [viewingProperty, setViewingProperty] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
   const [extendingProperty, setExtendingProperty] = useState(null);
+  const [statusManagingProperty, setStatusManagingProperty] = useState(null);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
   // Status Notification popup
   const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
+  useRecordLink('properties', async ({ id, search, tab, signal }) => {
+    if (tab === 'trash') { setActiveTab('trash'); return; }
+    if (!id) return;
+    setActiveTab('list');
+    if (search) setSearchTerm(search);
+    try {
+      const params = new URLSearchParams({ admin: '1', per_page: '100', search });
+      const response = await fetch('/api/properties?' + params, { signal, headers: getHeaders() });
+      if (!response.ok) throw new Error('Không tải được bất động sản từ liên kết.');
+      const result = await response.json();
+      if (!signal.aborted) {
+        const property = result.data?.find(item => Number(item.id) === id);
+        if (property) setViewingProperty(property);
+        else showToast('Bất động sản đã bị xóa hoặc không còn trong danh sách.', 'error');
+      }
+    } catch (error) { if (!signal.aborted) showToast(error.message, 'error'); }
+  });
 
   const showToast = (message, type = 'success') => {
     setToast({ type, message });
@@ -247,6 +270,43 @@ export default function PropertiesManager() {
     fetchStats();
   };
 
+  // Handle Single Status Change Success callback
+  const handleStatusChangeSuccess = (updatedProp, message) => {
+    showToast(message || 'Cập nhật trạng thái thành công!');
+    setProperties(prev => prev.map(p => p.id === updatedProp.id ? { ...p, ...updatedProp } : p));
+    if (viewingProperty && viewingProperty.id === updatedProp.id) {
+      setViewingProperty(prev => ({ ...prev, ...updatedProp }));
+    }
+    fetchStats();
+  };
+
+  // Handle Bulk Status Change Confirm
+  const handleBulkChangeStatusConfirm = async (newStatus, reason) => {
+    if (selectedIds.length === 0) return;
+    try {
+      const payload = {
+        action: 'change_status',
+        ids: selectedIds,
+        status: newStatus,
+        reason: reason || ''
+      };
+      const res = await fetch('/api/properties/bulk-action', {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi cập nhật trạng thái hàng loạt.');
+      showToast(data.message || 'Đã cập nhật trạng thái hàng loạt thành công!');
+      setSelectedIds([]);
+      fetchProperties(pagination.current_page);
+      fetchStats();
+    } catch (err) {
+      showToast(err.message, 'error');
+      throw err;
+    }
+  };
+
   // Handle Extend (Gia hạn tin 30 ngày nhanh)
   const handleExtend = async (id) => {
     setActionLoadingId(id);
@@ -340,15 +400,37 @@ export default function PropertiesManager() {
   const renderStatusBadge = (status) => {
     switch (Number(status)) {
       case 0:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"><Clock className="w-3 h-3" /> Chờ duyệt</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-300 shadow-2xs hover:bg-amber-100 transition-colors">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <Clock className="w-3 h-3 text-amber-600" /> Chờ duyệt
+          </span>
+        );
       case 1:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200"><CheckCircle2 className="w-3 h-3" /> Đang hiển thị</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs hover:bg-emerald-100 transition-colors">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Đang hiển thị
+          </span>
+        );
       case 2:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200"><Tag className="w-3 h-3" /> Đã giao dịch</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-300 shadow-2xs hover:bg-blue-100 transition-colors">
+            <Tag className="w-3 h-3 text-blue-600" /> Đã giao dịch
+          </span>
+        );
       case 3:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"><Calendar className="w-3 h-3" /> Hết hạn</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-300 shadow-2xs hover:bg-purple-100 transition-colors">
+            <Calendar className="w-3 h-3 text-purple-600" /> Hết hạn
+          </span>
+        );
       case 4:
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200"><XCircle className="w-3 h-3" /> Đã ẩn / Từ chối</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-300 shadow-2xs hover:bg-rose-100 transition-colors">
+            <XCircle className="w-3 h-3 text-rose-600" /> Đã ẩn / Từ chối
+          </span>
+        );
       default:
         return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">Khác</span>;
     }
@@ -548,14 +630,14 @@ export default function PropertiesManager() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 font-bold text-slate-700"
                 >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="1">Đang hiển thị</option>
+                  <option value="all">Tất cả trạng thái ({stats.all_total || stats.total})</option>
+                  <option value="1">Đang hiển thị ({stats.active || 0})</option>
+                  <option value="2">Đã giao dịch ({stats.sold || 0})</option>
+                  <option value="0">Chờ duyệt ({stats.pending || 0})</option>
                   <option value="3">Hết hạn ({stats.expired || 0})</option>
-                  <option value="0">Chờ duyệt</option>
-                  <option value="2">Đã giao dịch</option>
-                  <option value="4">Đã ẩn</option>
+                  <option value="4">Đã ẩn / Từ chối ({stats.hidden || 0})</option>
                 </select>
               </div>
 
@@ -579,33 +661,47 @@ export default function PropertiesManager() {
             {selectedIds.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 bg-slate-50/80 p-2.5 rounded-xl">
                 <span className="text-xs font-semibold text-slate-700">
-                  Đã chọn <strong className="text-red-600">{selectedIds.length}</strong> bất động sản
+                  Đã chọn <strong className="text-blue-600 font-black">{selectedIds.length}</strong> bất động sản
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShowBulkStatusModal(true)}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    Đổi trạng thái hàng loạt
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('mark_sold')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Tag className="w-3.5 h-3.5" />
+                    Đã giao dịch
+                  </button>
                   <button
                     onClick={() => handleBulkAction('extend')}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <CalendarPlus className="w-3.5 h-3.5" />
-                    Gia hạn hàng loạt (+30 ngày)
-                  </button>
-                  <button
-                    onClick={() => handleBulkAction('delete')}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors"
-                  >
-                    Chuyển vào Thùng rác
+                    Gia hạn (+30 ngày)
                   </button>
                   <button
                     onClick={() => handleBulkAction('hide')}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
                   >
                     Tạm ẩn
                   </button>
                   <button
                     onClick={() => handleBulkAction('show')}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
                   >
                     Bật hiển thị
+                  </button>
+                  <button
+                    onClick={() => handleBulkAction('delete')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer"
+                  >
+                    Thùng rác
                   </button>
                 </div>
               </div>
@@ -684,13 +780,11 @@ export default function PropertiesManager() {
 
                         <td className="py-3 px-3 border-b border-slate-50/50">
                           <div className="w-16 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/60 shrink-0 shadow-sm group-hover:shadow-md group-hover:border-blue-200 transition-all">
-                            <img
-                              src={prop.image || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&auto=format&fit=crop&q=80'}
+                            <PropertyImage
+                              src={prop.image}
                               alt={prop.title}
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              onError={(e) => {
-                                e.target.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&auto=format&fit=crop&q=80';
-                              }}
+
                             />
                           </div>
                         </td>
@@ -722,7 +816,14 @@ export default function PropertiesManager() {
                         </td>
 
                         <td className="py-3 px-3 border-b border-slate-50/50">
-                          {renderStatusBadge(prop.status)}
+                          <button
+                            type="button"
+                            onClick={() => setStatusManagingProperty(prop)}
+                            className="text-left group/badge hover:scale-105 transition-transform cursor-pointer focus:outline-none"
+                            title="Bấm để quản lý trạng thái & xem lịch sử tin"
+                          >
+                            {renderStatusBadge(prop.status)}
+                          </button>
                           {prop.expire_date && (
                             <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-slate-400" />
@@ -751,6 +852,15 @@ export default function PropertiesManager() {
                               <Eye className="w-4 h-4" />
                             </button>
 
+                            {/* Nút Quản lý trạng thái & Lịch sử */}
+                            <button
+                              onClick={() => setStatusManagingProperty(prop)}
+                              title="Quản lý trạng thái & Lịch sử tin"
+                              className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:shadow-sm transition-all cursor-pointer"
+                            >
+                              <SlidersHorizontal className="w-4 h-4" />
+                            </button>
+
                             {/* Nút Sửa */}
                             <button
                               onClick={() => setEditingProperty(prop)}
@@ -769,7 +879,7 @@ export default function PropertiesManager() {
                               <CalendarPlus className="w-4 h-4" />
                             </button>
 
-                            {/* Nút Ẩn/Hiện */}
+                            {/* Nút Ẩn/Hiện nhanh */}
                             <button
                               onClick={() => handleChangeStatus(prop.id, prop.status === 1 ? 4 : 1)}
                               title={prop.status === 1 ? 'Tạm ẩn bài đăng' : 'Bật hiển thị'}
@@ -967,6 +1077,10 @@ export default function PropertiesManager() {
             setEditingProperty(viewingProperty);
             setViewingProperty(null);
           }}
+          onManageStatus={(prop) => {
+            setViewingProperty(null);
+            setStatusManagingProperty(prop);
+          }}
         />
       )}
 
@@ -995,6 +1109,30 @@ export default function PropertiesManager() {
           onClose={() => setExtendingProperty(null)}
           property={extendingProperty}
           onSuccess={handleExtendSuccess}
+        />
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 4: QUẢN LÝ TRẠNG THÁI BẤT ĐỘNG SẢN & LỊCH SỬ TIN   */}
+      {/* ========================================================= */}
+      {statusManagingProperty && (
+        <ChangePropertyStatusModal
+          isOpen={Boolean(statusManagingProperty)}
+          onClose={() => setStatusManagingProperty(null)}
+          property={statusManagingProperty}
+          onSuccess={handleStatusChangeSuccess}
+        />
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 5: ĐỔI TRẠNG THÁI HÀNG LOẠT                        */}
+      {/* ========================================================= */}
+      {showBulkStatusModal && (
+        <BulkChangePropertyStatusModal
+          isOpen={showBulkStatusModal}
+          onClose={() => setShowBulkStatusModal(false)}
+          selectedCount={selectedIds.length}
+          onConfirm={handleBulkChangeStatusConfirm}
         />
       )}
 
@@ -1062,7 +1200,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
       return;
     }
     if (formData.title.length > 255) {
-      setError('Tên sản phẩm không được vượt quá 255 ký tự.');
+      setError('Tiêu đề bất động sản không được vượt quá 255 ký tự.');
       return;
     }
     if (!formData.price || isNaN(formData.price) || Number(formData.price) <= 0) {
@@ -1149,7 +1287,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
             <label className="font-bold text-slate-700">Tiêu đề tin (*):</label>
             <input
               type="text"
-              name="title"
+              name="title" maxLength={255}
               value={formData.title}
               onChange={handleChange}
               placeholder="Ví dụ: Bán căn hộ 3PN Vinhomes Central Park view sông cực đẹp..."
@@ -1405,12 +1543,25 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
 // -------------------------------------------------------------
 // SUB-COMPONENT: MODAL XEM CHI TIẾT BĐS 
 // -------------------------------------------------------------
-function PropertyDetailModal({ property, onClose, onEdit }) {
+// -------------------------------------------------------------
+// SUB-COMPONENT: MODAL XEM CHI TIẾT BĐS 
+// -------------------------------------------------------------
+function PropertyDetailModal({ property, onClose, onEdit, onManageStatus }) {
   if (!property) return null;
 
+  const statusLabels = {
+    0: { label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-700 border-amber-300' },
+    1: { label: 'Đang hiển thị', color: 'bg-emerald-50 text-emerald-700 border-emerald-300' },
+    2: { label: 'Đã giao dịch (Bán/Thuê)', color: 'bg-blue-50 text-blue-700 border-blue-300' },
+    3: { label: 'Hết hạn', color: 'bg-purple-50 text-purple-700 border-purple-300' },
+    4: { label: 'Đã ẩn / Từ chối', color: 'bg-rose-50 text-rose-700 border-rose-300' },
+  };
+
+  const curStatus = statusLabels[Number(property.status)] || { label: 'Chưa rõ', color: 'bg-slate-100 text-slate-700 border-slate-300' };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
+      <div className="form-surface relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -1426,10 +1577,10 @@ function PropertyDetailModal({ property, onClose, onEdit }) {
         <div className="p-6 overflow-y-auto space-y-5 text-xs">
           {/* Ảnh lớn */}
           <div className="w-full h-56 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-            <img 
+            <PropertyImage
               src={property.image} 
               className="w-full h-full object-cover" 
-              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&auto=format&fit=crop&q=80'; }}
+
             />
           </div>
 
@@ -1440,6 +1591,39 @@ function PropertyDetailModal({ property, onClose, onEdit }) {
               <span>{property.address || `${property.district}, ${property.city}`}</span>
             </div>
           </div>
+
+          {/* Trạng thái bài đăng Banner */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-600">Trạng thái tin:</span>
+              <span className={`px-2.5 py-0.5 rounded-full font-bold border text-xs ${curStatus.color}`}>
+                {curStatus.label}
+              </span>
+              {property.expire_date && (
+                <span className="text-[11px] text-slate-500 font-mono ml-2">
+                  (Hạn: {new Date(property.expire_date).toLocaleDateString('vi-VN')})
+                </span>
+              )}
+            </div>
+
+            {onManageStatus && (
+              <button
+                type="button"
+                onClick={() => onManageStatus(property)}
+                className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Đổi trạng thái / Lịch sử
+              </button>
+            )}
+          </div>
+
+          {property.rejection_reason && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+              <span className="font-bold text-rose-700">Lý do từ chối/tạm ẩn: </span>
+              {property.rejection_reason}
+            </div>
+          )}
 
           {/* Grid thông số */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -1493,13 +1677,24 @@ function PropertyDetailModal({ property, onClose, onEdit }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100">
-            Đóng
-          </button>
-          <button onClick={onEdit} className="px-5 py-2 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 flex items-center gap-1.5">
-            <Edit className="w-3.5 h-3.5" /> Chỉnh sửa BĐS
-          </button>
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+          {onManageStatus ? (
+            <button 
+              onClick={() => onManageStatus(property)}
+              className="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 font-bold hover:bg-blue-100 flex items-center gap-1.5 cursor-pointer"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Quản lý trạng thái
+            </button>
+          ) : <div />}
+
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 cursor-pointer">
+              Đóng
+            </button>
+            <button onClick={onEdit} className="px-5 py-2 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 flex items-center gap-1.5 cursor-pointer">
+              <Edit className="w-3.5 h-3.5" /> Chỉnh sửa BĐS
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1545,7 +1740,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
       return;
     }
     if (formData.title.length > 255) {
-      setError('Tên sản phẩm không được vượt quá 255 ký tự.');
+      setError('Tiêu đề bất động sản không được vượt quá 255 ký tự.');
       return;
     }
 
@@ -1580,8 +1775,8 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
-      <div className="relative w-full max-w-xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn font-sans">
+      <div className="form-surface relative w-full max-w-xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5 text-amber-500" />
@@ -1604,7 +1799,7 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
             <label className="font-bold text-slate-700">Tiêu đề BĐS (*):</label>
             <input
               type="text"
-              name="title"
+              name="title" maxLength={255}
               value={formData.title}
               onChange={handleChange}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-red-500 font-medium"
@@ -1660,9 +1855,10 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold"
               >
                 <option value="1">Đang hiển thị</option>
-                <option value="0">Chờ duyệt</option>
                 <option value="2">Đã giao dịch</option>
-                <option value="4">Đã ẩn</option>
+                <option value="0">Chờ duyệt</option>
+                <option value="3">Hết hạn</option>
+                <option value="4">Đã ẩn / Từ chối</option>
               </select>
             </div>
           </div>

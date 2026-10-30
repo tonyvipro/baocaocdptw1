@@ -39,14 +39,20 @@ class StatisticalSeeder extends Seeder
 
         // 2. Tạo Hóa đơn (Invoices) để có Doanh thu
         for ($i = 1; $i <= 20; $i++) {
+            $created = now()->subDays(rand(1, 30));
+            $amt = rand(15, 30) * 1000000;
             DB::table('invoices')->insert([
+                'invoice_no' => 'QLTT-INV-' . $created->format('Ym') . '-VHGPR01-' . str_pad($i, 2, '0', STR_PAD_LEFT),
+                'issue_date' => $created->toDateString(),
                 'contract_id' => rand(1, 15),
                 'title' => 'Hóa đơn tiền thuê tháng ' . rand(1,12),
-                'type' => 'RENT',
-                'amount' => rand(15, 30) * 1000000,
+                'type' => 'rent',
+                'amount' => $amt,
+                'paid_amount' => $amt,
+                'paid_at' => $created->addHours(rand(1, 24)),
                 'status' => 1, // 1 = Đã thanh toán
                 'due_date' => now()->addDays(rand(1, 10)),
-                'created_at' => now()->subDays(rand(1, 30)),
+                'created_at' => $created,
                 'updated_at' => now(),
             ]);
         }

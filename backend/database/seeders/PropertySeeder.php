@@ -19,13 +19,17 @@ class PropertySeeder extends Seeder
         }
         
         if (File::exists($jsonPath)) {
-            $data = json_decode(File::get($jsonPath), true);
+            $data = json_decode(File::get($jsonPath), true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($data) || !array_is_list($data)) throw new \RuntimeException('File bất động sản phải là danh sách JSON.');
+            $codes = array_column($data, 'code');
+            if (count($codes) !== count($data) || count(array_unique($codes)) !== count($codes)) throw new \RuntimeException('Mã bất động sản thiếu hoặc bị trùng trong file.');
             
             foreach ($data as $item) {
                 $address = trim(($item['street'] ?? '') . ', ' . ($item['district'] ?? '') . ', ' . ($item['city'] ?? ''));
-                $price = $item['price_sale'] ?? $item['price_rent'] ?? 0;
+                $price = ($item['purpose'] ?? 'sale') === 'rent' ? ($item['price_rent'] ?? 0) : ($item['price_sale'] ?? 0);
 
-                Property::updateOrCreate(
+                // Import missing records only; database edits and deletions win.
+                Property::withTrashed()->firstOrCreate(
                     ['code' => $item['code']],
                     [
                         'title' => $item['title'],
@@ -56,7 +60,8 @@ class PropertySeeder extends Seeder
                         'city' => $item['city'] ?? 'TP. Hồ Chí Minh',
                         'lat' => $item['lat'] ?? null,
                         'lng' => $item['lng'] ?? null,
-                        'image' => $item['image'] ?? null,
+                        'image' => str_contains($item['image'] ?? '', 'photo-1502005229762-ee1b2b8ab00f')
+                            ? RepairDemoPropertyImagesSeeder::imageFor($item['code']) : ($item['image'] ?? null),
                         'badge' => $item['badge'] ?? null,
                         'badge_class' => $item['badge_class'] ?? null,
                         'owner_name' => $item['owner_name'] ?? null,

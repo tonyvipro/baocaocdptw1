@@ -19,13 +19,14 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:250',
             'email' => 'required|string|email|max:191|unique:users,email',
             'password' => 'required|string|min:8|max:32|confirmed',
-            'phone' => ['nullable', 'regex:/^[0-9]{10,11}$/'],
+            'password_confirmation' => 'required|string|min:8|max:32',
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
         ], [
             'name.required' => 'Vui lòng nhập họ và tên của bạn.',
-            'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
+            'name.max' => 'Họ và tên không được vượt quá 250 ký tự.',
             'email.required' => 'Vui lòng nhập địa chỉ email của bạn.',
             'email.email' => 'Địa chỉ email không đúng định dạng.',
             'email.max' => 'Email không được vượt quá 191 ký tự.',
@@ -34,6 +35,10 @@ class AuthController extends Controller
             'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.max' => 'Mật khẩu không được dài quá 32 ký tự.',
             'password.confirmed' => 'Xác nhận mật khẩu không trùng khớp.',
+            'password_confirmation.required' => 'Vui lòng xác nhận mật khẩu.',
+            'password_confirmation.min' => 'Xác nhận mật khẩu phải có ít nhất 8 ký tự.',
+            'password_confirmation.max' => 'Xác nhận mật khẩu không được dài quá 32 ký tự.',
+            'phone.string' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
             'phone.regex' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
         ]);
 
@@ -46,8 +51,11 @@ class AuthController extends Controller
         }
 
         // Tìm hoặc gán role mặc định: Customer (Khách hàng)
-        $defaultRole = Role::where('name', 'Customer')->orWhere('name', 'Khách hàng')->first();
-        $roleId = $defaultRole ? $defaultRole->id : null;
+        // Role IDs are used by the authorization policy; registration is always customer (5).
+        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
+            'id' => 5, 'name' => 'Customer', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $roleId = 5;
 
         $user = User::create([
             'name' => trim($request->name),
@@ -75,6 +83,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ],
             'token' => $user->createToken('auth_token')->plainTextToken
         ], 201);
@@ -105,38 +114,9 @@ class AuthController extends Controller
         $password = $request->input('password', '');
         $remember = $request->boolean('remember', true);
 
-        // Tự động đảm bảo tài khoản Admin và Roles tồn tại nếu CSDL chưa seed
-        try {
-            if (Schema::hasTable('roles') && Role::count() === 0) {
-                Role::insert([
-                    ['id' => 1, 'name' => 'Admin', 'description' => 'Quản trị viên toàn quyền hệ thống', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 2, 'name' => 'BĐS', 'description' => 'Môi giới BĐS', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 3, 'name' => 'Owner', 'description' => 'Chủ sở hữu', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 4, 'name' => 'Staff', 'description' => 'Nhân viên', 'created_at' => now(), 'updated_at' => now()],
-                    ['id' => 5, 'name' => 'Customer', 'description' => 'Khách hàng', 'created_at' => now(), 'updated_at' => now()],
-                ]);
-            }
-
-            if (Schema::hasTable('users') && User::where('role_id', 1)->doesntExist()) {
-                User::create([
-                    'id' => 1,
-                    'name' => 'Nguyễn Quản Trị (Admin)',
-                    'email' => 'admin@3tvland.vn',
-                    'password' => Hash::make('Admin@123456'),
-                    'phone' => '0901234567',
-                    'role_id' => 1,
-                    'avatar' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-                    'is_active' => 1,
-                    'dark_mode' => 0,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            // Không ngắt luồng nếu có lỗi schema
-        }
-
         // Tìm người dùng theo email hoặc username 'admin'
         $user = null;
-        if (in_array($inputLogin, ['admin', 'admin@3tvland.vn', 'admin@gmail.com', 'administrator'])) {
+        if (in_array($inputLogin, ['admin', 'administrator'])) {
             $user = User::where('email', 'admin@3tvland.vn')->orWhere('role_id', 1)->first();
         } else {
             $user = User::where('email', $inputLogin)->first();
@@ -149,10 +129,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Kiểm tra mật khẩu (hỗ trợ cả mật khẩu chuẩn 'Admin@123456' và các mật khẩu phổ biến 'admin', 'admin123', '123456' cho Admin)
-        $isAdmin = ($user->role_id === 1 || $user->email === 'admin@3tvland.vn');
-        $validPassword = Hash::check($password, $user->password) 
-            || ($isAdmin && in_array($password, ['Admin@123456', 'admin', 'admin123', '123456']));
+        $isAdmin = (int) $user->role_id === 1;
+        $validPassword = Hash::check($password, $user->password);
 
         if (!$validPassword) {
             return response()->json([
@@ -187,6 +165,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ],
             'token' => $user->createToken('auth_token')->plainTextToken
         ]);
@@ -198,51 +177,8 @@ class AuthController extends Controller
      */
     protected function getAuthenticatedUser(Request $request)
     {
-        // 1. Kiểm tra guard Sanctum (nếu có Bearer token)
-        try {
-            $user = auth('sanctum')->user();
-            if ($user) {
-                return $user;
-            }
-        } catch (\Throwable $e) {}
-
-        // 2. Kiểm tra web guard / session thông thường
-        try {
-            if (Auth::check() && Auth::user()) {
-                return Auth::user();
-            }
-        } catch (\Throwable $e) {}
-
-        // 3. Kiểm tra Bearer token thủ công qua PersonalAccessToken
-        try {
-            $bearerToken = $request->bearerToken();
-            if ($bearerToken) {
-                $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($bearerToken);
-                if ($tokenModel && $tokenModel->tokenable) {
-                    return $tokenModel->tokenable;
-                }
-            }
-        } catch (\Throwable $e) {}
-
-        // 4. Nhận diện an toàn qua user_id hoặc email từ request payload
-        $userId = $request->input('user_id') ?: $request->input('id');
-        if ($userId) {
-            $user = User::find($userId);
-            if ($user) {
-                return $user;
-            }
-        }
-
-        $email = $request->input('email');
-        if ($email) {
-            $user = User::where('email', strtolower(trim($email)))->first();
-            if ($user) {
-                return $user;
-            }
-        }
-
-        // 5. Fallback nếu là tài khoản quản trị hệ thống
-        return User::where('role_id', 1)->first() ?? User::first();
+        $user = $request->user('sanctum') ?? $request->user();
+        return $user && $user->is_active ? $user : null;
     }
 
     /**
@@ -270,6 +206,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ]
         ]);
     }
@@ -279,6 +216,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = $this->getAuthenticatedUser($request);
+        $token = $user?->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) $token->delete();
         Auth::logout();
         try {
             $request->session()->invalidate();
@@ -302,13 +242,13 @@ class AuthController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone' => ['nullable', 'regex:/^[0-9]{10,11}$/'],
+            'name' => 'required|string|max:250',
+            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
             'avatar' => 'nullable|string',
             'dark_mode' => 'nullable|boolean',
         ], [
             'name.required' => 'Họ và tên không được để trống.',
-            'name.max' => 'Họ và tên không được vượt quá 255 ký tự.',
+            'name.max' => 'Họ và tên không được vượt quá 250 ký tự.',
             'phone.regex' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
         ]);
 
@@ -324,20 +264,23 @@ class AuthController extends Controller
             $avatarInput = $request->avatar;
             if (str_starts_with($avatarInput, 'data:image/')) {
                 try {
-                    if (preg_match('/^data:image\/(\w+);base64,/', $avatarInput, $type)) {
-                        $imgData = substr($avatarInput, strpos($avatarInput, ',') + 1);
-                        $ext = strtolower($type[1]);
-                        if ($ext === 'jpeg') $ext = 'jpg';
-                        $imgData = base64_decode($imgData);
+                    $commaPos = strpos($avatarInput, ',');
+                    if ($commaPos !== false) {
+                        $rawBase64 = substr($avatarInput, $commaPos + 1);
+                        $imgData = base64_decode($rawBase64);
 
                         if ($imgData !== false) {
-                            $uploadDir = public_path('uploads/avatars');
-                            if (!file_exists($uploadDir)) {
-                                @mkdir($uploadDir, 0755, true);
+                            $savedPath = $this->processAndSaveAvatar($imgData, $user->id);
+                            if ($savedPath) {
+                                // Xóa avatar cũ trên đĩa nếu là file cục bộ để tiết kiệm dung lượng
+                                if ($user->avatar && str_starts_with($user->avatar, '/uploads/avatars/')) {
+                                    $oldPath = public_path(ltrim($user->avatar, '/'));
+                                    if (file_exists($oldPath)) {
+                                        @unlink($oldPath);
+                                    }
+                                }
+                                $avatarUrl = $savedPath;
                             }
-                            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $ext;
-                            @file_put_contents($uploadDir . '/' . $filename, $imgData);
-                            $avatarUrl = '/uploads/avatars/' . $filename;
                         }
                     }
                 } catch (\Throwable $e) {}
@@ -375,6 +318,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
+                'version' => (int) ($user->version ?? 1),
             ]
         ]);
     }
@@ -420,7 +364,70 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Đổi mật khẩu thành công!'
+            'message' => 'Đổi mật khẩu thành công!',
+            'version' => (int) $user->version
         ]);
+    }
+
+    /**
+     * Tối ưu hóa kích thước ảnh đại diện (Nén, resize max 320x320 dạng WebP/JPEG thumbnail)
+     */
+    private function processAndSaveAvatar(string $imgData, int $userId): ?string
+    {
+        $uploadDir = public_path('uploads/avatars');
+        if (!file_exists($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+
+        $filename = 'avatar_' . $userId . '_' . time() . '.webp';
+        $targetPath = $uploadDir . '/' . $filename;
+
+        // Xử lý nén ảnh qua GD library
+        if (function_exists('imagecreatefromstring')) {
+            $src = @imagecreatefromstring($imgData);
+            if ($src !== false) {
+                $width = imagesx($src);
+                $height = imagesy($src);
+
+                $maxDim = 320;
+                $newWidth = $width;
+                $newHeight = $height;
+
+                if ($width > $maxDim || $height > $maxDim) {
+                    if ($width > $height) {
+                        $newWidth = $maxDim;
+                        $newHeight = (int) round(($height * $maxDim) / $width);
+                    } else {
+                        $newHeight = $maxDim;
+                        $newWidth = (int) round(($width * $maxDim) / $height);
+                    }
+                }
+
+                $dst = imagecreatetruecolor($newWidth, $newHeight);
+                imagealphablending($dst, false);
+                imagesavealpha($dst, true);
+                imagecopyresampled($dst, $src, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                if (function_exists('imagewebp')) {
+                    imagewebp($dst, $targetPath, 82);
+                    imagedestroy($src);
+                    imagedestroy($dst);
+                    return '/uploads/avatars/' . $filename;
+                } elseif (function_exists('imagejpeg')) {
+                    $jpgFilename = 'avatar_' . $userId . '_' . time() . '.jpg';
+                    imagejpeg($dst, $uploadDir . '/' . $jpgFilename, 82);
+                    imagedestroy($src);
+                    imagedestroy($dst);
+                    return '/uploads/avatars/' . $jpgFilename;
+                }
+                imagedestroy($src);
+                imagedestroy($dst);
+            }
+        }
+
+        // Fallback ghi file thông thường nếu GD không khả dụng
+        $rawFile = 'avatar_' . $userId . '_' . time() . '.jpg';
+        @file_put_contents($uploadDir . '/' . $rawFile, $imgData);
+        return '/uploads/avatars/' . $rawFile;
     }
 }

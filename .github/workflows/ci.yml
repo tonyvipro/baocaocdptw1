@@ -1,30 +1,52 @@
-
-name: Laravel CI/CD
+name: Laravel & React CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main ]
 
 jobs:
-  test-and-deploy:
-    runs-on: self-hosted
-    
+  backend-lint:
+    name: Backend Syntax & Lint
+    runs-on: ubuntu-latest
     steps:
-      - name: Set up job
-        shell: powershell
-        run: Write-Host "Starting deployment workflow..."
-
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy with Docker Compose
-        shell: powershell
-        run: |
-          docker compose down
-          docker compose up -d --build
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, mysql, pdo_mysql
 
-      - name: Complete job
-        shell: powershell
-        run: Write-Host "Deployment completed successfully!"
+      - name: Validate Composer Configuration
+        working-directory: backend
+        run: composer validate --strict --no-check-all
+
+      - name: Check PHP Syntax (Lint)
+        run: |
+          echo "Scanning PHP files for syntax errors..."
+          find backend/app backend/routes backend/config -name "*.php" -exec php -l {} +
+
+  frontend-build:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Production Frontend
+        working-directory: frontend
+        run: npm run build

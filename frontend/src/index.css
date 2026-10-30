@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import "tailwindcss";
 
 @layer base {
@@ -52,3 +53,47 @@
 .group:hover .img-zoom {
   transform: scale(1.04);
 }
+
+/* Legal Contract Font (Tiêu chuẩn hành chính & Hợp đồng pháp lý - Chống lỗi vỡ font tiếng Việt) */
+.contract-legal-font,
+.contract-legal-font *:not(.contract-keep-sans),
+.font-legal {
+  font-family: "Times New Roman", "Noto Serif", "Tinos", "Merriweather", "DejaVu Serif", serif !important;
+  font-feature-settings: "liga" 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif {
+  font-family: "Times New Roman", "Noto Serif", "Tinos", "Merriweather", "DejaVu Serif", Georgia, serif !important;
+}
+
+/* Print optimization for A4 documents */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  html, body, #root, main {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  aside,
+  header {
+    display: none !important;
+  }
+  #contract-a4-document {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    min-height: auto !important;
+  }
+}
+

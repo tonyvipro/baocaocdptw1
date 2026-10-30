@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, Heart, SlidersHorizontal, Phone, Database, 
   User, LogIn, UserPlus, LogOut, ChevronDown, PlusCircle,
-  MapPin, Clock
+  MapPin, Clock, FileText, Receipt
 } from 'lucide-react';
 import { triggerDatabaseMigration, resolveAvatarUrl } from '../services/api';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar({ 
-  activeTab, 
   setActiveTab, 
   favoriteCount, 
   openFavorites,
@@ -24,7 +24,11 @@ export default function Navbar({
   openRecent,
   onOpenAdmin,
   onOpenPostProperty,
-  onOpenUserListings
+  onOpenUserListings,
+  onOpenNotifications,
+  onOpenMyContracts,
+  onOpenMyInvoices,
+  onGoHome,
 }) {
   const [migrating, setMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -84,12 +88,12 @@ export default function Navbar({
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 sm:h-18 sm:flex-nowrap sm:py-0">
           
           {/* Logo Brand */}
           <div 
             className="flex items-center gap-2.5 cursor-pointer select-none" 
-            onClick={() => { setActiveTab('all'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            onClick={() => { setActiveTab('all'); onGoHome?.(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
           >
             <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-sm font-bold">
               <Building2 className="w-6 h-6" />
@@ -103,42 +107,8 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
-                activeTab === 'all' 
-                  ? 'text-red-600 bg-red-50/80 font-bold' 
-                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
-              }`}
-            >
-              Tất Cả Nhà Đất
-            </button>
-            <button
-              onClick={() => setActiveTab('sale')}
-              className={`px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
-                activeTab === 'sale' 
-                  ? 'text-red-600 bg-red-50/80 font-bold' 
-                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
-              }`}
-            >
-              Nhà Đất Bán
-            </button>
-            <button
-              onClick={() => setActiveTab('rent')}
-              className={`px-3.5 py-2 rounded-md text-sm font-semibold transition-colors ${
-                activeTab === 'rent' 
-                  ? 'text-red-600 bg-red-50/80 font-bold' 
-                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
-              }`}
-            >
-              Nhà Đất Cho Thuê
-            </button>
-          </nav>
-
           {/* Action Utilities */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
             {/* Recent Viewed */}
             {openRecent && (
               <button
@@ -201,6 +171,7 @@ export default function Navbar({
             </button>
 
             {/* User Profile / Auth Area */}
+            <NotificationBell currentUser={currentUser} onOpen={onOpenNotifications} />
             {currentUser ? (
               <div className="relative">
                 <button
@@ -261,6 +232,40 @@ export default function Navbar({
                       >
                         <Database className="w-4 h-4 text-slate-400" />
                         <span>{currentUser.role_id === 1 ? 'Trang hệ thống' : 'Quản lý lịch hẹn'}</span>
+                      </button>
+                    )}
+
+                    {/* Nút Xem hợp đồng dành cho Khách hàng (role_id = 5) và Admin */}
+                    {currentUser && (currentUser.role_id === 5 || currentUser.role_id === 1) && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenMyContracts) onOpenMyContracts();
+                          else window.location.hash = '#my-contracts';
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 border-t border-slate-100"
+                      >
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-slate-800">
+                          {currentUser.role_id === 1 ? 'Xem hợp đồng (Giao diện khách)' : 'Xem hợp đồng'}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* Nút Hóa đơn của tôi dành cho Khách hàng (role_id = 5) và Admin - đặt NGAY PHÍA TRÊN nút Đăng xuất */}
+                    {currentUser && (currentUser.role_id === 5 || currentUser.role_id === 1) && (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          if (onOpenMyInvoices) onOpenMyInvoices();
+                          else window.location.hash = '#my-invoices';
+                        }}
+                        className="w-full text-left px-3.5 py-2 hover:bg-emerald-50 flex items-center gap-2 text-slate-700 border-t border-slate-100"
+                      >
+                        <Receipt className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-slate-800">
+                          {currentUser.role_id === 1 ? 'Hóa đơn của tôi (Giao diện khách)' : 'Hóa đơn của tôi'}
+                        </span>
                       </button>
                     )}
 

@@ -1,9 +1,11 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState, useEffect } from 'react';
 import { 
   X, Building2, MapPin, Edit, Trash2, Eye, Calendar, PlusCircle, 
-  AlertTriangle, RefreshCw, CheckCircle2, Clock, XCircle, Info, CalendarPlus, Sparkles 
+  AlertTriangle, RefreshCw, CheckCircle2, Clock, XCircle, Info, CalendarPlus, Sparkles, SlidersHorizontal, Tag 
 } from 'lucide-react';
 import ExtendListingModal from './ExtendListingModal';
+import ChangePropertyStatusModal from './ChangePropertyStatusModal';
 
 export default function UserListingsModal({ isOpen, onClose, currentUser, onOpenPostProperty }) {
   const [myProperties, setMyProperties] = useState([]);
@@ -12,6 +14,7 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
   const [filterStatus, setFilterStatus] = useState('approved'); // Mặc định hiển thị tin đã được duyệt
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [extendingProperty, setExtendingProperty] = useState(null);
+  const [statusManagingProperty, setStatusManagingProperty] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const fetchMyProperties = async () => {
@@ -103,12 +106,14 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
 
   // Filter properties based on tab (dùng Number() để tương thích kiểu dữ liệu)
   const approvedCount = myProperties.filter(p => Number(p.status) === 1).length;
+  const soldCount = myProperties.filter(p => Number(p.status) === 2).length;
   const pendingCount = myProperties.filter(p => Number(p.status) === 0).length;
   const expiredCount = myProperties.filter(p => Number(p.status) === 3).length;
   const hiddenCount = myProperties.filter(p => Number(p.status) === 4).length;
 
   const displayedProperties = myProperties.filter(p => {
     if (filterStatus === 'approved') return Number(p.status) === 1;
+    if (filterStatus === 'sold') return Number(p.status) === 2;
     if (filterStatus === 'pending') return Number(p.status) === 0;
     if (filterStatus === 'expired') return Number(p.status) === 3;
     if (filterStatus === 'hidden') return Number(p.status) === 4;
@@ -116,8 +121,8 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-slate-50 rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn flex flex-col max-h-[90vh]">
+    <div className="app-dialog-layer fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className="form-surface bg-slate-50 rounded-3xl w-full max-w-5xl shadow-2xl border border-slate-200/60 overflow-hidden my-8 animate-fadeIn flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-200 sticky top-0 z-10 shadow-sm shrink-0">
           <div className="flex items-center gap-3">
@@ -162,6 +167,20 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
               <CheckCircle2 className="w-3.5 h-3.5" />
               Đã duyệt & Đang hiển thị ({approvedCount})
             </button>
+
+            {soldCount > 0 && (
+              <button
+                onClick={() => setFilterStatus('sold')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  filterStatus === 'sold'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                Đã giao dịch ({soldCount})
+              </button>
+            )}
 
             <button
               onClick={() => setFilterStatus('pending')}
@@ -303,7 +322,7 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                         <td className="py-3 px-4">
                           <div className="w-16 h-12 rounded-lg overflow-hidden border border-slate-200 relative">
                             {property.images && property.images.length > 0 ? (
-                              <img src={property.images[0].image_url} alt={property.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              <PropertyImage src={property.images[0].image_url} alt={property.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                             ) : (
                               <div className="w-full h-full bg-slate-100 flex items-center justify-center">
                                 <Building2 className="w-4 h-4 text-slate-300" />
@@ -361,6 +380,12 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                                   )}
                                 </div>
                               );
+                            } else if (Number(property.status) === 2) {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg border border-blue-300 font-bold text-[10px] tracking-wide uppercase">
+                                  <Tag className="w-3 h-3 text-blue-600" /> Đã giao dịch
+                                </span>
+                              );
                             } else if (Number(property.status) === 0) {
                               return (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-300 font-bold text-[10px] tracking-wide uppercase">
@@ -403,6 +428,10 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                                 {property.rejection_reason || 'Không đạt tiêu chuẩn kiểm duyệt của ban quản trị.'}
                               </span>
                             </div>
+                          ) : Number(property.status) === 2 ? (
+                            <div className="text-[11px] text-blue-800 bg-blue-50/70 p-2 rounded-lg border border-blue-200 font-medium">
+                              Đã hoàn tất giao dịch. {property.rejection_reason && <span>(Ghi chú: {property.rejection_reason})</span>}
+                            </div>
                           ) : Number(property.status) === 0 ? (
                             <span className="text-amber-600 font-medium text-[11px] italic flex items-center gap-1">
                               <Clock className="w-3.5 h-3.5" /> Đang chờ duyệt
@@ -421,6 +450,14 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
                         {/* Actions */}
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                            {/* Nút Quản lý trạng thái */}
+                            <button 
+                              onClick={() => setStatusManagingProperty(property)}
+                              className="w-7 h-7 rounded bg-blue-50 border border-blue-200 text-blue-600 hover:text-white hover:bg-blue-600 hover:border-blue-600 flex items-center justify-center transition-all shadow-xs cursor-pointer"
+                              title="Đổi trạng thái tin / Xem lịch sử"
+                            >
+                              <SlidersHorizontal className="w-3.5 h-3.5" />
+                            </button>
                             {/* Nút Gia hạn tin */}
                             <button 
                               onClick={() => setExtendingProperty(property)}
@@ -462,8 +499,8 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
 
         {/* Detail Inspection Modal for User */}
         {selectedDetail && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-fadeIn border border-slate-100">
+          <div className="app-dialog-layer fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className="form-surface bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 space-y-4 animate-fadeIn border border-slate-100">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
@@ -513,16 +550,28 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
               </div>
 
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => {
-                    const prop = selectedDetail;
-                    setSelectedDetail(null);
-                    setExtendingProperty(prop);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20 cursor-pointer transition-all"
-                >
-                  <CalendarPlus className="w-3.5 h-3.5" /> Gia hạn tin đăng này
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const prop = selectedDetail;
+                      setSelectedDetail(null);
+                      setStatusManagingProperty(prop);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 cursor-pointer transition-all"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" /> Đổi trạng thái
+                  </button>
+                  <button
+                    onClick={() => {
+                      const prop = selectedDetail;
+                      setSelectedDetail(null);
+                      setExtendingProperty(prop);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-600/20 cursor-pointer transition-all"
+                  >
+                    <CalendarPlus className="w-3.5 h-3.5" /> Gia hạn tin
+                  </button>
+                </div>
                 <button
                   onClick={() => setSelectedDetail(null)}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl cursor-pointer"
@@ -541,6 +590,24 @@ export default function UserListingsModal({ isOpen, onClose, currentUser, onOpen
             onClose={() => setExtendingProperty(null)}
             property={extendingProperty}
             onSuccess={handleExtendSuccess}
+          />
+        )}
+
+        {/* Change Status Modal */}
+        {statusManagingProperty && (
+          <ChangePropertyStatusModal
+            isOpen={Boolean(statusManagingProperty)}
+            onClose={() => setStatusManagingProperty(null)}
+            property={statusManagingProperty}
+            currentUser={currentUser}
+            onSuccess={(updatedProp, message) => {
+              setMyProperties(prev => prev.map(p => p.id === updatedProp.id ? { ...p, ...updatedProp } : p));
+              if (selectedDetail && selectedDetail.id === updatedProp.id) {
+                setSelectedDetail(prev => ({ ...prev, ...updatedProp }));
+              }
+              setToastMessage(message || 'Cập nhật trạng thái thành công!');
+              setTimeout(() => setToastMessage(null), 4500);
+            }}
           />
         )}
 

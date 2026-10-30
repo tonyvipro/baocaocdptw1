@@ -8,10 +8,12 @@ services:
     restart: always
     ports:
       - "3000:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
 
-  # 2. BACKEND (Laravel 11 PHP)
+  # 2. BACKEND (Laravel PHP)
   backend:
     build:
       context: ./backend
@@ -22,6 +24,8 @@ services:
       - "8080:80"
     volumes:
       - ./backend:/var/www/html
+      - ./backend/public/uploads:/var/www/html/public/uploads
+      - ./backend/storage/app/public:/var/www/html/storage/app/public
     environment:
       - APACHE_DOCUMENT_ROOT=/var/www/html/public
       - APP_KEY=base64:nQmTyAa3vuHvoA3wE+XN3c91AknORJxL6S1ulYPCyBQ=
@@ -31,12 +35,30 @@ services:
       - DB_DATABASE=baocaocdptw1_db
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
+      - SCOUT_DRIVER=meilisearch
+      - SCOUT_QUEUE=false
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in the root .env file}
     command: >
-      bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && chmod -R 777 storage bootstrap/cache 2>/dev/null || true && apache2-foreground"
+      bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && mkdir -p public/uploads/avatars storage/app/public storage/framework/{sessions,views,cache} bootstrap/cache && php artisan storage:link 2>/dev/null || true && chmod -R 777 storage bootstrap/cache public/uploads 2>/dev/null || true && apache2-foreground"
     depends_on:
       - db
+      - meilisearch
 
-  # 3. DATABASE (MySQL)
+  meilisearch:
+    image: getmeili/meilisearch:v1.55.0
+    container_name: baocaocdptw1_meilisearch
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7700:7700"
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in the root .env file}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili_data:/meili_data
+
+  # 3. DATABASE (MySQL Persistent)
   db:
     image: mysql:8.0
     container_name: baocaocdptw1_db
@@ -66,3 +88,4 @@ services:
 
 volumes:
   db_data:
+  meili_data:

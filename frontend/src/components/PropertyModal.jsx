@@ -1,16 +1,19 @@
+import PropertyImage from './properties/PropertyImage';
 import React, { useState } from 'react';
-import { 
-  X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle, 
+import {
+  X, Bed, Bath, Maximize2, MapPin, ShieldCheck, Phone, CheckCircle,
   Share2, Heart, Building2, Calendar, FileText, ChevronRight, UserCheck,
-  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus
+  CheckCheck, SlidersHorizontal, Map, Sparkles, Compass, Check, CalendarPlus, Tag
 } from 'lucide-react';
 import ExtendListingModal from './ExtendListingModal';
+import ChangePropertyStatusModal from './ChangePropertyStatusModal';
+import { propertyGallery } from '../utils/propertyImage';
 
-export default function PropertyModal({ 
-  property, 
-  onClose, 
-  isFavorite, 
-  onToggleFavorite, 
+export default function PropertyModal({
+  property,
+  onClose,
+  isFavorite,
+  onToggleFavorite,
   onOpenContact,
   isCompared,
   onToggleCompare
@@ -20,6 +23,7 @@ export default function PropertyModal({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showMapTab, setShowMapTab] = useState(false);
   const [showExtendModal, setShowExtendModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   if (!property) return null;
 
@@ -35,27 +39,23 @@ export default function PropertyModal({
 
   const canExtend = Boolean(
     currentUser && (
-      currentUser.role_id === 1 || 
-      currentUser.id === prop.user_id || 
+      currentUser.role_id === 1 ||
+      currentUser.id === prop.user_id ||
       (currentUser.phone && currentUser.phone === prop.owner_phone)
     )
   );
 
-  // Demo gallery image list
-  const galleryImages = [
-    property.image,
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=80'
-  ];
+  const galleryImages = propertyGallery(prop);
 
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/?property=${property.code || property.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl);
+  const handleShare = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('property', property.code);
+    try {
+      await navigator.clipboard.writeText(url.toString());
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt('Sao chép liên kết bất động sản:', url.toString());
     }
   };
 
@@ -67,12 +67,12 @@ export default function PropertyModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <div 
-        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+      <div
+        className="form-surface relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden my-6 border border-slate-200 flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        
+
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50">
           {/* Breadcrumbs */}
@@ -129,31 +129,74 @@ export default function PropertyModal({
 
         {/* Modal Scrollable Body */}
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-6">
-          
+
+          {/* Băng rôn BĐS đã giao dịch (thuê/bán) - Mục 4.5 Spec */}
+          {Number(prop.status) === 2 && (
+            <div className="p-4 rounded-xl bg-slate-900 text-white border border-slate-700 shadow-md flex items-center justify-between flex-wrap gap-3 animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-amber-400/20 text-amber-300">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-amber-200">
+                    {prop.closed_reason === 'sold' || !isRent
+                      ? 'Bất động sản này đã được bán.'
+                      : 'Bất động sản này đã được cho thuê.'}
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Hợp đồng đã có hiệu lực thành công. Bất động sản này hiện không còn khả dụng để đặt lịch xem.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors border border-white/20 cursor-pointer"
+              >
+                Khám phá BĐS khác
+              </button>
+            </div>
+          )}
+
           {/* Top Gallery & Quick Pricing Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            
+
             {/* Main Photo Gallery */}
             <div className="lg:col-span-7 flex flex-col gap-2.5">
               <div className="relative h-64 sm:h-80 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 group">
-                <img
+                <PropertyImage
                   src={galleryImages[activeImageIndex] || property.image}
                   alt={property.title}
                   className="w-full h-full object-cover transition-all duration-300"
                 />
-                <div className="absolute top-3 left-3 flex gap-2">
+                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
                   <span className={`px-2.5 py-1 rounded-md text-xs font-black text-white shadow-md ${
                     isRent ? 'bg-blue-600' : 'bg-red-600'
                   }`}>
                     {isRent ? 'CHO THUÊ' : 'BÁN SỔ HỒNG'}
                   </span>
+                  {Number(prop.status) === 2 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-blue-600 shadow-md">
+                      ĐÃ GIAO DỊCH
+                    </span>
+                  )}
+                  {Number(prop.status) === 0 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-amber-600 shadow-md">
+                      CHỜ DUYỆT
+                    </span>
+                  )}
+                  {Number(prop.status) === 4 && (
+                    <span className="px-2.5 py-1 rounded-md text-xs font-black text-white bg-rose-600 shadow-md">
+                      TẠM ẨN
+                    </span>
+                  )}
                   <span className="px-2.5 py-1 rounded-md text-xs font-bold text-white bg-slate-900/80 backdrop-blur-md">
                     {property.badge || 'VIP'}
                   </span>
                 </div>
 
                 <div className="absolute bottom-3 right-3 bg-slate-950/75 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-md font-medium">
-                  {activeImageIndex + 1} / {galleryImages.length} ảnh
+                  {galleryImages.length ? Math.min(activeImageIndex + 1, galleryImages.length) : 0} / {galleryImages.length} ảnh
                 </div>
               </div>
 
@@ -167,7 +210,7 @@ export default function PropertyModal({
                       activeImageIndex === idx ? 'border-red-600 shadow-md scale-102' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                    <PropertyImage src={img} alt="thumbnail" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -180,7 +223,7 @@ export default function PropertyModal({
                 <h2 className="text-lg font-bold text-slate-900 leading-snug mt-1 mb-2">
                   {property.title}
                 </h2>
-                
+
                 <p className="flex items-start gap-1.5 text-xs text-slate-600 mb-4">
                   <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{property.street}, {property.district}, {property.city}</span>
@@ -251,7 +294,7 @@ export default function PropertyModal({
               <Sparkles className="w-4 h-4 text-red-600" />
               <span>Đặc Điểm & Thông Số Kỹ Thuật</span>
             </h3>
-            
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <span className="text-slate-500 text-[11px] block">Diện tích sử dụng</span>
@@ -300,11 +343,25 @@ export default function PropertyModal({
                 <strong className="text-slate-900">{prop.management_fee || 'Theo ban quản lý'}</strong>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+                <span className="text-slate-500">Trạng thái tin:</span>
+                <strong className={`flex items-center gap-1 font-bold ${
+                  Number(prop.status) === 1 ? 'text-emerald-700' :
+                  Number(prop.status) === 2 ? 'text-blue-700' :
+                  Number(prop.status) === 0 ? 'text-amber-700' :
+                  Number(prop.status) === 3 ? 'text-purple-700' : 'text-rose-700'
+                }`}>
+                  {Number(prop.status) === 1 ? '✓ Đang hiển thị' :
+                   Number(prop.status) === 2 ? '✓ Đã giao dịch' :
+                   Number(prop.status) === 0 ? '⏳ Chờ duyệt' :
+                   Number(prop.status) === 3 ? '⚠️ Hết hạn' : '✕ Đã ẩn'}
+                </strong>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-200/60">
                 <span className="text-slate-500">Thời hạn tin đăng:</span>
                 <strong className="text-purple-700 flex items-center gap-1 font-bold">
                   <Calendar className="w-3.5 h-3.5 text-purple-600" />
-                  {prop.expire_date 
-                    ? new Date(prop.expire_date).toLocaleDateString('vi-VN') 
+                  {prop.expire_date
+                    ? new Date(prop.expire_date).toLocaleDateString('vi-VN')
                     : 'Đang hoạt động'}
                 </strong>
               </div>
@@ -352,7 +409,7 @@ export default function PropertyModal({
                 <Map className="w-4 h-4 text-blue-600" />
                 <span>Vị Trí Bản Đồ Bất Động Sản</span>
               </h3>
-              <a 
+              <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.street}, ${property.district}, ${property.city}`)}`}
                 target="_blank"
                 rel="noreferrer"
@@ -362,7 +419,7 @@ export default function PropertyModal({
                 <ChevronRight className="w-3 h-3" />
               </a>
             </div>
-            
+
             <div className="relative h-48 sm:h-56 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
               <iframe
                 title="Bản đồ vị trí"
@@ -395,15 +452,26 @@ export default function PropertyModal({
           </div>
           <div className="flex items-center gap-2">
             {canExtend && (
-              <button
-                type="button"
-                onClick={() => setShowExtendModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
-                title="Gia hạn thời gian hiển thị tin"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                <span>Gia Hạn Tin</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowStatusModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  title="Quản lý trạng thái & Xem lịch sử tin"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>Trạng Thái Tin</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowExtendModal(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                  title="Gia hạn thời gian hiển thị tin"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" />
+                  <span>Gia Hạn Tin</span>
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -411,15 +479,25 @@ export default function PropertyModal({
             >
               Đóng lại
             </button>
-            <button
-              onClick={() => {
-                onClose();
-                onOpenContact(prop);
-              }}
-              className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
-            >
-              Đặt Lịch Xem Bất Động Sản
-            </button>
+            {Number(prop.status) === 2 ? (
+              <button
+                disabled
+                className="px-4 py-2 rounded-xl bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed border border-slate-300"
+                title="Bất động sản này đã được thuê hoặc bán, không thể đặt lịch xem."
+              >
+                {prop.closed_reason === 'sold' || !isRent ? 'Đã được bán' : 'Đã được cho thuê'}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenContact(prop);
+                }}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm hover:shadow cursor-pointer"
+              >
+                Đặt Lịch Xem Bất Động Sản
+              </button>
+            )}
           </div>
         </div>
 
@@ -429,6 +507,19 @@ export default function PropertyModal({
             isOpen={showExtendModal}
             onClose={() => setShowExtendModal(false)}
             property={prop}
+            onSuccess={(updated) => {
+              setCurrentProp(updated);
+            }}
+          />
+        )}
+
+        {/* Change Status Modal */}
+        {showStatusModal && (
+          <ChangePropertyStatusModal
+            isOpen={showStatusModal}
+            onClose={() => setShowStatusModal(false)}
+            property={prop}
+            currentUser={currentUser}
             onSuccess={(updated) => {
               setCurrentProp(updated);
             }}

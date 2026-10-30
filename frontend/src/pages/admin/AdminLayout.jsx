@@ -1,22 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Building2, Calendar, Users, LayoutDashboard, 
-  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3
+  Settings, LogOut, Menu, X, ArrowLeft, RefreshCw, CheckCircle, ShieldCheck, XCircle, User, Phone, MapPin, FileText, Clock, BarChart3, SlidersHorizontal, Layers, KeyRound, UserCheck, FolderOpen, Receipt, DollarSign, CreditCard
 } from 'lucide-react';
 import ContractsManager from './ContractsManager';
+import ContractDocumentsManager from './ContractDocumentsManager';
+import InvoicesManager from './InvoicesManager';
+import InvoiceDetailPage from './InvoiceDetailPage';
+import RentManagementPage from './RentManagementPage';
+import PaymentsPage from './PaymentsPage';
 // 1. Gộp tất cả các import cần thiết lại với nhau
 import { resolveAvatarUrl } from '../../services/api';
 import PropertiesManager from './PropertiesManager';
+import PropertyTypesManager from './PropertyTypesManager';
 import ListingApprovalsManager from './ListingApprovalsManager';
-import UserManagement from './UserManagement';
+import ListingStatusManager from './ListingStatusManager';
+import UserManagement from '../UserManagement';
 import StatisticalReport from './StatisticalReport';
+import DashboardOverview from './DashboardOverview';
+import CategoryManagement from './CategoryManagement';
+import RoleAssignment from './RoleAssignment';
+import BrokerManagement from './BrokerManagement';
+import CustomerManagement from './CustomerManagement';
+import DemandManagement from './DemandManagement';
+import { ClipboardList } from 'lucide-react';
+import NotificationBell from '../../components/NotificationBell';
+import NotificationsPage from '../NotificationsPage';
+import { Bell } from 'lucide-react';
 
-// 2. Giữ hàm AdminLayout với đầy đủ các props (bao gồm cả onOpenProfile)
+// Giang's nine admin screens cover management, reporting and CRM features.
+const GIANG_MENUS = new Set(['dashboard', 'categories', 'brokers', 'customers', 'demands', 'notifications', 'users', 'roles', 'reports']);
+
 export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpenProfile }) {
-    // 3. Chọn activeMenu mặc định bạn mong muốn (ví dụ 'appointments' hoặc 'approvals')
-    const [activeMenu, setActiveMenu] = useState('appointments');
+  // 1. Khôi phục tab menu đang đứng từ URL hash hoặc localStorage khi F5/reload
+  const getInitialActiveMenu = () => {
+    try {
+      const hash = window.location.hash || '';
+      const match = hash.match(/#(?:admin\/)?([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+    } catch {
+      return 'dashboard';
+    }
+  };
+
+  const [activeMenu, setActiveMenu] = useState(getInitialActiveMenu);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(() => {
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#admin\/invoices\/(\d+)/);
+    return match ? Number(match[1]) : null;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Đồng bộ hóa trạng thái activeMenu với URL hash và localStorage
+  const handleSelectMenu = (menuId) => {
+    setActiveMenu(menuId);
+    setSelectedInvoiceId(null);
+    localStorage.setItem('3tv_admin_active_menu', menuId);
+    if (window.location.hash !== `#admin/${menuId}`) {
+      window.location.hash = `#admin/${menuId}`;
+    }
+  };
+
+  // Lắng nghe sự kiện hashchange để hỗ trợ nút Back/Forward của trình duyệt
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash || '';
+      const invoiceMatch = hash.match(/^#admin\/invoices\/(\d+)/);
+      if (invoiceMatch) {
+        setActiveMenu('invoices');
+        setSelectedInvoiceId(Number(invoiceMatch[1]));
+        return;
+      }
+
+      const match = hash.match(/#(?:admin\/)?([a-zA-Z0-9_-]+)/);
+      if (match && match[1] && match[1] !== activeMenu) {
+        setActiveMenu(match[1]);
+        setSelectedInvoiceId(null);
+        localStorage.setItem('3tv_admin_active_menu', match[1]);
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+
+    // Đảm bảo URL hash đồng bộ với tab ban đầu khi vừa mount
+    if (!window.location.hash.startsWith('#admin/')) {
+      window.location.hash = `#admin/${activeMenu}`;
+    }
+
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [activeMenu]);
 
   // Tải số lượng tin chờ duyệt cho badge sidebar
   useEffect(() => {
@@ -44,11 +119,23 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   const getMenuItems = () => {
     const items = [
       { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
+      { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
+      { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck, roles: [1, 2] },
+      { id: 'customers', label: 'Quản lý khách hàng', icon: Users, roles: [1, 2] },
+      { id: 'demands', label: 'Quản lý nhu cầu', icon: ClipboardList, roles: [1, 2] },
+      { id: 'notifications', label: 'Thông báo & Nhật ký', icon: Bell, roles: [1, 2] },
       { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
+      { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
+      { id: 'property-types', label: 'Phân loại Bất Động Sản', icon: Layers, roles: [1, 2] },
       { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
       { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
       { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
+      { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen, roles: [1, 2] },
+      { id: 'invoices', label: 'Quản lý Hóa đơn', icon: Receipt, roles: [1, 2] },
+      { id: 'rent-management', label: 'Quản lý tiền thuê', icon: DollarSign, roles: [1, 2] },
+      { id: 'payments', label: 'Quản lý thanh toán', icon: CreditCard, roles: [1, 2] },
       { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
+      { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound, roles: [1] }, // Chuẩn Hình 11
       { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
       { id: 'reports', label: 'Báo cáo thống kê', icon: BarChart3, roles: [1] }, // Chỉ admin
     ];
@@ -59,20 +146,20 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
   const menuItems = getMenuItems();
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans">
+    <div className="admin-shell flex h-dvh w-full bg-slate-50 overflow-hidden font-sans">
       
       {/* Sidebar Mobile Overlay */}
       {!sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          className="app-dialog-layer fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(true)}
         />
       )}
 
       {/* Left Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out
+        fixed lg:static inset-y-0 left-0 z-50 no-print
+        w-64 shrink-0 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 ease-in-out
         ${sidebarOpen ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
       `}>
         {/* Logo Area */}
@@ -115,23 +202,23 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="admin-sidebar-nav flex-1 overflow-y-auto py-4 px-3 space-y-1">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 px-3">
             Menu Quản Lý
           </div>
           {menuItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              onClick={() => handleSelectMenu(item.id)}
+              className={`w-full min-w-0 flex items-center justify-between gap-2 text-left px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                 activeMenu === item.id 
                   ? 'bg-blue-600 text-white shadow-md' 
                   : 'hover:bg-slate-800 hover:text-white text-slate-400'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <item.icon className={`w-4 h-4 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
-                <span>{item.label}</span>
+              <div className="flex min-w-0 flex-1 items-start gap-3 text-left">
+                <item.icon className={`mt-0.5 h-4 w-4 shrink-0 ${activeMenu === item.id ? 'text-white' : 'text-slate-500'}`} />
+                <span className="min-w-0 whitespace-normal break-normal text-left leading-5">{item.label}</span>
               </div>
               {item.badgeCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500 text-slate-950 animate-pulse shadow-xs">
@@ -164,20 +251,21 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm shrink-0 no-print">
+          <div className="flex min-w-0 items-center gap-4">
             <button 
-              className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+              className="lg:hidden shrink-0 p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
               onClick={() => setSidebarOpen(false)}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-800 capitalize">
+            <h1 className="truncate text-base sm:text-xl font-bold text-slate-800 capitalize">
               {menuItems.find(i => i.id === activeMenu)?.label || 'Bảng điều khiển'}
             </h1>
           </div>
           
           <div className="flex items-center gap-3">
+            <NotificationBell currentUser={currentUser} onOpen={() => handleSelectMenu('notifications')} />
             <div className="hidden sm:block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
               Chế độ Quản Trị Hệ Thống
             </div>
@@ -201,14 +289,54 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
         </header>
 
         {/* Dynamic Page Content */}
-        <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <div className={`admin-page-content min-w-0 flex-1 overflow-auto p-3 sm:p-5 lg:p-6 ${GIANG_MENUS.has(activeMenu) ? 'giang-workspace' : ''}`}>
+          {activeMenu === 'dashboard' && <DashboardOverview />}
+          {activeMenu === 'demands' && <DemandManagement key={currentUser?.id || 'guest'} currentUser={currentUser} />}
+          {activeMenu === 'notifications' && <NotificationsPage key={currentUser?.id || 'guest'} currentUser={currentUser} embedded />}
+          {activeMenu === 'categories' && <CategoryManagement />}
+          {activeMenu === 'brokers' && <BrokerManagement />}
+          {activeMenu === 'customers' && (currentUser && [1, 2].includes(Number(currentUser.role_id)) ? <CustomerManagement currentUser={currentUser} /> : <p className="text-sm text-slate-500">Vui lòng đăng nhập bằng tài khoản Admin hoặc Môi giới để quản lý khách hàng.</p>)}
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
+          {activeMenu === 'listing-status' && <ListingStatusManager />}
+          {activeMenu === 'property-types' && <PropertyTypesManager />}
           {activeMenu === 'properties' && <PropertiesManager />}
           {activeMenu === 'appointments' && <AppointmentsManager />}
-          {activeMenu === 'contracts' && <ContractsManager />}
+          {activeMenu === 'contracts' && <ContractsManager currentUser={currentUser} />}
+          {activeMenu === 'contract-documents' && <ContractDocumentsManager currentUser={currentUser} onNavigateToContracts={() => handleSelectMenu('contracts')} />}
+          {activeMenu === 'invoices' && (
+            selectedInvoiceId ? (
+              <InvoiceDetailPage
+                invoiceId={selectedInvoiceId}
+                onBack={() => {
+                  setSelectedInvoiceId(null);
+                  window.location.hash = '#admin/invoices';
+                }}
+              />
+            ) : (
+              <InvoicesManager
+                currentUser={currentUser}
+                onSelectInvoice={(id) => {
+                  setSelectedInvoiceId(id);
+                  window.location.hash = `#admin/invoices/${id}`;
+                }}
+              />
+            )
+          )}
+          {activeMenu === 'rent-management' && (
+            <RentManagementPage
+              currentUser={currentUser}
+              onNavigateToInvoice={(id) => {
+                setSelectedInvoiceId(id);
+                setActiveMenu('invoices');
+                window.location.hash = `#admin/invoices/${id}`;
+              }}
+            />
+          )}
+          {activeMenu === 'payments' && <PaymentsPage currentUser={currentUser} />}
           {activeMenu === 'users' && <UserManagement />}
+          {activeMenu === 'roles' && <RoleAssignment onNavigateToDashboard={() => handleSelectMenu('dashboard')} />}
           {activeMenu === 'reports' && <StatisticalReport />}
-          {activeMenu !== 'approvals' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'users' && activeMenu !== 'reports' && (
+          {activeMenu !== 'demands' && activeMenu !== 'notifications' && activeMenu !== 'dashboard' && activeMenu !== 'categories' && activeMenu !== 'brokers' && activeMenu !== 'customers' && activeMenu !== 'approvals' && activeMenu !== 'listing-status' && activeMenu !== 'property-types' && activeMenu !== 'properties' && activeMenu !== 'appointments' && activeMenu !== 'contracts' && activeMenu !== 'contract-documents' && activeMenu !== 'invoices' && activeMenu !== 'rent-management' && activeMenu !== 'payments' && activeMenu !== 'users' && activeMenu !== 'roles' && activeMenu !== 'reports' && (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
               <LayoutDashboard className="w-12 h-12 mb-4 opacity-20" />
               <h2 className="text-lg font-bold text-slate-600 mb-2">Trang đang được xây dựng</h2>
@@ -309,10 +437,11 @@ function AppointmentsManager() {
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <input 
             type="text" 
+            maxLength={250}
             placeholder="Tìm KH hoặc Môi giới..." 
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value.slice(0, 250))}
           />
           <select 
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-40"

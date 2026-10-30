@@ -31,6 +31,8 @@ class Contract extends Model
         'meeting_time',
         'notary_office',
         'is_high_value',
+        'billing_cycle',
+        'next_billing_date',
     ];
 
     protected $casts = [
@@ -39,8 +41,13 @@ class Contract extends Model
         'rental_price' => 'decimal:2',
         'start_date' => 'date',
         'end_date' => 'date',
+        'next_billing_date' => 'date',
         'meeting_time' => 'datetime',
     ];
+
+    // Hằng số nghiệp vụ gia hạn (Spec mục 3.2 & 5.5)
+    public const GRACE_PERIOD_DAYS = 30; // Ân hạn 30 ngày sau khi hết hạn
+    public const REMINDER_DAYS = [30, 15, 7]; // Các mốc nhắc nhở trước khi hết hạn (ngày)
 
     public function property()
     {
@@ -55,6 +62,21 @@ class Contract extends Model
     public function customer()
     {
         return $this->belongsTo(User::class, 'customer_id');
+    }
+
+    public function extensions()
+    {
+        return $this->hasMany(ContractExtension::class, 'contract_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(ContractDocument::class, 'contract_id');
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id')->orderBy('issue_date', 'desc')->orderBy('id', 'desc');
     }
 
     /**

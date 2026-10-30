@@ -2,13 +2,24 @@ import React, { useState, useEffect } from 'react';
 import {
   FileText, Save, CheckCircle, AlertTriangle, Building, User, DollarSign,
   Calendar, Plus, RefreshCw, Eye, Download, X, Trash2, Edit3, ShieldAlert,
-  MapPin, CheckSquare, Clock, ArrowRight, ShieldCheck, FileCheck, HelpCircle
+  MapPin, CheckSquare, Clock, ArrowRight, ShieldCheck, FileCheck, HelpCircle,
+  History, CalendarPlus, FolderOpen, Receipt, Printer, ArrowLeft, ChevronRight
 } from 'lucide-react';
+import ExtendContractPage from './ExtendContractPage';
+import ContractExtensionHistoryModal from '../../components/ContractExtensionHistoryModal';
+import ContractDocumentListModal from '../../components/ContractDocumentListModal';
+import ContractA4Document from '../../components/ContractA4Document';
+import AdminContractDetailPage from './AdminContractDetailPage';
+import useRecordLink from '../../hooks/useRecordLink';
 
-export default function ContractsManager() {
-  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'create'
+export default function ContractsManager({ currentUser }) {
+  const [activeTab, setActiveTab] = useState('list'); // 'list', 'create', 'extend'
+  const [extendingContractId, setExtendingContractId] = useState(null);
+  const [historyModalContract, setHistoryModalContract] = useState(null);
   const [viewingContract, setViewingContract] = useState(null);
+  const [adminDetailTab, setAdminDetailTab] = useState('a4');
   const [statusModalContract, setStatusModalContract] = useState(null);
+  const [documentModalContract, setDocumentModalContract] = useState(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState(0);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
@@ -18,6 +29,15 @@ export default function ContractsManager() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [highValueFilter, setHighValueFilter] = useState('');
+  useRecordLink('contracts', async ({ id, signal }) => {
+    if (!id) return;
+    try {
+      const response = await fetch('/api/contracts/' + id, { signal, headers: getHeaders() });
+      if (!response.ok) throw new Error('Hợp đồng không còn tồn tại hoặc bạn không có quyền truy cập.');
+      const result = await response.json();
+      if (!signal.aborted) setViewingContract(result.data);
+    } catch (error) { if (!signal.aborted) setError(error.message); }
+  });
   const [deleteLoading, setDeleteLoading] = useState(null);
 
   // Form State
@@ -251,6 +271,17 @@ export default function ContractsManager() {
     }
   };
 
+  if (viewingContract) {
+    return (
+      <AdminContractDetailPage
+        contract={viewingContract}
+        currentUser={currentUser}
+        onBack={() => setViewingContract(null)}
+        onRefreshList={fetchContracts}
+      />
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col font-sans">
 
@@ -262,13 +293,16 @@ export default function ContractsManager() {
           </div>
           <div>
             <h3 className="font-extrabold text-slate-900 text-lg">Quản Lý & Trạng Thái Hợp Đồng</h3>
-            <p className="text-xs text-slate-500">Soạn thảo, theo dõi tiến độ pháp lý và quản lý hợp đồng BĐS (Hình 38, 39, 40)</p>
+            <p className="text-xs text-slate-500">Soạn thảo, theo dõi tiến độ pháp lý và quản lý hợp đồng BĐS</p>
           </div>
         </div>
 
         <div className="flex items-center bg-slate-200/80 p-1 rounded-xl">
           <button
-            onClick={() => setActiveTab('list')}
+            onClick={() => {
+              setActiveTab('list');
+              setExtendingContractId(null);
+            }}
             className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${activeTab === 'list'
               ? 'bg-white text-blue-700 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
@@ -277,7 +311,10 @@ export default function ContractsManager() {
             📋 Danh Sách & Trạng Thái
           </button>
           <button
-            onClick={() => setActiveTab('create')}
+            onClick={() => {
+              setActiveTab('create');
+              setExtendingContractId(null);
+            }}
             className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${activeTab === 'create'
               ? 'bg-white text-blue-700 shadow-sm'
               : 'text-slate-600 hover:text-slate-900'
@@ -285,12 +322,32 @@ export default function ContractsManager() {
           >
             ✍️ Tạo Hợp Đồng Mới
           </button>
+          {activeTab === 'extend' && extendingContractId && (
+            <button
+              onClick={() => setActiveTab('extend')}
+              className="px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all bg-white text-indigo-700 shadow-sm flex items-center gap-1.5"
+            >
+              🔄 Phụ Lục Gia Hạn HĐ #{extendingContractId}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Main Container */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50 relative">
-        {activeTab === 'list' ? (
+        {activeTab === 'extend' && extendingContractId ? (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <ExtendContractPage
+              contractId={extendingContractId}
+              onBack={() => {
+                setExtendingContractId(null);
+                setActiveTab('list');
+                fetchContracts();
+              }}
+              currentUser={currentUser}
+            />
+          </div>
+        ) : activeTab === 'list' ? (
           <div className="p-4 sm:p-6 h-full flex flex-col">
 
             {/* Filter Bar (Hình 39 & Hình 40) */}
@@ -455,6 +512,48 @@ export default function ContractsManager() {
                                   title="Xem chi tiết & In Hợp Đồng"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Gia Hạn Hợp Đồng (Hình 41) */}
+                                <button
+                                  onClick={() => {
+                                    setExtendingContractId(c.id);
+                                    setActiveTab('extend');
+                                  }}
+                                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title="Gia Hạn Hợp Đồng"
+                                >
+                                  <CalendarPlus className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Lịch Sử Gia Hạn & Phê Duyệt */}
+                                <button
+                                  onClick={() => setHistoryModalContract(c)}
+                                  className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                  title="Lịch Sử Gia Hạn & Phê Duyệt"
+                                >
+                                  <History className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Hồ Sơ Tài Liệu Hợp Đồng (Hình 42) */}
+                                <button
+                                  onClick={() => setDocumentModalContract(c)}
+                                  className="p-2 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                                  title="Hồ Sơ Tài Liệu Hợp Đồng"
+                                >
+                                  <FolderOpen className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Hóa Đơn Hợp Đồng (Hình 46) */}
+                                <button
+                                  onClick={() => {
+                                    localStorage.setItem('3tv_admin_active_menu', 'invoices');
+                                    window.location.hash = '#admin/invoices';
+                                  }}
+                                  className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Quản lý Hóa Đơn (Hình 46)"
+                                >
+                                  <Receipt className="w-4 h-4" />
                                 </button>
 
                                 {/* Nút Cập Nhật Trạng Thái (Hình 40) */}
@@ -914,8 +1013,8 @@ export default function ContractsManager() {
 
       {/* MODAL 1: CẬP NHẬT TRẠNG THÁI HỢP ĐỒNG (Spec Hình 40) */}
       {statusModalContract && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="form-surface bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-extrabold text-slate-900">Quản Lý Trạng Thái Hợp Đồng</h4>
@@ -983,130 +1082,25 @@ export default function ContractsManager() {
         </div>
       )}
 
-      {/* MODAL 2: CHI TIẾT & XUẤT IN PDF HỢP ĐỒNG */}
-      {viewingContract && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-
-            {/* Header Modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 print:hidden">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                <h3 className="font-extrabold text-base sm:text-lg text-slate-800">
-                  Hồ Sơ Hợp Đồng BĐS #{viewingContract.contract_code}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-lg transition-colors shadow-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Xuất In / PDF
-                </button>
-                <button
-                  onClick={() => setViewingContract(null)}
-                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Contract Body (Print Area) */}
-            <div className="flex-1 overflow-y-auto p-8 print:p-0 bg-white">
-              <div className="max-w-3xl mx-auto printable-contract text-slate-900 font-serif leading-relaxed">
-
-                {/* Quốc hiệu tiêu ngữ */}
-                <div className="text-center mb-8 border-b-2 border-slate-900 pb-6">
-                  <h1 className="text-xl sm:text-2xl font-black uppercase tracking-wide">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
-                  <h2 className="text-base font-bold italic mt-1">Độc lập - Tự do - Hạnh phúc</h2>
-                  <div className="w-24 h-0.5 bg-slate-800 mx-auto my-3"></div>
-                  <h3 className="text-lg sm:text-xl font-black uppercase mt-4 text-blue-900">{viewingContract.contract_name}</h3>
-                  <p className="text-sm font-sans font-bold text-slate-600 mt-1">Mã hợp đồng: {viewingContract.contract_code}</p>
-                </div>
-
-                {/* Thông báo hình thức ký & gặp mặt */}
-                {(viewingContract.is_high_value || viewingContract.signing_method === 'DIRECT_MEETING') && (
-                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg font-sans text-xs text-purple-950">
-                    <p className="font-bold uppercase tracking-wider text-purple-900 mb-1 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4" /> Hợp đồng ký kết trực tiếp có công chứng:
-                    </p>
-                    <p>• <strong>Địa điểm gặp mặt ký kết:</strong> {viewingContract.meeting_location || 'Văn phòng công chứng'}</p>
-                    {viewingContract.meeting_time && (
-                      <p>• <strong>Thời gian gặp mặt:</strong> {new Date(viewingContract.meeting_time).toLocaleString('vi-VN')}</p>
-                    )}
-                    {viewingContract.notary_office && (
-                      <p>• <strong>Tổ chức hành nghề công chứng:</strong> {viewingContract.notary_office}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 print:bg-transparent p-4 rounded-lg border border-slate-200 font-sans text-xs sm:text-sm mb-6">
-                  <div><span className="font-bold">Ngày bắt đầu:</span> {viewingContract.start_date ? new Date(viewingContract.start_date).toLocaleDateString('vi-VN') : 'N/A'}</div>
-                  <div><span className="font-bold">Ngày kết thúc:</span> {viewingContract.end_date ? new Date(viewingContract.end_date).toLocaleDateString('vi-VN') : 'N/A'}</div>
-                  <div><span className="font-bold">Giá trị hợp đồng:</span> {(Number(viewingContract.rental_price) || 0).toLocaleString('vi-VN')} {viewingContract.currency}</div>
-                  <div><span className="font-bold">Tiền cọc:</span> {(Number(viewingContract.deposit_amount) || 0).toLocaleString('vi-VN')} {viewingContract.currency}</div>
-                  <div><span className="font-bold">Trạng thái:</span> {['Nháp/Chờ ký', 'Đang hiệu lực', 'Đã thanh lý/Hết hạn', 'Đã hủy'][viewingContract.status]}</div>
-                  <div><span className="font-bold">Mã số thuế / Công chứng:</span> {viewingContract.tax_code || 'Chưa cập nhật'}</div>
-                </div>
-
-                {/* Parties */}
-                <div className="space-y-4 mb-6 font-sans text-sm">
-                  <div>
-                    <h4 className="font-bold uppercase text-slate-900 border-l-4 border-blue-600 pl-2 mb-2">Đại Diện Bên A (Bên Bán / Cho Thuê)</h4>
-                    <div className="whitespace-pre-wrap p-3 bg-slate-50 print:bg-transparent border border-slate-100 rounded text-slate-700">
-                      {viewingContract.party_a_info || 'Thông tin Bên A theo hồ sơ đính kèm.'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold uppercase text-slate-900 border-l-4 border-emerald-600 pl-2 mb-2">Đại Diện Bên B (Bên Mua / Khách Thuê)</h4>
-                    <div className="whitespace-pre-wrap p-3 bg-slate-50 print:bg-transparent border border-slate-100 rounded text-slate-700">
-                      {viewingContract.party_b_info || 'Thông tin Bên B theo hồ sơ đính kèm.'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Terms */}
-                <div className="mb-8 font-sans text-sm">
-                  <h4 className="font-bold uppercase text-slate-900 border-l-4 border-amber-500 pl-2 mb-2">Các Điều Khoản Cam Kết & Pháp Lý</h4>
-                  <div className="whitespace-pre-wrap p-4 bg-slate-50 print:bg-transparent border border-slate-100 rounded text-slate-700 text-justify leading-relaxed">
-                    {viewingContract.terms || 'Các điều khoản sẽ được hai bên tuân thủ theo Bộ luật Dân sự và Luật Kinh doanh BĐS.'}
-                  </div>
-                </div>
-
-                {/* Signatures */}
-                <div className="grid grid-cols-2 gap-8 pt-8 border-t border-slate-300 font-sans pb-16">
-                  <div className="text-center">
-                    <h5 className="font-bold text-slate-900 uppercase text-sm">Đại Diện Bên A</h5>
-                    <p className="text-xs text-slate-500 italic mb-20">(Ký, điểm chỉ và ghi rõ họ tên)</p>
-                  </div>
-                  <div className="text-center">
-                    <h5 className="font-bold text-slate-900 uppercase text-sm">Đại Diện Bên B</h5>
-                    <p className="text-xs text-slate-500 italic mb-20">(Ký, điểm chỉ và ghi rõ họ tên)</p>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-        </div>
+      {/* Modal Lịch Sử & Phê Duyệt Gia Hạn */}
+      {historyModalContract && (
+        <ContractExtensionHistoryModal
+          contract={historyModalContract}
+          onClose={() => setHistoryModalContract(null)}
+          currentUser={currentUser}
+          onRefreshList={fetchContracts}
+        />
       )}
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .printable-contract, .printable-contract * { visibility: visible; }
-          .printable-contract { position: absolute; left: 0; top: 0; width: 100%; padding: 25px; }
-          .print\\:hidden { display: none !important; }
-          .print\\:p-0 { padding: 0 !important; }
-          .print\\:bg-transparent { background-color: transparent !important; }
-        }
-      `}</style>
+      {/* Modal Hồ Sơ Tài Liệu Hợp Đồng (Hình 42) */}
+      {documentModalContract && (
+        <ContractDocumentListModal
+          isOpen={!!documentModalContract}
+          onClose={() => setDocumentModalContract(null)}
+          contract={documentModalContract}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }

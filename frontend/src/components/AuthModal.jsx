@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle2, 
   XCircle, X, ArrowRight, ShieldCheck, Sparkles, AlertTriangle 
@@ -24,13 +24,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     remember: true
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setStatusModal(null);
+    }
+  }, [isOpen, initialMode]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked
+        : name === 'phone' ? value.replace(/[^0-9]/g, '').slice(0, 11)
+        : value.slice(0, name === 'email' ? 191 : mode === 'register' && name.startsWith('password') ? 32 : 250)
     }));
   };
 
@@ -69,6 +78,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone)) {
+      setStatusModal({
+        type: 'error',
+        title: 'Số Điện Thoại Không Hợp Lệ',
+        message: 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.'
+      });
+      return;
+    }
     if (formData.password !== formData.password_confirmation) {
       setStatusModal({
         type: 'error',
@@ -123,20 +140,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
+    <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
       {/* Modal Card */}
-      <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'} className="form-surface giang-dialog giang-auth relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-none shadow-2xl border border-slate-200">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
+          aria-label="Đóng đăng nhập và đăng ký"
+          className="giang-auth-close absolute top-3.5 right-3.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="bg-slate-900 px-6 pt-6 pb-4 text-white text-center">
+        <div className="giang-auth-heading text-white text-center">
+          <p className="mb-4 text-[10px] font-bold tracking-[.25em]">3TV LAND / TÀI KHOẢN</p>
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-600 text-white mb-2 shadow-xs">
             <ShieldCheck className="w-5 h-5" />
           </div>
@@ -190,6 +209,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type="email"
                     name="email"
+                    maxLength={191}
                     required
                     value={formData.email}
                     onChange={handleChange}
@@ -217,6 +237,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
+                    maxLength={250}
                     required
                     value={formData.password}
                     onChange={handleChange}
@@ -279,6 +300,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type="text"
                     name="name"
+                    maxLength={250}
                     required
                     value={formData.name}
                     onChange={handleChange}
@@ -297,6 +319,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type="email"
                     name="email"
+                    maxLength={191}
                     required
                     value={formData.email}
                     onChange={handleChange}
@@ -315,12 +338,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type="tel"
                     name="phone"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    minLength={10}
+                    maxLength={11}
+                    pattern="[0-9]{10,11}"
+                    title="Số điện thoại phải bao gồm từ 10 đến 11 chữ số."
+                    aria-describedby="register-phone-hint"
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="Vui lòng nhập số điện thoại"
                     className="w-full pl-10 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                   />
                 </div>
+                <p id="register-phone-hint" className="text-[10px] text-slate-500 mt-0.5">Chỉ nhập từ 10 đến 11 chữ số.</p>
               </div>
 
               <div>
@@ -332,6 +363,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
+                    minLength={8}
+                    maxLength={32}
                     required
                     value={formData.password}
                     onChange={handleChange}
@@ -346,7 +379,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-0.5">Mật khẩu phải chứa ít nhất 8 ký tự</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Mật khẩu phải chứa từ 8 đến 32 ký tự</p>
               </div>
 
               <div>
@@ -358,6 +391,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     name="password_confirmation"
+                    minLength={8}
+                    maxLength={32}
                     required
                     value={formData.password_confirmation}
                     onChange={handleChange}
