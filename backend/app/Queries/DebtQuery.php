@@ -88,11 +88,14 @@ class DebtQuery
         $startOfMonth = Carbon::parse($selectedMonth . '-01')->startOfMonth();
         $endOfMonth = $startOfMonth->copy()->endOfMonth();
 
-        // 1. Thẻ 1: Tổng thu tháng này (tổng giao dịch THÀNH CÔNG có paid_at trong tháng)
+        // 1. Thẻ 1: Tổng thu tháng này (tổng giao dịch THÀNH CÔNG type = payment có paid_at trong tháng)
         $txQuery = DB::table('transactions')
             ->join('invoices', 'invoices.id', '=', 'transactions.invoice_id')
             ->join('contracts', 'contracts.id', '=', 'invoices.contract_id')
             ->where('transactions.status', TransactionStatus::SUCCESS)
+            ->where(function ($q) {
+                $q->where('transactions.type', 'payment')->orWhereNull('transactions.type');
+            })
             ->whereBetween('transactions.paid_at', [$startOfMonth, $endOfMonth])
             ->whereNull('transactions.deleted_at');
 

@@ -11,6 +11,7 @@ import { contractExtensionApi } from '../../services/contractExtensionApi';
 import DocumentPreviewModal from '../../components/DocumentPreviewModal';
 import UploadContractDocumentModal, { DOCUMENT_TYPES } from '../../components/UploadContractDocumentModal';
 import EditContractDocumentModal from '../../components/EditContractDocumentModal';
+import ContractDepositSummaryCard from '../../components/deposits/ContractDepositSummaryCard';
 import ContractA4Document, {
   convertNumberToVietnameseWords,
   formatContractDate,
@@ -285,6 +286,13 @@ export default function AdminContractDetailPage({
           </div>
         </div>
       </div>
+
+      {/* 1.5 THẺ TIỀN CỌC HỢP ĐỒNG */}
+      {Number(contract?.deposit_amount || 0) > 0 && (
+        <div className="max-w-5xl mx-auto mb-6 no-print">
+          <ContractDepositSummaryCard contractId={contract.id} isCustomerView={false} />
+        </div>
+      )}
 
       {/* 2. KHUNG HIỂN THỊ KHỔ GIẤY A4 CHÍNH XÁC TỪ TRÊN XUỐNG */}
       {activeViewMode === 'a4' && (

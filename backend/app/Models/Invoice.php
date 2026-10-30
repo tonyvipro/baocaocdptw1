@@ -73,6 +73,11 @@ class Invoice extends Model
         return $this->hasMany(Transaction::class, 'invoice_id')->orderBy('paid_at', 'desc');
     }
 
+    public function deposit()
+    {
+        return $this->hasOne(ContractDeposit::class, 'invoice_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

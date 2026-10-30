@@ -12,6 +12,7 @@ import {
   clearSelectedContract,
 } from '../../store/slices/customerContractSlice';
 import DocumentPreviewModal from '../../components/DocumentPreviewModal';
+import ContractDepositSummaryCard from '../../components/deposits/ContractDepositSummaryCard';
 import { contractDocumentApi } from '../../services/contractDocumentApi';
 import ContractA4Document, {
   convertNumberToVietnameseWords,
@@ -73,6 +74,7 @@ export default function MyContractDetailPage({
       case 0: return 'bg-blue-100 text-blue-800 border-blue-200';
       case 1: return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 4: return 'bg-teal-100 text-teal-800 border-teal-200';
+      case 6: return 'bg-sky-100 text-sky-800 border-sky-200';
       default: return 'bg-slate-100 text-slate-800 border-slate-200';
     }
   };
@@ -227,6 +229,13 @@ export default function MyContractDetailPage({
           </div>
         </div>
       </div>
+
+      {/* 1.5 THẺ TIỀN CỌC HỢP ĐỒNG */}
+      {Number(selectedContract?.deposit_amount || 0) > 0 && (
+        <div className="max-w-5xl mx-auto mb-6 no-print">
+          <ContractDepositSummaryCard contractId={selectedContract.id} isCustomerView={true} />
+        </div>
+      )}
 
       {/* 2. KHUNG HIỂN THỊ KHỔ GIẤY A4 CHÍNH XÁC TỪ TRÊN XUỐNG */}
       {activeViewMode === 'a4' && (

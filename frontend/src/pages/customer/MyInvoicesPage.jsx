@@ -380,6 +380,54 @@ export default function MyInvoicesPage({ currentUser, onGoHome }) {
               </div>
             </div>
 
+            {/* Lịch sử giao dịch / Biến động tiền cọc (nếu có) */}
+            {detailInvoice.transactions?.length > 0 && (
+              <div className="mb-5 space-y-2">
+                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Lịch sử giao dịch ({detailInvoice.transactions.length})
+                </p>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {detailInvoice.transactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-slate-800">{tx.transaction_code}</span>
+                        {tx.type_label && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              tx.direction === 'out'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {tx.type_label}
+                          </span>
+                        )}
+                        <span className="text-slate-500 text-[11px]">{tx.paid_at_formatted || formatDate(tx.paid_at)}</span>
+                        {tx.reason && (
+                          <span className="text-[11px] text-amber-800 italic">({tx.reason})</span>
+                        )}
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          Number(tx.status) === 5
+                            ? 'text-slate-400 line-through'
+                            : tx.direction === 'out'
+                            ? 'text-rose-600'
+                            : 'text-emerald-600'
+                        }`}
+                      >
+                        {tx.direction === 'out' ? '-' : '+'}
+                        {formatVND(tx.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Thông tin chuyển khoản */}
             <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 space-y-1 mb-5">
               <div className="font-bold flex items-center gap-1">

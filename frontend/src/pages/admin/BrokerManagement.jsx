@@ -607,14 +607,14 @@ export default function BrokerManagement() {
     switch (status) {
       case 'active':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Hoạt động
           </span>
         );
       case 'busy':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             Đang bận
           </span>
@@ -622,7 +622,7 @@ export default function BrokerManagement() {
       case 'inactive':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-slate-400" />
             Tạm ngưng
           </span>
@@ -634,13 +634,33 @@ export default function BrokerManagement() {
   const renderLevelBadge = (level) => {
     switch (level) {
       case 'Giám đốc kinh doanh':
-        return <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-700 border border-purple-200">{level}</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap shadow-2xs">
+            <Award className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+            <span>{level}</span>
+          </span>
+        );
       case 'Trưởng nhóm':
-        return <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-blue-100 text-blue-700 border border-blue-200">{level}</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 whitespace-nowrap shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <span>{level}</span>
+          </span>
+        );
       case 'Chuyên viên':
-        return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-teal-100 text-teal-700 border border-teal-200">{level}</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700 border border-teal-200 whitespace-nowrap shadow-2xs">
+            <UserCheck className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span>{level}</span>
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">{level || 'Tập sự'}</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shadow-2xs">
+            <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>{level || 'Tập sự'}</span>
+          </span>
+        );
     }
   };
 
@@ -847,16 +867,16 @@ export default function BrokerManagement() {
 
           {/* Bảng danh sách môi giới */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] text-left border-collapse">
+            <table className="w-full min-w-[1100px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
                   <th className="py-3.5 px-6">Tên Môi giới</th>
-                  <th className="py-3.5 px-4">Mã ID</th>
-                  <th className="py-3.5 px-4">Cấp bậc</th>
-                  <th className="py-3.5 px-4 text-center">Số giao dịch</th>
-                  <th className="py-3.5 px-4 text-right">Tổng hoa hồng</th>
-                  <th className="py-3.5 px-4 text-center">Trạng thái</th>
-                  <th className="py-3.5 px-6 text-center">Hành động</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[120px]">Mã ID</th>
+                  <th className="py-3.5 px-4 whitespace-nowrap min-w-[180px]">Cấp bậc</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">Số giao dịch</th>
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap min-w-[140px]">Tổng hoa hồng</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[130px]">Trạng thái</th>
+                  <th className="py-3.5 px-6 text-center whitespace-nowrap min-w-[120px]">Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -907,14 +927,14 @@ export default function BrokerManagement() {
                       </td>
 
                       {/* Mã ID */}
-                      <td className="py-4 px-4 font-mono font-bold text-slate-700">
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                      <td className="py-4 px-4 whitespace-nowrap font-mono font-bold text-slate-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200 text-xs shadow-2xs whitespace-nowrap tracking-tight">
                           {broker.code || `MG-${broker.id}`}
                         </span>
                       </td>
 
                       {/* Cấp bậc */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 whitespace-nowrap">
                         {renderLevelBadge(broker.level)}
                       </td>
 
@@ -1118,16 +1138,16 @@ export default function BrokerManagement() {
 
           {/* Bảng danh sách phân công */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1050px] text-left border-collapse">
+            <table className="w-full min-w-[1100px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-500">
                   <th className="min-w-[150px] whitespace-nowrap py-3.5 px-6">ID Yêu cầu</th>
                   <th className="py-3.5 px-4">Tên khách hàng</th>
                   <th className="py-3.5 px-4">Địa điểm BĐS</th>
                   <th className="py-3.5 px-4">Môi giới được phân công</th>
-                  <th className="py-3.5 px-4 text-center">Ngày yêu cầu</th>
-                  <th className="py-3.5 px-4 text-center">Trạng thái</th>
-                  <th className="py-3.5 px-6 text-center">Hành động</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[120px]">Ngày yêu cầu</th>
+                  <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[130px]">Trạng thái</th>
+                  <th className="py-3.5 px-6 text-center whitespace-nowrap min-w-[120px]">Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -1151,13 +1171,13 @@ export default function BrokerManagement() {
                     <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group">
                       {/* ID Yêu cầu */}
                       <td className="whitespace-nowrap py-4 px-6 font-mono font-bold text-slate-700">
-                        <span className="inline-flex whitespace-nowrap px-2.5 py-1 rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-mono font-bold shadow-2xs">
                           {item.request_code}
                         </span>
                       </td>
 
                       {/* Tên khách hàng */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 whitespace-nowrap">
                         <div className="font-bold text-slate-900">{item.customer_name}</div>
                         <div className="text-[11px] text-slate-500 flex items-center gap-3 mt-0.5">
                           {item.customer_phone && (
@@ -1184,7 +1204,7 @@ export default function BrokerManagement() {
                       </td>
 
                       {/* Môi giới được phân công */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-4 whitespace-nowrap">
                         {item.broker ? (
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">

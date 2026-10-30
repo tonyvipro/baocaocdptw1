@@ -17,12 +17,14 @@ class ContractDocument extends Model
     public const TYPE_PROPERTY_DOC = 3;  // Giấy tờ bất động sản (Sổ đỏ/hợp đồng mua bán)
     public const TYPE_HANDOVER = 4;      // Biên bản bàn giao/thanh lý
     public const TYPE_OTHER = 5;         // Khác
+    public const TYPE_DEPOSIT_RECEIPT = 6; // Biên lai / Chứng từ tiền cọc
 
     // Danh sách loại tài liệu khách hàng được phép xem/tải (Spec mục 3.4)
     public const CUSTOMER_ALLOWED_TYPES = [
         self::TYPE_MAIN,
         self::TYPE_APPENDIX,
         self::TYPE_HANDOVER,
+        self::TYPE_DEPOSIT_RECEIPT,
     ];
 
     // Quy tắc upload tài liệu (Spec mục 3.3)
@@ -72,6 +74,7 @@ class ContractDocument extends Model
             self::TYPE_ID_CARD => 'Giấy tờ tùy thân',
             self::TYPE_PROPERTY_DOC => 'Giấy tờ bất động sản',
             self::TYPE_HANDOVER => 'Biên bản bàn giao/thanh lý',
+            self::TYPE_DEPOSIT_RECEIPT => 'Chứng từ tiền cọc',
             default => 'Tài liệu khác',
         };
     }

@@ -132,10 +132,21 @@ export default function PaymentHistoryDrawer({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-bold text-slate-900 text-sm">
                         {tx.transaction_code}
                       </span>
+                      {tx.type_label && (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                            tx.direction === 'out'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {tx.type_label}
+                        </span>
+                      )}
                       {getStatusBadge(tx.status)}
                     </div>
                     <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
@@ -146,7 +157,12 @@ export default function PaymentHistoryDrawer({
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-base text-emerald-700">
+                    <span
+                      className={`font-bold text-base ${
+                        tx.direction === 'out' ? 'text-rose-600' : 'text-emerald-700'
+                      }`}
+                    >
+                      {tx.direction === 'out' ? '-' : '+'}
                       {formatCurrency(tx.amount)}
                     </span>
                     <p className="text-xs text-slate-500 mt-0.5">{tx.payment_method_label}</p>
@@ -165,6 +181,12 @@ export default function PaymentHistoryDrawer({
                     <div className="flex justify-between">
                       <span className="text-slate-500">Mã cổng/ngân hàng:</span>
                       <span className="font-mono font-medium">{tx.gateway_txn_id}</span>
+                    </div>
+                  )}
+                  {tx.reason && (
+                    <div className="flex justify-between gap-2">
+                      <span className="text-slate-500 shrink-0">Lý do:</span>
+                      <span className="text-amber-800 font-semibold text-right">{tx.reason}</span>
                     </div>
                   )}
                   {tx.note && (

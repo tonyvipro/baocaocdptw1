@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Enums\PaymentMethod;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionSource;
+use App\Enums\TransactionType;
 
 class Transaction extends Model
 {
@@ -17,6 +18,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'invoice_id',
+        'type',
         'transaction_code',
         'amount',
         'source',
@@ -25,6 +27,7 @@ class Transaction extends Model
         'reference_code',
         'paid_at',
         'note',
+        'reason',
         'recorded_by',
         'client_token',
         'gateway',
@@ -47,11 +50,15 @@ class Transaction extends Model
         'payment_method_label',
         'status_label',
         'source_label',
+        'type_label',
     ];
 
     protected static function booted()
     {
         static::creating(function ($tx) {
+            if (empty($tx->type)) {
+                $tx->type = TransactionType::PAYMENT;
+            }
             if (empty($tx->transaction_code)) {
                 $dateStr = $tx->paid_at ? \Carbon\Carbon::parse($tx->paid_at)->format('Ymd') : \Carbon\Carbon::today()->format('Ymd');
                 $tx->transaction_code = 'TXN-' . $dateStr . '-' . strtoupper(\Illuminate\Support\Str::random(6));
@@ -109,5 +116,10 @@ class Transaction extends Model
     public function getSourceLabelAttribute(): string
     {
         return TransactionSource::label($this->source ?? TransactionSource::MANUAL);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return TransactionType::label($this->type ?? TransactionType::PAYMENT);
     }
 }

@@ -12,6 +12,7 @@ Route::get('/search/properties', \App\Http\Controllers\PropertySearchController:
     ->middleware('throttle:120,1');
 use App\Http\Controllers\Api\RentPaymentController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\DepositController;
 use App\Http\Controllers\Api\MetaController;
 
 // Public Metadata API
@@ -86,6 +87,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payment-transactions/{transaction_code}', [PaymentController::class, 'showTransaction']);
     Route::post('/payment-transactions/{transaction_code}/cancel', [PaymentController::class, 'cancelQrPayment']);
     Route::post('/payment-transactions/{id}/cancel-manual', [PaymentController::class, 'cancelManualPayment']);
+
+    // Quản lý Tiền Cọc API (Spec Hình 44 & Mục 5)
+    Route::get('/deposits', [DepositController::class, 'index']);
+    Route::get('/deposits/summary', [DepositController::class, 'summary']);
+    Route::get('/deposits/options', [DepositController::class, 'options']);
+    Route::get('/deposits/{deposit}', [DepositController::class, 'show']);
+    Route::post('/deposits/{deposit}/collect', [DepositController::class, 'collect']);
+    Route::post('/deposits/{deposit}/refund', [DepositController::class, 'refund']);
+    Route::patch('/deposits/{deposit}', [DepositController::class, 'update']);
+    Route::post('/deposit-movements/{transaction}/void', [DepositController::class, 'voidMovement']);
+    Route::get('/my-deposits', [DepositController::class, 'myDeposits']);
+    Route::get('/contracts/{contract}/deposit', [DepositController::class, 'showByContract']);
 });
 
 // Cổng thanh toán công khai (Public IPN Callback & Redirect Return)

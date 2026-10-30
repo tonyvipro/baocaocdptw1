@@ -79,6 +79,11 @@ class Contract extends Model
         return $this->hasMany(Invoice::class, 'contract_id')->orderBy('issue_date', 'desc')->orderBy('id', 'desc');
     }
 
+    public function deposit()
+    {
+        return $this->hasOne(ContractDeposit::class, 'contract_id');
+    }
+
     /**
      * Ngưỡng giá trị lớn (High-Value Threshold): từ 5 Tỷ VNĐ hoặc cọc từ 500 Triệu VNĐ
      */

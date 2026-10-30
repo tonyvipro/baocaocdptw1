@@ -264,6 +264,18 @@ export default function MyContractsPage({ currentUser, onSelectContract, onGoHom
                       {formatCurrency(contract.rental_price)}/tháng
                     </span>
                   </div>
+
+                  {Number(contract.deposit_amount) > 0 && (
+                    <div className="col-span-2 px-2.5 py-1.5 rounded-lg bg-blue-50/70 border border-blue-100 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-600 font-semibold flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                        Tiền cọc cam kết:
+                      </span>
+                      <span className="font-extrabold text-blue-700">
+                        {formatCurrency(contract.deposit_amount)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -285,31 +297,26 @@ export default function MyContractsPage({ currentUser, onSelectContract, onGoHom
       )}
 
       {/* Pagination Bar */}
-      {pagination.total > 0 && (
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>
-            Hiển thị <strong className="text-slate-800">{myContracts.length}</strong> trên tổng số <strong className="text-slate-800">{pagination.total}</strong> hợp đồng
-          </div>
+      {pagination.last_page > 1 && (
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <span className="text-xs text-slate-500">
+            Trang <strong className="text-slate-800">{pagination.current_page}</strong> / {pagination.last_page} (Tổng số {pagination.total} hợp đồng)
+          </span>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handlePageChange(pagination.current_page - 1)}
               disabled={pagination.current_page <= 1}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4 text-slate-600" />
             </button>
-
-            <span className="px-3 py-1 font-bold text-slate-700">
-              Trang {pagination.current_page} / {pagination.last_page || 1}
-            </span>
-
             <button
               onClick={() => handlePageChange(pagination.current_page + 1)}
               disabled={pagination.current_page >= pagination.last_page}
-              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 text-slate-600" />
             </button>
           </div>
         </div>

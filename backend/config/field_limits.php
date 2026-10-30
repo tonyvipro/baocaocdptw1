@@ -51,4 +51,42 @@ return [
             'unit_price' => ['min' => 0, 'max' => 999999999999.99],
         ],
     ],
+    'deposit' => [
+        'status' => [
+            'allowed' => [
+                'all',
+                'unpaid',
+                'partial_collected',
+                'holding',
+                'refund_due',
+                'partial_refunded',
+                'refunded',
+                'deducted',
+                'collected_any',
+                'held_any',
+            ],
+        ],
+        'sort' => [
+            'allowed' => [
+                'refund_due_first',
+                'end_date_asc',
+                'end_date_desc',
+                'amount_asc',
+                'amount_desc',
+                'collection_date_desc',
+            ],
+        ],
+        'amount' => [
+            'min' => 0.01,
+            'max' => 999999999999.99,
+            'decimal_places' => 2,
+        ],
+        'notes' => [
+            'max' => 1000,
+        ],
+        'reason' => [
+            'max' => 500,
+        ],
+        'date_range_max_days' => 366,
+    ],
 ];

@@ -91,10 +91,13 @@ class PaymentService
                 ], 409));
             }
 
-            // Tính số tiền còn nợ BÊN TRONG khóa
+            // Tính số tiền còn nợ BÊN TRONG khóa (chỉ cộng giao dịch type = payment)
             $totalAmount = (float) $locked->amount;
             $txPaid = (float) $locked->transactions()
                 ->where('status', TransactionStatus::SUCCESS)
+                ->where(function ($q) {
+                    $q->where('type', 'payment')->orWhereNull('type');
+                })
                 ->sum('amount');
             $paidSoFar = max($txPaid, (float) ($locked->paid_amount ?? 0));
             $remaining = max(0.0, round($totalAmount - $paidSoFar, 2));
@@ -300,10 +303,13 @@ class PaymentService
                     'updated_at' => Carbon::now(),
                 ]);
 
-            // 5. Tính số tiền còn nợ
+            // 5. Tính số tiền còn nợ (chỉ cộng giao dịch type = payment)
             $totalAmount = (float) $locked->amount;
             $txPaid = (float) $locked->transactions()
                 ->where('status', TransactionStatus::SUCCESS)
+                ->where(function ($q) {
+                    $q->where('type', 'payment')->orWhereNull('type');
+                })
                 ->sum('amount');
             $paidSoFar = max($txPaid, (float) ($locked->paid_amount ?? 0));
             $remaining = max(0.0, round($totalAmount - $paidSoFar, 2));
@@ -516,6 +522,9 @@ class PaymentService
                     $totalAmount = (float) $lockedInvoice->amount;
                     $paidSoFar = (float) $lockedInvoice->transactions()
                         ->where('status', TransactionStatus::SUCCESS)
+                        ->where(function ($q) {
+                            $q->where('type', 'payment')->orWhereNull('type');
+                        })
                         ->where('id', '!=', $lockedTx->id)
                         ->sum('amount');
                     $currentRemaining = max(0.0, round($totalAmount - $paidSoFar, 2));

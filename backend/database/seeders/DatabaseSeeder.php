@@ -222,6 +222,7 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             InvoiceSeeder::class,
             PaymentSeeder::class,
+            DepositSeeder::class,
         ]);
     }
 }

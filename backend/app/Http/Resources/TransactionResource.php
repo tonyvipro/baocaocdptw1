@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\TransactionType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,12 +10,20 @@ class TransactionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $type = $this->type ?: TransactionType::PAYMENT;
+        $isOutflow = in_array($type, [TransactionType::DEPOSIT_REFUND, TransactionType::DEPOSIT_DEDUCTION], true);
+        $amt = round((float) $this->amount, 2);
+
         return [
             'id' => $this->id,
             'transaction_code' => $this->transaction_code,
             'invoice_id' => $this->invoice_id,
-            'amount' => (float) $this->amount,
-            'amount_formatted' => number_format((float) $this->amount, 0, ',', '.') . ' VNĐ',
+            'type' => $type,
+            'type_label' => TransactionType::label($type),
+            'direction' => $isOutflow ? 'out' : 'in',
+            'amount' => $amt,
+            'signed_amount' => $isOutflow ? -$amt : $amt,
+            'amount_formatted' => ($isOutflow ? '-' : '+') . number_format($amt, 0, ',', '.') . ' VNĐ',
             'payment_method' => $this->payment_method,
             'payment_method_label' => $this->payment_method_label,
             'source' => $this->source,
@@ -30,6 +39,7 @@ class TransactionResource extends JsonResource
             'qr_content' => $this->qr_content,
             'pay_url' => $this->pay_url,
             'note' => $this->note,
+            'reason' => $this->reason,
             'recorded_by' => $this->recorded_by,
             'recorder_name' => $this->recorder?->name ?? 'Cổng thanh toán / Khách hàng',
             'client_token' => $this->client_token,

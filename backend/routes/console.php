@@ -9,6 +9,7 @@ Schedule::command('invoices:generate-rent')->dailyAt('00:15');
 Schedule::command('invoices:mark-overdue')->dailyAt('00:20');
 Schedule::command('payments:expire-pending')->everyMinute()->withoutOverlapping();
 Schedule::command('properties:sync-availability')->dailyAt('01:00')->withoutOverlapping();
+Schedule::command('deposits:notify-due')->dailyAt('08:00')->withoutOverlapping();
 
 
 Artisan::command('brokers:sync-users', function () {

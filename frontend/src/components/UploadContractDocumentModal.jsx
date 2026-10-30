@@ -20,6 +20,7 @@ export const DOCUMENT_TYPES = [
   { value: 2, label: 'Giấy tờ tùy thân (CCCD / Passport)', color: 'bg-purple-100 text-purple-800 border-purple-200' },
   { value: 3, label: 'Giấy tờ bất động sản (Sổ đỏ / Sổ hồng)', color: 'bg-amber-100 text-amber-800 border-amber-200' },
   { value: 4, label: 'Biên bản bàn giao / Thanh lý', color: 'bg-teal-100 text-teal-800 border-teal-200' },
+  { value: 6, label: 'Biên nhận / Chứng từ tiền cọc', color: 'bg-sky-100 text-sky-800 border-sky-200' },
   { value: 5, label: 'Khác (Hóa đơn, Chứng từ...)', color: 'bg-slate-100 text-slate-800 border-slate-200' },
 ];
 
@@ -28,6 +29,7 @@ export default function UploadContractDocumentModal({
   onClose,
   preselectedContract = null,
   allContracts = [],
+  defaultType = 0,
   onSuccess,
 }) {
   const dispatch = useDispatch();
@@ -35,7 +37,7 @@ export default function UploadContractDocumentModal({
 
   const [selectedContractId, setSelectedContractId] = useState('');
   const [contractSearch, setContractSearch] = useState('');
-  const [documentType, setDocumentType] = useState(0);
+  const [documentType, setDocumentType] = useState(defaultType ?? 0);
   const [description, setDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [validationError, setValidationError] = useState('');
@@ -55,7 +57,7 @@ export default function UploadContractDocumentModal({
       setValidationError('');
       setWarnings([]);
       setDescription('');
-      setDocumentType(0);
+      setDocumentType(defaultType ?? 0);
       setContractSearch('');
     }
   }, [isOpen, preselectedContract]);

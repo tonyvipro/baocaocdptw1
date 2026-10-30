@@ -391,9 +391,12 @@ class InvoiceService
             return $invoice;
         }
 
-        // CHỈ cộng giao dịch thành công (status = 1)
+        // CHỈ cộng giao dịch thu tiền (type = 'payment') thành công (status = 1); KHÔNG cộng giao dịch hoàn hoặc khấu trừ cọc
         $paidAmount = (float) $invoice->transactions()
             ->where('status', TransactionStatus::SUCCESS)
+            ->where(function ($q) {
+                $q->where('type', 'payment')->orWhereNull('type');
+            })
             ->sum('amount');
         $invoice->paid_amount = round($paidAmount, 2);
 
@@ -404,6 +407,9 @@ class InvoiceService
             if (!$invoice->paid_at) {
                 $lastTxPaidAt = $invoice->transactions()
                     ->where('status', TransactionStatus::SUCCESS)
+                    ->where(function ($q) {
+                        $q->where('type', 'payment')->orWhereNull('type');
+                    })
                     ->max('paid_at');
                 $invoice->paid_at = $lastTxPaidAt ? Carbon::parse($lastTxPaidAt) : Carbon::now();
             }

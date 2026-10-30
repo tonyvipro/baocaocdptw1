@@ -149,7 +149,12 @@ class ContractController extends Controller
 
         $contract = Contract::createNewContract($validatedData);
 
-        // 5. Nếu kích hoạt hiệu lực ngay (status = 1), cập nhật Property sang Đã bán/thuê (status = 2)
+        // 5. Nếu hợp đồng có tiền cọc (deposit_amount > 0), tự động tạo bản ghi contract_deposits và hóa đơn loại deposit
+        if ((float) ($contract->deposit_amount ?? 0) > 0) {
+            app(\App\Services\DepositService::class)->ensureDepositForContract($contract, $request->user()?->id);
+        }
+
+        // 6. Nếu kích hoạt hiệu lực ngay (status = 1), cập nhật Property sang Đã bán/thuê (status = 2)
         if ($contract->status == 1) {
             $property = Property::find($propertyId);
             if ($property) {
@@ -199,6 +204,25 @@ class ContractController extends Controller
             'terms' => 'nullable|string',
         ]);
 
+        // Nếu thay đổi deposit_amount, kiểm tra xem khoản cọc đã phát sinh giao dịch thu chưa
+        if (array_key_exists('deposit_amount', $validated)) {
+            $newDepAmt = round((float) ($validated['deposit_amount'] ?? 0), 2);
+            $oldDepAmt = round((float) ($contract->deposit_amount ?? 0), 2);
+
+            if ($newDepAmt !== $oldDepAmt) {
+                $existingDeposit = \App\Models\ContractDeposit::where('contract_id', $contract->id)->first();
+                if ($existingDeposit) {
+                    $fullDep = app(\App\Queries\DepositQuery::class)->findWithMetrics($existingDeposit->id);
+                    if ((float) $fullDep->collected_amount > 0) {
+                        return response()->json([
+                            'code' => 'INVALID_STATE',
+                            'message' => __('spec_messages.deposit_cannot_edit_amount_after_collection'),
+                        ], 409);
+                    }
+                }
+            }
+        }
+
         // Cập nhật phát hiện giá trị lớn
         $price = floatval($request->input('rental_price', $contract->rental_price));
         $deposit = floatval($request->input('deposit_amount', $contract->deposit_amount));
@@ -210,6 +234,20 @@ class ContractController extends Controller
         }
 
         $contract->update($validated);
+
+        // Đồng bộ sang contract_deposits và hóa đơn deposit nếu có
+        $existingDeposit = \App\Models\ContractDeposit::where('contract_id', $contract->id)->first();
+        if ($existingDeposit) {
+            if ($deposit > 0) {
+                app(\App\Services\DepositService::class)->updateDeposit($existingDeposit, [
+                    'version' => $existingDeposit->version,
+                    'required_amount' => $deposit,
+                    'refund_due_date' => $contract->end_date ? $contract->end_date->toDateString() : null,
+                ], $request->user() ?? \App\Models\User::first());
+            }
+        } elseif ($deposit > 0) {
+            app(\App\Services\DepositService::class)->ensureDepositForContract($contract, $request->user()?->id);
+        }
 
         return response()->json([
             'success' => true,

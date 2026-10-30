@@ -28,7 +28,7 @@ class UploadContractDocumentsRequest extends FormRequest
                 'max:10240', // 10MB = 10240 KB
                 'mimes:pdf,doc,docx,jpg,jpeg,png',
             ],
-            'document_type' => 'nullable|integer|in:0,1,2,3,4,5',
+            'document_type' => 'nullable|integer|in:0,1,2,3,4,5,6',
             'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:2000',
             'extension_id' => 'nullable|integer|exists:contract_extensions,id',

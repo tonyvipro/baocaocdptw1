@@ -208,7 +208,7 @@ class RentPaymentQuery
         $statusSql = self::getDisplayStatusSql('invoices');
         $monthSql = self::getRentMonthSql('invoices');
 
-        // 1. Tổng thu tháng này: tổng transactions.amount THÀNH CÔNG có paid_at nằm trong tháng, thuộc hóa đơn rent chưa hủy
+        // 1. Tổng thu tháng này: tổng transactions.amount THÀNH CÔNG (type = payment) có paid_at nằm trong tháng, thuộc hóa đơn rent chưa hủy
         $txQuery = DB::table('transactions')
             ->join('invoices', 'transactions.invoice_id', '=', 'invoices.id')
             ->join('contracts', 'invoices.contract_id', '=', 'contracts.id')
@@ -216,7 +216,10 @@ class RentPaymentQuery
             ->where('invoices.status', '!=', 3)
             ->whereNull('invoices.deleted_at')
             ->whereNull('transactions.deleted_at')
-            ->where('transactions.status', TransactionStatus::SUCCESS);
+            ->where('transactions.status', TransactionStatus::SUCCESS)
+            ->where(function ($q) {
+                $q->where('transactions.type', 'payment')->orWhereNull('transactions.type');
+            });
 
         // Phân quyền môi giới
         if ($actor && $actor->role_id === 2) {

@@ -5,7 +5,8 @@ return [
     'row_1_not_found' => 'Dữ liệu không tồn tại trong hệ thống.',
     'row_2_stale_version' => 'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
     'row_3_invoice_not_found' => 'Hóa đơn không tồn tại.',
-    'row_19_deposit_exceed' => 'Số tiền hoàn cọc vượt quá số tiền cọc đang giữ.',
+    'row_19_deposit_exceed' => 'Số tiền cọc hoàn trả vượt quá tổng số tiền cọc đang giữ.',
+    'row_19_deposit_success' => 'Ghi nhận thu/hoàn tiền cọc thành công!',
     'row_20_amount_positive' => 'Số tiền phải thu phải lớn hơn 0.',
     'row_20_contract_invalid' => 'Hợp đồng tương ứng không còn hiệu lực.',
 
@@ -27,4 +28,16 @@ return [
     'property_rented_banner' => 'Bất động sản này đã được cho thuê.',
     'property_sold_banner' => 'Bất động sản này đã được bán.',
     'manual_cancelled_success' => 'Đã hủy ghi nhận thanh toán thủ công.',
+
+    // 3. THÔNG BÁO QUẢN LÝ TIỀN CỌC (MỤC 7)
+    'deposit_collect_exceeds_remaining' => 'Số tiền thu cọc vượt quá số tiền cọc còn thiếu (:remaining).',
+    'deposit_already_fully_collected' => 'Khoản tiền cọc này đã được thu đủ.',
+    'deposit_nothing_held' => 'Không còn tiền cọc đang giữ để hoàn trả.',
+    'deposit_deduction_reason_required' => 'Vui lòng nhập lý do khấu trừ tiền cọc.',
+    'deposit_early_refund_reason_required' => 'Hợp đồng đang còn hiệu lực, vui lòng nhập lý do hoàn trả tiền cọc sớm.',
+    'deposit_contract_not_ended' => 'Chỉ có thể hoàn trả tiền cọc khi hợp đồng đã kết thúc hoặc thanh lý.',
+    'deposit_cannot_edit_amount_after_collection' => 'Khoản cọc đã phát sinh giao dịch thu, không thể sửa số tiền cọc cam kết.',
+    'deposit_updated_success' => 'Cập nhật thông tin tiền cọc thành công!',
+    'deposit_movement_voided_success' => 'Đã hủy giao dịch tiền cọc.',
+    'deposit_duplicate_suspected' => 'Phát hiện giao dịch tiền cọc có cùng số tiền và phương thức vừa được ghi nhận trong 5 phút qua. Vui lòng xác nhận nếu bạn chắc chắn muốn ghi nhận tiếp.',
 ];

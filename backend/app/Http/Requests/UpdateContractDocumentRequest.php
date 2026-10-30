@@ -19,7 +19,7 @@ class UpdateContractDocumentRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
-            'document_type' => 'required|integer|in:0,1,2,3,4,5',
+            'document_type' => 'required|integer|in:0,1,2,3,4,5,6',
             'description' => 'nullable|string|max:2000',
         ];
     }
