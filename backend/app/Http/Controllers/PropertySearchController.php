@@ -36,6 +36,75 @@ class PropertySearchController extends Controller
             if ($driver === 'elasticsearch') {
                 $timestamp = now()->timestamp;
                 $search = Property::search($text, function ($client, string $query, array $options) use ($timestamp) {
+                    $fields = [
+                        'title^8', 'code^8', 'project^4', 'address', 'street',
+                        'district', 'city', 'developer', 'type',
+                    ];
+
+                    $tokens = array_filter(preg_split('/\s+/', trim($query)));
+                    $escapedWildcards = array_map(function ($t) {
+                        $sanitized = preg_replace('/[+\-=&|!(){}\[\]^"~*?:\/\\\\]/', '', $t);
+                        return $sanitized !== '' ? '*' . strtolower($sanitized) . '*' : '';
+                    }, $tokens);
+                    $wildcardString = implode(' AND ', array_filter($escapedWildcards));
+
+                    $shouldClauses = [
+                        [
+                            'match' => [
+                                'title' => [
+                                    'query' => $query,
+                                    'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
+                                    'boost' => 25,
+                                ],
+                            ],
+                        ],
+                        [
+                            'match' => [
+                                'code' => [
+                                    'query' => $query,
+                                    'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
+                                    'boost' => 25,
+                                ],
+                            ],
+                        ],
+                        [
+                            'multi_match' => [
+                                'query' => $query,
+                                'fields' => $fields,
+                                'boost' => 10,
+                            ],
+                        ],
+                        [
+                            'multi_match' => [
+                                'query' => $query,
+                                'fields' => $fields,
+                                'type' => 'phrase_prefix',
+                                'boost' => 7,
+                            ],
+                        ],
+                        [
+                            'multi_match' => [
+                                'query' => $query,
+                                'fields' => $fields,
+                                'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
+                                'prefix_length' => 0,
+                                'max_expansions' => 100,
+                                'boost' => 5,
+                            ],
+                        ],
+                    ];
+
+                    if ($wildcardString !== '') {
+                        $shouldClauses[] = [
+                            'query_string' => [
+                                'query' => $wildcardString,
+                                'fields' => $fields,
+                                'default_operator' => 'AND',
+                                'boost' => 1,
+                            ],
+                        ];
+                    }
+
                     $params = [
                         'index' => (new Property)->searchableAs(),
                         'body' => [
@@ -43,13 +112,9 @@ class PropertySearchController extends Controller
                                 'bool' => [
                                     'must' => [
                                         [
-                                            'multi_match' => [
-                                                'query' => $query,
-                                                'fields' => [
-                                                    'title^3', 'code^3', 'project^2', 'address', 'street',
-                                                    'district', 'city', 'developer', 'type',
-                                                ],
-                                                'fuzziness' => 'AUTO',
+                                            'bool' => [
+                                                'should' => $shouldClauses,
+                                                'minimum_should_match' => 1,
                                             ],
                                         ],
                                     ],

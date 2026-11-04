@@ -74,8 +74,8 @@ class PropertyElasticsearchTest extends TestCase
             return $params['index'] === '3tvland_properties'
                 && $params['size'] === 8
                 && $params['from'] === 0
-                && isset($params['body']['query']['bool']['must'][0]['multi_match']['query'])
-                && $params['body']['query']['bool']['must'][0]['multi_match']['query'] === 'thao dien';
+                && isset($params['body']['query']['bool']['must'][0]['bool']['should'][2]['multi_match']['query'])
+                && $params['body']['query']['bool']['must'][0]['bool']['should'][2]['multi_match']['query'] === 'thao dien';
         }))->andReturn([
             'hits' => [
                 'total' => ['value' => 5],
@@ -137,5 +137,34 @@ class PropertyElasticsearchTest extends TestCase
         $this->getJson('/api/search/properties?q=test')->assertStatus(503)
             ->assertJsonPath('message', 'Dịch vụ tìm kiếm đang tạm gián đoạn. Vui lòng thử lại sau.')
             ->assertDontSee('http://elasticsearch:9200');
+    }
+
+    public function test_prefix_and_typo_fuzzy_queries_build_should_clauses(): void
+    {
+        $messi = $this->listing(['title' => 'Lionel Messi Villa', 'code' => 'MESSI-01']);
+
+        $client = $this->mockElasticsearch();
+        $client->shouldReceive('search')->twice()->with(Mockery::on(function (array $params) {
+            $should = $params['body']['query']['bool']['must'][0]['bool']['should'] ?? [];
+            $hasExact = isset($should[2]['multi_match']['query']);
+            $hasPrefix = isset($should[3]['multi_match']['type']) && $should[3]['multi_match']['type'] === 'phrase_prefix';
+            $hasFuzzy = isset($should[4]['multi_match']['fuzziness']);
+            return $hasExact && $hasPrefix && $hasFuzzy;
+        }))->andReturn([
+            'hits' => [
+                'total' => ['value' => 1],
+                'hits' => [['_id' => (string) $messi->id, '_source' => ['id' => $messi->id]]],
+            ],
+        ]);
+
+        // Test prefix 'mes'
+        $this->getJson('/api/search/properties?q=mes')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $messi->id);
+
+        // Test typo/fuzzy 'mei'
+        $this->getJson('/api/search/properties?q=mei')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $messi->id);
     }
 }
