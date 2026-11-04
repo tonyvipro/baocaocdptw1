@@ -11,6 +11,17 @@ return [
     'soft_delete' => false,
     'identify' => false,
 
+    'elasticsearch' => [
+        'hosts' => [
+            env('ELASTICSEARCH_HOST', 'http://127.0.0.1:9200'),
+        ],
+        'index-settings' => [
+            Property::class => [
+                'pagination' => ['maxTotalHits' => 1000],
+            ],
+        ],
+    ],
+
     'meilisearch' => [
         'host' => env('MEILISEARCH_HOST', 'http://127.0.0.1:7700'),
         'key' => env('MEILISEARCH_KEY'),
