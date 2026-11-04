@@ -35,30 +35,31 @@ services:
       - DB_DATABASE=baocaocdptw1_db
       - DB_USERNAME=root
       - DB_PASSWORD=rootpassword
-      - SCOUT_DRIVER=meilisearch
+      - SCOUT_DRIVER=elasticsearch
       - SCOUT_QUEUE=false
-      - MEILISEARCH_HOST=http://meilisearch:7700
-      - MEILISEARCH_KEY=${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in the root .env file}
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
     command: >
       bash -c "if [ ! -f vendor/autoload.php ]; then echo 'Dang cai dat Composer dependencies...' && composer install --no-interaction --prefer-dist; fi && mkdir -p public/uploads/avatars storage/app/public storage/framework/{sessions,views,cache} bootstrap/cache && php artisan storage:link 2>/dev/null || true && chmod -R 777 storage bootstrap/cache public/uploads 2>/dev/null || true && apache2-foreground"
     depends_on:
       - db
-      - meilisearch
+      - elasticsearch
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.55.0
-    container_name: baocaocdptw1_meilisearch
+  # 3. SEARCH ENGINE (Elasticsearch)
+  elasticsearch:
+    image: elasticsearch:8.13.4
+    container_name: baocaocdptw1_elasticsearch
     restart: unless-stopped
     ports:
-      - "127.0.0.1:7700:7700"
+      - "9200:9200"
     environment:
-      MEILI_ENV: production
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY in the root .env file}
-      MEILI_NO_ANALYTICS: "true"
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
     volumes:
-      - meili_data:/meili_data
+      - es_data:/usr/share/elasticsearch/data
 
-  # 3. DATABASE (MySQL Persistent)
+  # 4. DATABASE (MySQL Persistent)
   db:
     image: mysql:8.0
     container_name: baocaocdptw1_db
@@ -71,7 +72,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
-  # 4. PHPMYADMIN (Database GUI Manager)
+  # 5. PHPMYADMIN (Database GUI Manager)
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: baocaocdptw1_pma
@@ -88,4 +89,4 @@ services:
 
 volumes:
   db_data:
-  meili_data:
+  es_data:

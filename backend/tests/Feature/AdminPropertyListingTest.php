@@ -12,6 +12,7 @@ class AdminPropertyListingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['session.driver' => 'array']);
         Schema::create('properties', function (Blueprint $table) {
             $table->id();
             foreach (['code', 'title', 'address', 'street', 'project', 'type', 'purpose', 'city'] as $field) {

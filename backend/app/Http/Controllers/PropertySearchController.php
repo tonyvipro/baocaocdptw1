@@ -27,33 +27,99 @@ class PropertySearchController extends Controller
                 'query' => '', 'current_page' => 1, 'last_page' => 1, 'per_page' => $perPage, 'total' => 0,
             ]]);
         }
-        if (config('scout.driver') !== 'meilisearch') {
+        $driver = config('scout.driver');
+        if (! in_array($driver, ['elasticsearch', 'meilisearch'], true)) {
             return response()->json(['message' => 'Tìm kiếm thông minh chưa được bật trên máy chủ.'], 503);
         }
 
         try {
-            $search = Property::search($text, function (Indexes $index, string $query, array $options) {
+            if ($driver === 'elasticsearch') {
                 $timestamp = now()->timestamp;
-                $options['filter'] = "status = 1 AND (expires_at = 0 OR expires_at >= $timestamp)";
+                $search = Property::search($text, function ($client, string $query, array $options) use ($timestamp) {
+                    $params = [
+                        'index' => (new Property)->searchableAs(),
+                        'body' => [
+                            'query' => [
+                                'bool' => [
+                                    'must' => [
+                                        [
+                                            'multi_match' => [
+                                                'query' => $query,
+                                                'fields' => [
+                                                    'title^3', 'code^3', 'project^2', 'address', 'street',
+                                                    'district', 'city', 'developer', 'type',
+                                                ],
+                                                'fuzziness' => 'AUTO',
+                                            ],
+                                        ],
+                                    ],
+                                    'filter' => [
+                                        ['term' => ['status' => 1]],
+                                        [
+                                            'bool' => [
+                                                'should' => [
+                                                    ['term' => ['expires_at' => 0]],
+                                                    ['range' => ['expires_at' => ['gte' => $timestamp]]],
+                                                ],
+                                                'minimum_should_match' => 1,
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ];
 
-                return $index->search($query, $options);
-            })
-                // Always recheck SQL: an old index must never expose hidden/expired/deleted listings.
-                ->query(fn (Builder $query) => $query->publiclyVisible());
+                    if (isset($options['size'])) {
+                        $params['size'] = $options['size'];
+                    }
+                    if (isset($options['from'])) {
+                        $params['from'] = $options['from'];
+                    }
+                    if (isset($options['_source'])) {
+                        $params['_source'] = $options['_source'];
+                    }
 
-            if ($request->boolean('catalog')) {
-                // The catalog already holds public listing data; return all ranked IDs in one request.
-                $limit = (int) config('scout.meilisearch.index-settings.'.Property::class.'.pagination.maxTotalHits', 1000);
-                $matches = $search->options(['attributesToRetrieve' => ['id']])->take($limit)->get();
+                    return $client->search($params);
+                })
+                    // Always recheck SQL: an old index must never expose hidden/expired/deleted listings.
+                    ->query(fn (Builder $query) => $query->publiclyVisible());
 
-                return response()->json([
-                    'data' => $matches->modelKeys(),
-                    'meta' => ['query' => $text, 'total' => $matches->count(), 'limit' => $limit],
-                ])->header('Cache-Control', 'no-store');
+                if ($request->boolean('catalog')) {
+                    $limit = (int) config('scout.elasticsearch.index-settings.'.Property::class.'.pagination.maxTotalHits', 1000);
+                    $matches = $search->options(['_source' => ['id']])->take($limit)->get();
+
+                    return response()->json([
+                        'data' => $matches->modelKeys(),
+                        'meta' => ['query' => $text, 'total' => $matches->count(), 'limit' => $limit],
+                    ])->header('Cache-Control', 'no-store');
+                }
+
+                $results = $search->paginate($perPage, 'page', $page);
+            } else {
+                $search = Property::search($text, function (Indexes $index, string $query, array $options) {
+                    $timestamp = now()->timestamp;
+                    $options['filter'] = "status = 1 AND (expires_at = 0 OR expires_at >= $timestamp)";
+
+                    return $index->search($query, $options);
+                })
+                    // Always recheck SQL: an old index must never expose hidden/expired/deleted listings.
+                    ->query(fn (Builder $query) => $query->publiclyVisible());
+
+                if ($request->boolean('catalog')) {
+                    // The catalog already holds public listing data; return all ranked IDs in one request.
+                    $limit = (int) config('scout.meilisearch.index-settings.'.Property::class.'.pagination.maxTotalHits', 1000);
+                    $matches = $search->options(['attributesToRetrieve' => ['id']])->take($limit)->get();
+
+                    return response()->json([
+                        'data' => $matches->modelKeys(),
+                        'meta' => ['query' => $text, 'total' => $matches->count(), 'limit' => $limit],
+                    ])->header('Cache-Control', 'no-store');
+                }
+
+                $results = $search->paginate($perPage, 'page', $page);
             }
-
-            $results = $search->paginate($perPage, 'page', $page);
-        } catch (ExceptionInterface $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
 
             return response()->json(['message' => 'Dịch vụ tìm kiếm đang tạm gián đoạn. Vui lòng thử lại sau.'], 503);
