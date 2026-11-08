@@ -53,7 +53,7 @@ class PropertySearchController extends Controller
                             'match' => [
                                 'title' => [
                                     'query' => $query,
-                                    'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
+                                    'fuzziness' => 'AUTO',
                                     'boost' => 25,
                                 ],
                             ],
@@ -62,7 +62,7 @@ class PropertySearchController extends Controller
                             'match' => [
                                 'code' => [
                                     'query' => $query,
-                                    'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
+                                    'fuzziness' => 'AUTO',
                                     'boost' => 25,
                                 ],
                             ],
@@ -86,9 +86,9 @@ class PropertySearchController extends Controller
                             'multi_match' => [
                                 'query' => $query,
                                 'fields' => $fields,
-                                'fuzziness' => mb_strlen($query) >= 3 ? 2 : 'AUTO',
-                                'prefix_length' => 0,
-                                'max_expansions' => 100,
+                                'fuzziness' => 'AUTO',
+                                'prefix_length' => 1,
+                                'max_expansions' => 20,
                                 'boost' => 5,
                             ],
                         ],

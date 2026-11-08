@@ -13,7 +13,16 @@ return [
 
     'elasticsearch' => [
         'hosts' => [
-            env('ELASTICSEARCH_HOST', 'http://127.0.0.1:9200'),
+            (function () {
+                $host = env('ELASTICSEARCH_HOST', 'http://127.0.0.1:9200');
+                if (file_exists('/.dockerenv') && (str_contains($host, '127.0.0.1') || str_contains($host, 'localhost'))) {
+                    return 'http://elasticsearch:9200';
+                }
+                if (!file_exists('/.dockerenv') && str_contains($host, 'elasticsearch')) {
+                    return 'http://127.0.0.1:9200';
+                }
+                return $host;
+            })(),
         ],
         'index-settings' => [
             Property::class => [

@@ -64,3 +64,57 @@ Artisan::command('properties:sync-types', function () {
     $this->info('Database: '.\Illuminate\Support\Facades\DB::connection()->getDatabaseName());
     $this->info('Danh mục: '.\App\Models\PropertyType::count().' | BĐS đã gán loại: '.\App\Models\Property::whereNotNull('property_type_id')->count());
 })->purpose('Đồng bộ phân loại SQL với các BĐS hiện có, không xóa danh mục');
+
+Artisan::command('data:sync-all', function () {
+    $this->info('--- BẮT ĐẦU ĐỒNG BỘ TOÀN BỘ DỮ LIỆU & ELASTICSEARCH ---');
+
+    $this->line('1. Đồng bộ danh mục phân loại BĐS...');
+    Artisan::call('properties:sync-types');
+    $this->info(trim(Artisan::output()));
+
+    $this->line('2. Nhập các tin BĐS còn thiếu từ all_properties.json...');
+    Artisan::call('properties:sync');
+    $this->info(trim(Artisan::output()));
+
+    $this->line('3. Đồng bộ hồ sơ tài khoản môi giới...');
+    Artisan::call('brokers:sync-users');
+    $this->info(trim(Artisan::output()));
+
+    $this->line('4. Bổ sung dữ liệu demo mẫu còn thiếu (Giá rẻ, Nhu cầu CRM, Ảnh mẫu)...');
+    try {
+        app(\Database\Seeders\LowPricePropertyDemoSeeder::class)->run();
+        $this->info('- LowPricePropertyDemoSeeder: OK');
+    } catch (\Throwable $e) {
+        $this->warn('- LowPricePropertyDemoSeeder: ' . $e->getMessage());
+    }
+    try {
+        app(\Database\Seeders\CustomerDemandDemoSeeder::class)->run();
+        $this->info('- CustomerDemandDemoSeeder: OK');
+    } catch (\Throwable $e) {
+        $this->warn('- CustomerDemandDemoSeeder: ' . $e->getMessage());
+    }
+    try {
+        app(\Database\Seeders\RepairDemoPropertyImagesSeeder::class)->run();
+        $this->info('- RepairDemoPropertyImagesSeeder: OK');
+    } catch (\Throwable $e) {
+        $this->warn('- RepairDemoPropertyImagesSeeder: ' . $e->getMessage());
+    }
+
+    $driver = config('scout.driver');
+    $this->line("5. Đồng bộ Elasticsearch index (Scout driver: {$driver})...");
+    if (in_array($driver, ['elasticsearch', 'meilisearch'], true)) {
+        try {
+            Artisan::call('scout:import', ['model' => 'App\Models\Property']);
+            $this->info(trim(Artisan::output()));
+            $this->info('Đã index toàn bộ BĐS vào ' . ucfirst($driver) . ' thành công!');
+        } catch (\Throwable $e) {
+            $this->error('Lỗi kết nối Elasticsearch/Scout: ' . $e->getMessage());
+            $this->warn('Hãy đảm bảo container Elasticsearch đang chạy tại ' . config('scout.elasticsearch.hosts.0', 'http://127.0.0.1:9200'));
+        }
+    } else {
+        $this->warn('Scout driver chưa được đặt thành elasticsearch trong file .env!');
+    }
+
+    $this->info('--- ĐỒNG BỘ DỮ LIỆU HOÀN TẤT ---');
+})->purpose('Đồng bộ toàn bộ dữ liệu database và chỉ mục tìm kiếm Elasticsearch');
+

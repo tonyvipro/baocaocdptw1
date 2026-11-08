@@ -11,9 +11,14 @@ use Illuminate\Support\Str;
 
 class PropertyManagementController extends Controller
 {
+    private function currentUser(Request $request): ?\App\Models\User
+    {
+        return $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
+    }
+
     private function authorizeProperty(Request $request, ?Property $property = null, bool $adminOnly = false): void
     {
-        $user = $request->user();
+        $user = $this->currentUser($request);
         abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
         $admin = (int) $user->role_id === 1;
         abort_unless($admin || (!$adminOnly && (!$property || (int) $property->user_id === (int) $user->id)), 403, 'Bạn không có quyền quản lý tin này.');
@@ -104,8 +109,9 @@ class PropertyManagementController extends Controller
 
     private function log(Request $request, Property $property, string $action, array $old, array $extra = []): void
     {
+        $user = $this->currentUser($request);
         DB::table('activity_logs')->insert([
-            'user_id' => $request->user()->id, 'table_name' => 'properties', 'record_id' => $property->id,
+            'user_id' => $user?->id ?? 0, 'table_name' => 'properties', 'record_id' => $property->id,
             'action' => $action, 'old_data' => json_encode($old), 'new_data' => json_encode(array_merge($property->toArray(), $extra)),
             'ip_address' => $request->ip(), 'created_at' => now(), 'updated_at' => now(),
         ]);
@@ -115,13 +121,14 @@ class PropertyManagementController extends Controller
     {
         $validated = $request->validate($this->rules(true), $this->validationMessages());
         $this->authorizeProperty($request);
+        $user = $this->currentUser($request);
         $data = $this->pricing($validated);
         $data['title'] = trim($data['title']);
         abort_if($data['title'] === '', 422, 'Tiêu đề không được để trống.');
         $data['code'] = 'BDS-'.Str::upper(Str::random(12));
-        $data['user_id'] = $request->user()->id;
-        $data['status'] = (int) $request->user()->role_id === 1 ? (int) ($data['status'] ?? 1) : 0;
-        $data['expire_date'] ??= now()->addDays(30);
+        $data['user_id'] = $user->id;
+        $data['status'] = (int) $user->role_id === 1 ? (int) ($data['status'] ?? 1) : 0;
+        $data['expire_date'] = !empty($data['expire_date']) ? Carbon::parse($data['expire_date'])->format('Y-m-d H:i:s') : now()->addDays(30)->format('Y-m-d H:i:s');
         $property = DB::transaction(function () use ($request, $data) {
             $property = Property::create($this->assignType($data));
             $this->log($request, $property, 'CREATE', []);
@@ -135,9 +142,10 @@ class PropertyManagementController extends Controller
         $validated = $request->validate($this->rules(false), $this->validationMessages());
         $property = Property::findOrFail($id);
         $this->authorizeProperty($request, $property);
+        $user = $this->currentUser($request);
         $data = $this->pricing($validated, $property);
         if (array_key_exists('image', $data) && !$data['image']) unset($data['image']);
-        if ((int) $request->user()->role_id !== 1) $data['status'] = 0;
+        if ((int) $user->role_id !== 1) $data['status'] = 0;
         DB::transaction(function () use ($request, $property, $data) {
             $old = $property->toArray();
             $property->update($this->assignType($data));

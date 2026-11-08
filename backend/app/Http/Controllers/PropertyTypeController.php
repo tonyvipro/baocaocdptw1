@@ -12,8 +12,9 @@ class PropertyTypeController extends Controller
 {
     private function authorizeWrite(Request $request): void
     {
-        abort_unless($request->user() && $request->user()->is_active, 401, 'Vui lòng đăng nhập lại.');
-        abort_unless((int) $request->user()->role_id === 1, 403, 'Chỉ quản trị viên được sửa danh mục.');
+        $user = $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
+        abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
+        abort_unless((int) $user->role_id === 1, 403, 'Chỉ quản trị viên được sửa danh mục.');
     }
 
     public function index()

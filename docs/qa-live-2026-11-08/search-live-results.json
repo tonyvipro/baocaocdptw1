@@ -1,0 +1,891 @@
+{
+  "startedAt": "2026-11-08T13:39:42.218Z",
+  "finishedAt": "2026-11-08T13:41:23.778Z",
+  "origin": "http://127.0.0.1:8080",
+  "scope": "Anonymous loopback HTTP GET only; initial 12 calls plus 3 explicitly requested follow-up calls; selected listing fields only; no credentials or app/data writes.",
+  "summary": {
+    "baselineCount": 38,
+    "selectedListing": {
+      "id": 1,
+      "code": "VH-GP-R01",
+      "title": "messi",
+      "project": "Vinhomes Grand Park",
+      "status": 1,
+      "expire_date": "2026-11-20T00:03:28.000000Z",
+      "deleted_at": null
+    },
+    "keyword": "Vinhomes",
+    "uppercase": "VINHOMES",
+    "accentless": "Vinhomes",
+    "providerAvailable": true,
+    "providerEvidence": {
+      "normalStatus": 200,
+      "normalMessage": null,
+      "catalogStatus": 200,
+      "catalogMessage": null
+    },
+    "normalIdsAllInCatalog": true,
+    "selectedIdInSmartCatalog": true,
+    "publicVisibilityIssues": [],
+    "missingBaselineIds": [],
+    "probes": [
+      {
+        "name": "smart-known-normal",
+        "status": 200,
+        "count": 3,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-known-catalog",
+        "status": 200,
+        "count": 3,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-whitespace",
+        "status": 200,
+        "count": 0,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-no-match",
+        "status": 200,
+        "count": 0,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-quote-sql-pattern",
+        "status": 422,
+        "count": null,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-q-length-251",
+        "status": 422,
+        "count": null,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-page0-per-page25",
+        "status": 422,
+        "count": null,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "smart-q-array",
+        "status": 422,
+        "count": null,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "sql-uppercase-known",
+        "status": 200,
+        "count": 3,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "sql-accentless-known",
+        "status": 200,
+        "count": 3,
+        "unavailable": false,
+        "networkError": null
+      },
+      {
+        "name": "sql-no-match",
+        "status": 200,
+        "count": 0,
+        "unavailable": false,
+        "networkError": null
+      }
+    ],
+    "cautions": [
+      "503 means provider unavailable; it is not a functional pass.",
+      "Public IDs are a request-time SQL visibility snapshot; no hidden rows or DB were modified to seed tests.",
+      "Smart search may use fuzzy matching; ID set equality with SQL substring search is not assumed.",
+      "Page 0 and per_page 25 are combined in one request; inspect both validation error fields."
+    ],
+    "additional": {
+      "startedAt": "2026-11-08T13:41:12.323Z",
+      "finishedAt": "2026-11-08T13:41:23.778Z",
+      "calls": 3,
+      "accentChecks": {
+        "expectedKnownId": 2,
+        "accentedStatus200": true,
+        "accentlessStatus200": true,
+        "sameMatchedIds": true,
+        "knownIdInBoth": true,
+        "allIdsInPublicBaseline": false,
+        "noNonPublicRecords": true
+      },
+      "accentChecksPassed": false,
+      "guestAdminPercent": {
+        "status": 200,
+        "count": 1,
+        "ids": [
+          7
+        ],
+        "missingPublicIds": [],
+        "note": "Percent is literal user input; existing titles can legitimately contain 100%. Admin envelope access as guest is an authorization finding independent of SQL wildcard escaping."
+      },
+      "functionalAccentComparisonPassed": true,
+      "baselineComparisonInterpretation": "IDs 39 and 40 were absent from the earlier baseline; concurrent state changes must be resolved before classifying a visibility defect. Returned record visibility is checked independently."
+    }
+  },
+  "results": [
+    {
+      "name": "public-catalog-baseline",
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200,
+      "elapsedMs": 9476,
+      "requestId": "f676626f-f67b-46a9-ab2a-d0fe573024d8",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 38,
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1,
+          "expire_date": "2026-11-20T00:03:28.000000Z",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 3,
+          "code": "NOVA-SUN-R01",
+          "title": "Căn hộ 3PN The Sun Avenue Mai Chí Thọ view sông Giồng Ông Tố",
+          "project": "The Sun Avenue",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 4,
+          "code": "NOVA-SRC-R02",
+          "title": "Căn hộ Sunrise City Central Quận 7 đối diện Lotte Mart",
+          "project": "Sunrise City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 5,
+          "code": "NOVA-AQUA-S01",
+          "title": "Nhà phố ven sông Đảo Phượng Hoàng - Aqua City Biên Hòa",
+          "project": "Aqua City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 6,
+          "code": "KD-SAF-R01",
+          "title": "Căn hộ Safira Khang Điền 2PN view hồ bơi xanh mát",
+          "project": "Safira Khang Điền",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 7,
+          "code": "KD-PRIV-S01",
+          "title": "Căn hộ The Privia Khang Điền bàn giao mới 100% An Dương Vương",
+          "project": "The Privia",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 8,
+          "code": "NL-AK-R01",
+          "title": "Cho thuê căn hộ Akari City Nam Long phong cách Nhật Bản",
+          "project": "Akari City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": []
+    },
+    {
+      "name": "smart-quote-sql-pattern",
+      "method": "GET",
+      "path": "/api/search/properties?q=%27+OR+1%3D1+--",
+      "status": 422,
+      "elapsedMs": 4798,
+      "requestId": "43218bc6-ee42-4150-8910-49c4de409726",
+      "cacheControl": "no-cache, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": null,
+      "ids": null,
+      "meta": null,
+      "message": "Chỉ nhập văn bản, không nhập thẻ HTML, mã script hoặc câu lệnh can thiệp dữ liệu.",
+      "errors": {
+        "q": [
+          "Chỉ nhập văn bản, không nhập thẻ HTML, mã script hoặc câu lệnh can thiệp dữ liệu."
+        ]
+      },
+      "sample": [],
+      "invalidVisibility": []
+    },
+    {
+      "name": "smart-q-length-251",
+      "method": "GET",
+      "path": "/api/search/properties?q=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": 422,
+      "elapsedMs": 4860,
+      "requestId": "cdac2084-80ee-4e15-b8a3-59312b422253",
+      "cacheControl": "no-cache, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": null,
+      "ids": null,
+      "meta": null,
+      "message": "Thông tin không được vượt quá 250 ký tự.",
+      "errors": {
+        "q": [
+          "Thông tin không được vượt quá 250 ký tự."
+        ]
+      },
+      "sample": [],
+      "invalidVisibility": []
+    },
+    {
+      "name": "smart-whitespace",
+      "method": "GET",
+      "path": "/api/search/properties?q=+++",
+      "status": 200,
+      "elapsedMs": 5239,
+      "requestId": "29f90137-655f-4638-add4-850be61dba6d",
+      "cacheControl": "no-cache, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": 0,
+      "ids": [],
+      "meta": {
+        "query": "",
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 8,
+        "total": 0
+      },
+      "message": null,
+      "errors": null,
+      "sample": [],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "sql-uppercase-known",
+      "method": "GET",
+      "path": "/api/properties?search=VINHOMES",
+      "status": 200,
+      "elapsedMs": 5907,
+      "requestId": "b8538226-217a-4197-a6b4-b1c01c91f329",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 3,
+      "ids": [
+        1,
+        2,
+        23
+      ],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1,
+          "expire_date": "2026-11-20T00:03:28.000000Z",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 23,
+          "code": "SAL-OPUZ-854",
+          "title": "Test BĐS Biệt Thự Thảo Điền Quận 2",
+          "project": "Thảo Điền Villa",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "sql-accentless-known",
+      "method": "GET",
+      "path": "/api/properties?search=Vinhomes",
+      "status": 200,
+      "elapsedMs": 5939,
+      "requestId": "b4250cde-e87d-4961-bd7f-7fe0e03e0d77",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 3,
+      "ids": [
+        1,
+        2,
+        23
+      ],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1,
+          "expire_date": "2026-11-20T00:03:28.000000Z",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 23,
+          "code": "SAL-OPUZ-854",
+          "title": "Test BĐS Biệt Thự Thảo Điền Quận 2",
+          "project": "Thảo Điền Villa",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "smart-page0-per-page25",
+      "method": "GET",
+      "path": "/api/search/properties?q=Vinhomes&page=0&per_page=25",
+      "status": 422,
+      "elapsedMs": 6485,
+      "requestId": "5f410f4c-73fb-4cab-bdd0-746cb07ff13e",
+      "cacheControl": "no-cache, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": null,
+      "ids": null,
+      "meta": null,
+      "message": "Trường trang phải tối thiểu là 1. (and 1 more error)",
+      "errors": {
+        "page": [
+          "Trường trang phải tối thiểu là 1."
+        ],
+        "per_page": [
+          "Trường số dòng hiển thị không được lớn hơn 24."
+        ]
+      },
+      "sample": [],
+      "invalidVisibility": []
+    },
+    {
+      "name": "smart-known-catalog",
+      "method": "GET",
+      "path": "/api/search/properties?q=Vinhomes&catalog=1",
+      "status": 200,
+      "elapsedMs": 7445,
+      "requestId": "acde44e1-c8aa-4902-94c8-fe1baf11f0c4",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": 3,
+      "ids": [
+        2,
+        1,
+        23
+      ],
+      "meta": {
+        "query": "Vinhomes",
+        "total": 3,
+        "limit": 1000
+      },
+      "message": null,
+      "errors": null,
+      "sample": [],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "smart-known-normal",
+      "method": "GET",
+      "path": "/api/search/properties?q=Vinhomes&page=1&per_page=8",
+      "status": 200,
+      "elapsedMs": 7525,
+      "requestId": "05995cdc-5214-4f99-a99f-1c488c4538e8",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": 3,
+      "ids": [
+        2,
+        1,
+        23
+      ],
+      "meta": {
+        "query": "Vinhomes",
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 8,
+        "total": 3
+      },
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1
+        },
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1
+        },
+        {
+          "id": 23,
+          "code": "SAL-OPUZ-854",
+          "title": "Test BĐS Biệt Thự Thảo Điền Quận 2",
+          "project": "Thảo Điền Villa",
+          "status": 1
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "smart-no-match",
+      "method": "GET",
+      "path": "/api/search/properties?q=QA_NO_MATCH_20261108_7f29c81e",
+      "status": 200,
+      "elapsedMs": 7665,
+      "requestId": "fbd093ba-44a0-482f-86e6-4004dcd4384a",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": 0,
+      "ids": [],
+      "meta": {
+        "query": "QA_NO_MATCH_20261108_7f29c81e",
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 8,
+        "total": 0
+      },
+      "message": null,
+      "errors": null,
+      "sample": [],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "smart-q-array",
+      "method": "GET",
+      "path": "/api/search/properties?q%5B%5D=Vinhomes",
+      "status": 422,
+      "elapsedMs": 10809,
+      "requestId": "2e633499-6f0b-4433-9ec8-1b238a1fa8f7",
+      "cacheControl": "no-cache, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": null,
+      "ids": null,
+      "meta": null,
+      "message": "Trường q phải là một chuỗi ký tự.",
+      "errors": {
+        "q": [
+          "Trường q phải là một chuỗi ký tự."
+        ]
+      },
+      "sample": [],
+      "invalidVisibility": []
+    },
+    {
+      "name": "sql-no-match",
+      "method": "GET",
+      "path": "/api/properties?search=QA_NO_MATCH_20261108_7f29c81e",
+      "status": 200,
+      "elapsedMs": 11435,
+      "requestId": "c5918b2a-5e1c-4a13-a90c-3a069fe456ea",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 0,
+      "ids": [],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "sql-vietnamese-accented",
+      "method": "GET",
+      "path": "/api/properties?search=C%C4%83n+h%E1%BB%99",
+      "status": 200,
+      "elapsedMs": 11442,
+      "requestId": "a5120a61-3be5-4587-8a81-99e5a6081848",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 22,
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        20,
+        22,
+        24,
+        32,
+        39,
+        40
+      ],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1,
+          "expire_date": "2026-11-20T00:03:28.000000Z",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 3,
+          "code": "NOVA-SUN-R01",
+          "title": "Căn hộ 3PN The Sun Avenue Mai Chí Thọ view sông Giồng Ông Tố",
+          "project": "The Sun Avenue",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 4,
+          "code": "NOVA-SRC-R02",
+          "title": "Căn hộ Sunrise City Central Quận 7 đối diện Lotte Mart",
+          "project": "Sunrise City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 6,
+          "code": "KD-SAF-R01",
+          "title": "Căn hộ Safira Khang Điền 2PN view hồ bơi xanh mát",
+          "project": "Safira Khang Điền",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 7,
+          "code": "KD-PRIV-S01",
+          "title": "Căn hộ The Privia Khang Điền bàn giao mới 100% An Dương Vương",
+          "project": "The Privia",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 8,
+          "code": "NL-AK-R01",
+          "title": "Cho thuê căn hộ Akari City Nam Long phong cách Nhật Bản",
+          "project": "Akari City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 9,
+          "code": "NL-MIZ-S01",
+          "title": "Căn hộ Mizuki Park Bình Chánh khu đô thị kênh đào xanh mát",
+          "project": "Mizuki Park",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": [
+        39,
+        40
+      ]
+    },
+    {
+      "name": "guest-admin-literal-percent",
+      "method": "GET",
+      "path": "/api/properties?admin=1&search=%25&per_page=100",
+      "status": 200,
+      "elapsedMs": 11337,
+      "requestId": "72bc6700-532e-4c28-9b07-46fd9a70b564",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "object",
+      "count": 1,
+      "ids": [
+        7
+      ],
+      "meta": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 100,
+        "total": 1
+      },
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 7,
+          "code": "KD-PRIV-S01",
+          "title": "Căn hộ The Privia Khang Điền bàn giao mới 100% An Dương Vương",
+          "project": "The Privia",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": []
+    },
+    {
+      "name": "sql-vietnamese-accentless",
+      "method": "GET",
+      "path": "/api/properties?search=Can+ho",
+      "status": 200,
+      "elapsedMs": 11340,
+      "requestId": "a2fa14b1-4868-4295-87ce-45e6fefc33d8",
+      "cacheControl": "no-store, private",
+      "contentType": "application/json",
+      "shape": "array",
+      "count": 22,
+      "ids": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        20,
+        22,
+        24,
+        32,
+        39,
+        40
+      ],
+      "meta": null,
+      "message": null,
+      "errors": null,
+      "sample": [
+        {
+          "id": 1,
+          "code": "VH-GP-R01",
+          "title": "messi",
+          "project": "Vinhomes Grand Park",
+          "status": 1,
+          "expire_date": "2026-11-20T00:03:28.000000Z",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "code": "VH-OCP-S01",
+          "title": "Căn hộ 2PN2WC Masteri Waterfront - Vinhomes Ocean Park 1",
+          "project": "Vinhomes Ocean Park 1",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 3,
+          "code": "NOVA-SUN-R01",
+          "title": "Căn hộ 3PN The Sun Avenue Mai Chí Thọ view sông Giồng Ông Tố",
+          "project": "The Sun Avenue",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 4,
+          "code": "NOVA-SRC-R02",
+          "title": "Căn hộ Sunrise City Central Quận 7 đối diện Lotte Mart",
+          "project": "Sunrise City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 6,
+          "code": "KD-SAF-R01",
+          "title": "Căn hộ Safira Khang Điền 2PN view hồ bơi xanh mát",
+          "project": "Safira Khang Điền",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 7,
+          "code": "KD-PRIV-S01",
+          "title": "Căn hộ The Privia Khang Điền bàn giao mới 100% An Dương Vương",
+          "project": "The Privia",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 8,
+          "code": "NL-AK-R01",
+          "title": "Cho thuê căn hộ Akari City Nam Long phong cách Nhật Bản",
+          "project": "Akari City",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        },
+        {
+          "id": 9,
+          "code": "NL-MIZ-S01",
+          "title": "Căn hộ Mizuki Park Bình Chánh khu đô thị kênh đào xanh mát",
+          "project": "Mizuki Park",
+          "status": 1,
+          "expire_date": null,
+          "deleted_at": null
+        }
+      ],
+      "invalidVisibility": [],
+      "idsMissingFromPublicBaseline": [
+        39,
+        40
+      ]
+    }
+  ],
+  "executionNotes": [
+    "Initial sandbox baseline attempt failed before HTTP with connect EACCES; authorized escalated loopback execution completed.",
+    "No additional requests were made when annotating this report."
+  ]
+}

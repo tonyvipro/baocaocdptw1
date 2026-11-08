@@ -1,0 +1,74 @@
+﻿Command: C:/wamp64/bin/php/php8.4.25/php.exe vendor/bin/phpunit --configuration phpunit.xml --colors=never --do-not-cache-result --testdox tests/Feature/PropertyLifecycleTest.php tests/Feature/AdminPropertyListingTest.php tests/Feature/AuthIdentityTest.php tests/Feature/RegistrationValidationTest.php tests/Feature/PropertyMeilisearchTest.php tests/Feature/PropertyElasticsearchTest.php Working directory: C:/wamp64/www/baocaocdptw1/backend Isolation verified: phpunit.xml force=true DB_CONNECTION=sqlite, DB_DATABASE=:memory:, DB_URL empty; Tests/TestCase.php asserts SQLite :memory: and bypasses config cache.
+Xdebug: [Log Files] File 'c:/wamp64/logs/xdebug.log' could not be opened.
+PHPUnit 12.5.35 by Sebastian Bergmann and contributors.
+
+Cannot open bootstrap script "C:\wamp64\www\baocaocdptw1\backend\vendor/autoload.php"
+Exit code: 2
+
+Retry command: C:/wamp64/bin/php/php8.4.25/php.exe -d xdebug.mode=off vendor/bin/phpunit --configuration phpunit.xml --colors=never --do-not-cache-result --testdox tests/Feature/PropertyLifecycleTest.php tests/Feature/AdminPropertyListingTest.php tests/Feature/AuthIdentityTest.php tests/Feature/RegistrationValidationTest.php tests/Feature/PropertyMeilisearchTest.php tests/Feature/PropertyElasticsearchTest.php
+Working directory: C:/wamp64/www/baocaocdptw1/backend
+SQLite :memory: isolation independently enforced by Tests/TestCase.php.
+PHPUnit 12.5.35 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.25
+Configuration: C:\wamp64\www\baocaocdptw1\backend\phpunit.xml
+
+.........................................                         41 / 41 (100%)
+
+Time: 00:49.113, Memory: 66.00 MB
+
+Admin Property Listing (Tests\Feature\AdminPropertyListing)
+ ✔ Admin gets rows and pagination instead of an empty table
+ ✔ Filters and empty results are real database results
+ ✔ Statistics and public array remain compatible
+ ✔ Search handles vietnamese tokens across fields and visibility
+ ✔ Api diagnostics include errors and hide timing in production
+
+Auth Identity (Tests\Feature\AuthIdentity)
+ ✔ Guest is not reported as an existing admin
+ ✔ Identity parameters cannot replace a login
+ ✔ Real web session returns its user instead of the admin
+ ✔ Valid bearer token returns its user
+ ✔ Expired bearer token does not fall back to any account
+
+Property Elasticsearch (Tests\Feature\PropertyElasticsearch)
+ ✔ Query validation and empty search do not contact the engine
+ ✔ Driver check rejects unsupported drivers
+ ✔ Search rechecks sql visibility keeps ranking and returns current public data
+ ✔ Engine receives pagination and empty results are successful
+ ✔ Catalog returns all ranked public ids for combined frontend filters
+ ✔ Search outage is a friendly 503 without connection details
+ ✔ Prefix and typo fuzzy queries build should clauses
+
+Property Lifecycle (Tests\Feature\PropertyLifecycle)
+ ✔ Create edit search delete restore and permanent delete
+ ✔ Property title accepts 250 characters and rejects 251 on create and update
+ ✔ Category and broker pages load and broker sync is repeatable
+ ✔ Pending hidden expired and deleted listings are not public
+ ✔ Validation ownership and atomic bulk actions
+ ✔ Property types are persisted and cannot form cycles or lose referenced properties
+ ✔ History records one entry per property and deletes exactly that entry
+ ✔ Database button does not reset properties or reseed accounts
+ ✔ Invalid numeric and long address inputs report validation instead of login errors
+ ✔ Quick hide and bulk hide need no reason and can be reversed
+ ✔ Draft status edits and blank image match the form behavior
+ ✔ File import is complete idempotent and never overwrites database changes
+ ✔ Api reads changes made directly in database without model events
+ ✔ New property resolves sql type and updates the category count
+
+Property Meilisearch (Tests\Feature\PropertyMeilisearch)
+ ✔ Query validation and empty search do not contact the engine
+ ✔ Search rechecks sql visibility keeps ranking and returns current public data
+ ✔ Engine receives pagination and empty results are successful
+ ✔ Catalog returns all ranked public ids for combined frontend filters
+ ✔ Search outage is a friendly 503 without connection details
+ ✔ Index payload is typed and excludes private fields
+
+Registration Validation (Tests\Feature\RegistrationValidation)
+ ✔ Registration rejects non digits and phone lengths outside ten to eleven
+ ✔ Registration accepts ten and eleven digits and a 250 character name
+ ✔ Registration rejects overlong fields even when posted directly
+ ✔ Phone remains optional
+
+OK (41 tests, 352 assertions)
+Exit code: 0

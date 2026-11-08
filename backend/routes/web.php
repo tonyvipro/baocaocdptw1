@@ -100,7 +100,7 @@ Route::delete('/api/contract-extensions/{extension}/documents/{document}', [\App
 // View History API (Chức năng Lịch sử xem BĐS)
 Route::get('/api/history', function (\Illuminate\Http\Request $request) {
     try {
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = $request->user('sanctum')?->id ?? (auth('sanctum')->id() ?? \Illuminate\Support\Facades\Auth::id());
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
             $visible = Property::where('status', 1)->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()))->select('id');
             $logs = \Illuminate\Support\Facades\DB::table('activity_logs')
@@ -124,7 +124,7 @@ Route::post('/api/history', function (\Illuminate\Http\Request $request) {
     $request->validate(['property' => 'required|array', 'property.code' => 'required|string|max:50']);
     $property = Property::where('code', $request->input('property.code'))->where('status', 1)->firstOrFail();
     try {
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = $request->user('sanctum')?->id ?? (auth('sanctum')->id() ?? \Illuminate\Support\Facades\Auth::id());
         $prop = $property->toArray();
         $propId = $property->id;
 
@@ -150,7 +150,7 @@ Route::post('/api/history', function (\Illuminate\Http\Request $request) {
 Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
     $request->validate(['code' => 'nullable|string|max:50']);
     try {
-        $userId = \Illuminate\Support\Facades\Auth::id();
+        $userId = $request->user('sanctum')?->id ?? (auth('sanctum')->id() ?? \Illuminate\Support\Facades\Auth::id());
         $code = $request->input('code');
 
         if ($userId && \Illuminate\Support\Facades\Schema::hasTable('activity_logs')) {
@@ -167,6 +167,50 @@ Route::delete('/api/history', function (\Illuminate\Http\Request $request) {
         return response()->json(['status' => 'success']);
     } catch (\Throwable $e) {
         return response()->json(['status' => 'error'], 500);
+    }
+});
+
+// Favorites API (Chức năng Tin đăng đã lưu / Favorites)
+Route::get('/api/favorites', function (\Illuminate\Http\Request $request) {
+    try {
+        $userId = $request->user('sanctum')?->id ?? (auth('sanctum')->id() ?? \Illuminate\Support\Facades\Auth::id());
+        if ($userId && \Illuminate\Support\Facades\Schema::hasTable('favorites')) {
+            $favs = \Illuminate\Support\Facades\DB::table('favorites')
+                ->join('properties', 'favorites.property_id', '=', 'properties.id')
+                ->where('favorites.user_id', $userId)
+                ->where('properties.status', 1)
+                ->whereNull('properties.deleted_at')
+                ->select('properties.*')
+                ->orderBy('favorites.created_at', 'desc')
+                ->get();
+            return response()->json($favs);
+        }
+    } catch (\Throwable $e) {}
+    return response()->json([]);
+});
+
+Route::post('/api/favorites/toggle', function (\Illuminate\Http\Request $request) {
+    $request->validate(['property_id' => 'required|integer']);
+    $userId = $request->user('sanctum')?->id ?? (auth('sanctum')->id() ?? \Illuminate\Support\Facades\Auth::id());
+    if (!$userId) {
+        return response()->json(['status' => 'guest']);
+    }
+    $propId = (int) $request->input('property_id');
+    $existing = \Illuminate\Support\Facades\DB::table('favorites')
+        ->where('user_id', $userId)
+        ->where('property_id', $propId)
+        ->first();
+    if ($existing) {
+        \Illuminate\Support\Facades\DB::table('favorites')->where('id', $existing->id)->delete();
+        return response()->json(['status' => 'removed', 'is_favorite' => false]);
+    } else {
+        \Illuminate\Support\Facades\DB::table('favorites')->insert([
+            'user_id' => $userId,
+            'property_id' => $propId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return response()->json(['status' => 'added', 'is_favorite' => true]);
     }
 });
 

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { 
-  Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle2, 
-  XCircle, X, ArrowRight, ShieldCheck, Sparkles, AlertTriangle 
+import {
+  Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle2,
+  XCircle, X, ArrowRight, ShieldCheck, Sparkles, AlertTriangle
 } from 'lucide-react';
 import { loginUser, registerUser } from '../services/api';
 
@@ -39,7 +40,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
       ...prev,
       [name]: type === 'checkbox' ? checked
         : name === 'phone' ? value.replace(/[^0-9]/g, '').slice(0, 11)
-        : value.slice(0, name === 'email' ? 191 : mode === 'register' && name.startsWith('password') ? 32 : 250)
+          : value.slice(0, name === 'email' ? 191 : mode === 'register' && name.startsWith('password') ? 32 : 250)
     }));
   };
 
@@ -123,7 +124,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
 
       setTimeout(() => {
         setStatusModal(null);
-        onAuthSuccess(res.user);
+        onAuthSuccess(res.user, res.token);
         onClose();
       }, 1500);
 
@@ -143,7 +144,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
     <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-xs animate-fadeIn">
       {/* Modal Card */}
       <div role="dialog" aria-modal="true" aria-label={mode === 'login' ? 'Đăng nhập' : 'Đăng ký tài khoản'} className="form-surface giang-dialog giang-auth relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white rounded-none shadow-2xl border border-slate-200">
-        
+
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -163,8 +164,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             {mode === 'login' ? 'ĐĂNG NHẬP HỆ THỐNG' : 'ĐĂNG KÝ TÀI KHOẢN'}
           </h3>
           <p className="text-slate-400 text-xs mt-0.5">
-            {mode === 'login' 
-              ? 'Nhập email và mật khẩu của bạn để tiếp tục.' 
+            {mode === 'login'
+              ? 'Nhập email và mật khẩu của bạn để tiếp tục.'
               : 'Đăng ký tài khoản để lưu tin và nhận tư vấn trực tiếp.'}
           </p>
 
@@ -173,22 +174,20 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
             <button
               type="button"
               onClick={() => { setMode('login'); setStatusModal(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                mode === 'login' 
-                  ? 'bg-white text-slate-900 shadow-xs' 
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${mode === 'login'
+                  ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-300 hover:text-white'
-              }`}
+                }`}
             >
               Đăng Nhập
             </button>
             <button
               type="button"
               onClick={() => { setMode('register'); setStatusModal(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${
-                mode === 'register' 
-                  ? 'bg-white text-slate-900 shadow-xs' 
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors cursor-pointer ${mode === 'register'
+                  ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-300 hover:text-white'
-              }`}
+                }`}
             >
               Đăng Ký Mới
             </button>
@@ -224,8 +223,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
                   <label className="block text-xs font-bold text-slate-700 uppercase">
                     Mật Khẩu
                   </label>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => alert('Vui lòng liên hệ Hotline 1900 6868 hoặc quản trị viên để đặt lại mật khẩu.')}
                     className="text-xs text-red-600 hover:text-red-700 font-semibold hover:underline"
                   >

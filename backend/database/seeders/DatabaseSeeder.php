@@ -223,6 +223,10 @@ class DatabaseSeeder extends Seeder
             InvoiceSeeder::class,
             PaymentSeeder::class,
             DepositSeeder::class,
+            LowPricePropertyDemoSeeder::class,
+            CustomerDemandDemoSeeder::class,
+            RentDemoSeeder::class,
+            RepairDemoPropertyImagesSeeder::class,
         ]);
     }
 }

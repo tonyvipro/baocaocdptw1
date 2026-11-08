@@ -1,0 +1,175 @@
+Frontend regression: existing unchanged Node scripts
+Invocation directory: C:\wamp64\www\baocaocdptw1\frontend
+Node: v24.22.1
+Started (UTC): 2026-11-08T13:34:05.953Z
+Safety review: inspected all eight scripts; no --live flag; application API calls use mocks; SSR tests use Vite middleware mode. No application source edits, browser actions or DB mutations requested by these scripts.
+
+Command: node tests/property.test.mjs
+Exit code: 0
+Signal: null
+Elapsed ms: 3342
+stdout:
+PASS: property regression cases and syntax of all frontend source files
+
+stderr:
+(empty)
+
+Command: node tests/search-engine.test.mjs
+Exit code: 0
+Signal: null
+Elapsed ms: 507
+stdout:
+Search engine regression tests passed.
+
+stderr:
+(empty)
+
+Command: node tests/catalog.test.mjs
+Exit code: 1
+Signal: null
+Elapsed ms: 2599
+stdout:
+(empty)
+stderr:
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(bundle.includes('filterCatalog(n,{purpose:$,search:C'))
+
+    at file:///C:/wamp64/www/baocaocdptw1/frontend/tests/catalog.test.mjs:40:8 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.22.1
+
+
+Command: node tests/input-policy.test.mjs
+Exit code: 0
+Signal: null
+Elapsed ms: 7762
+stdout:
+Input policy, React input propagation and stale edit locking: passed.
+
+stderr:
+(empty)
+
+Command: node tests/numeric-input-guard.test.mjs
+Exit code: 0
+Signal: null
+Elapsed ms: 377
+stdout:
+PASS: e/d, selection replacement, IME deletion, real Backspace, digits, cut and Vietnamese text.
+
+stderr:
+(empty)
+
+Command: node tests/search-suggestions.test.mjs
+Exit code: 1
+Signal: null
+Elapsed ms: 4026
+stdout:
+(empty)
+stderr:
+C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:121
+		throw new Error(
+		      ^
+
+Error: Cannot find module @rollup/rollup-win32-x64-msvc. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+    at requireWithFriendlyError (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:121:9)
+    at Object.<anonymous> (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:130:22)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:372:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:244:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25) {
+  [cause]: Error: Cannot find module '@rollup/rollup-win32-x64-msvc'
+  Require stack:
+  - C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js
+      at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+      at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+      at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+      at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+      at Module._load (node:internal/modules/cjs/loader:1341:5)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1674:12)
+      at require (node:internal/modules/helpers:157:16)
+      at requireWithFriendlyError (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:103:10)
+      at Object.<anonymous> (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:130:22) {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [
+      'C:\\wamp64\\www\\baocaocdptw1\\frontend\\node_modules\\rollup\\dist\\native.js'
+    ]
+  }
+}
+
+Node.js v24.22.1
+
+
+Command: node tests/auth-session.test.mjs
+Exit code: 0
+Signal: null
+Elapsed ms: 845
+stdout:
+PASS: login requires server success; timeout, 401, 403 and 500 never create a fake admin session.
+
+stderr:
+(empty)
+
+Command: node tests/property-media.test.mjs
+Exit code: 1
+Signal: null
+Elapsed ms: 4043
+stdout:
+(empty)
+stderr:
+C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:121
+		throw new Error(
+		      ^
+
+Error: Cannot find module @rollup/rollup-win32-x64-msvc. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+    at requireWithFriendlyError (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:121:9)
+    at Object.<anonymous> (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:130:22)
+    at Module._compile (node:internal/modules/cjs/loader:1929:14)
+    at Object..js (node:internal/modules/cjs/loader:2060:10)
+    at Module.load (node:internal/modules/cjs/loader:1651:32)
+    at Module._load (node:internal/modules/cjs/loader:1443:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:372:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:244:9)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25) {
+  [cause]: Error: Cannot find module '@rollup/rollup-win32-x64-msvc'
+  Require stack:
+  - C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js
+      at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)
+      at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)
+      at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)
+      at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)
+      at Module._load (node:internal/modules/cjs/loader:1341:5)
+      at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+      at Module.require (node:internal/modules/cjs/loader:1674:12)
+      at require (node:internal/modules/helpers:157:16)
+      at requireWithFriendlyError (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:103:10)
+      at Object.<anonymous> (C:\wamp64\www\baocaocdptw1\frontend\node_modules\rollup\dist\native.js:130:22) {
+    code: 'MODULE_NOT_FOUND',
+    requireStack: [
+      'C:\\wamp64\\www\\baocaocdptw1\\frontend\\node_modules\\rollup\\dist\\native.js'
+    ]
+  }
+}
+
+Node.js v24.22.1
+
+
+Finished (UTC): 2026-11-08T13:34:29.463Z
+Summary: 5/8 scripts exited 0.

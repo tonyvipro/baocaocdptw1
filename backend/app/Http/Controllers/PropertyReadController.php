@@ -30,8 +30,9 @@ class PropertyReadController extends Controller
         $ownListings = $request->boolean('all') || $request->boolean('mine');
         $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
         if ($ownListings) {
-            abort_unless($request->user() && $request->user()->is_active, 401, 'Vui lòng đăng nhập lại.');
-            $query->where('user_id', $request->user()->id);
+            $user = $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
+            abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
+            $query->where('user_id', $user->id);
         } else {
             $query->where('status', 1);
         }

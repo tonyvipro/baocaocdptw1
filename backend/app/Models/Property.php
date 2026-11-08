@@ -23,6 +23,7 @@ class Property extends Model
             'bathrooms' => 'integer',
             'floors' => 'integer',
             'area' => 'float',
+            'expire_date' => 'datetime',
             'closed_at' => 'datetime',
         ];
     }

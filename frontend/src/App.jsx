@@ -19,7 +19,7 @@ import RecentViewsModal from './components/RecentViewsModal';
 import PostPropertyModal from './components/PostPropertyModal';
 import UserListingsModal from './components/UserListingsModal';
 import Footer from './components/Footer';
-import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi } from './services/api';
+import { fetchProperties, getMe, logoutUser, recordViewHistory, fetchViewHistory, clearViewHistoryApi, fetchFavorites, toggleFavoriteApi } from './services/api';
 import { Building2, Frown, Heart, RefreshCw, Clock, X, ArrowRight } from 'lucide-react';
 import AdminLayout from './pages/admin/AdminLayout';
 import NotificationsPage from './pages/NotificationsPage';
@@ -27,6 +27,30 @@ import MyContractsPage from './pages/customer/MyContractsPage';
 import MyContractDetailPage from './pages/customer/MyContractDetailPage';
 import MyInvoicesPage from './pages/customer/MyInvoicesPage';
 import MockGatewayPayPage from './pages/MockGatewayPayPage';
+
+// Phân tách lưu trữ theo từng User / Khách để tránh rò rỉ dữ liệu (giỏ hàng, tin đã lưu, lịch sử xem)
+export const getFavoritesKey = (user) => (user?.id ? `3tv_favorites_user_${user.id}` : '3tv_favorites_guest');
+export const getRecentViewsKey = (user) => (user?.id ? `3tv_recent_views_user_${user.id}` : '3tv_recent_views_guest');
+
+const migrateLegacyStorage = (user) => {
+  try {
+    const legacyFav = localStorage.getItem('3tv_favorites');
+    const legacyRec = localStorage.getItem('3tv_recent_views');
+    if (user?.id && (user.role_id === 1 || user.id === 1)) {
+      const userFavKey = `3tv_favorites_user_${user.id}`;
+      const userRecKey = `3tv_recent_views_user_${user.id}`;
+      if (!localStorage.getItem(userFavKey) && legacyFav) {
+        localStorage.setItem(userFavKey, legacyFav);
+      }
+      if (!localStorage.getItem(userRecKey) && legacyRec) {
+        localStorage.setItem(userRecKey, legacyRec);
+      }
+    }
+    // Xóa vĩnh viễn key dùng chung để tài khoản mới không bị ghi đè dữ liệu của admin
+    localStorage.removeItem('3tv_favorites');
+    localStorage.removeItem('3tv_recent_views');
+  } catch (e) {}
+};
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -118,21 +142,22 @@ export default function App() {
   const [showPostPropertyModal, setShowPostPropertyModal] = useState(false);
   const [showUserListingsModal, setShowUserListingsModal] = useState(false);
 
-  // Favorites (LocalStorage)
+  // Favorites (LocalStorage scoped per user)
   const [favorites, setFavorites] = useState(() => {
     try {
-      const saved = localStorage.getItem('3tv_favorites');
-      return readPropertyList('3tv_favorites');
+      const savedUser = JSON.parse(localStorage.getItem('3tv_user') || 'null');
+      migrateLegacyStorage(savedUser);
+      return readPropertyList(getFavoritesKey(savedUser));
     } catch {
       return [];
     }
   });
 
-  // Recent Views (LocalStorage) - Chức năng số 20: Lịch sử xem
+  // Recent Views (LocalStorage scoped per user) - Chức năng số 20: Lịch sử xem
   const [recentViews, setRecentViews] = useState(() => {
     try {
-      const saved = localStorage.getItem('3tv_recent_views');
-      return readPropertyList('3tv_recent_views');
+      const savedUser = JSON.parse(localStorage.getItem('3tv_user') || 'null');
+      return readPropertyList(getRecentViewsKey(savedUser));
     } catch {
       return [];
     }
@@ -159,7 +184,16 @@ export default function App() {
 
   useEffect(() => watchCatalog(loadData), []);
   useEffect(() => {
-    const requireLogin = () => { setCurrentUser(null); setAuthMode('login'); setShowAuthModal(true); localStorage.removeItem('3tv_user'); localStorage.removeItem('3tv_token'); };
+    const requireLogin = () => {
+      setCurrentUser(null);
+      setAuthMode('login');
+      setShowAuthModal(true);
+      localStorage.removeItem('3tv_user');
+      localStorage.removeItem('3tv_token');
+      setFavorites(readPropertyList(getFavoritesKey(null)));
+      setRecentViews(readPropertyList(getRecentViewsKey(null)));
+      setComparedList([]);
+    };
     window.addEventListener('3tv:auth-required', requireLogin);
     return () => window.removeEventListener('3tv:auth-required', requireLogin);
   }, []);
@@ -174,6 +208,10 @@ export default function App() {
       } else if (currentUser) {
         setCurrentUser(null);
         localStorage.removeItem('3tv_user');
+        localStorage.removeItem('3tv_token');
+        setFavorites(readPropertyList(getFavoritesKey(null)));
+        setRecentViews(readPropertyList(getRecentViewsKey(null)));
+        setComparedList([]);
         setAuthMode('login');
         setShowAuthModal(true);
       }
@@ -197,7 +235,29 @@ export default function App() {
             });
             const merged = Array.from(map.values()).slice(0, 30);
             try {
-              localStorage.setItem('3tv_recent_views', JSON.stringify(merged));
+              const savedUser = JSON.parse(localStorage.getItem('3tv_user') || 'null');
+              localStorage.setItem(getRecentViewsKey(savedUser), JSON.stringify(merged));
+            } catch (e) { }
+            return merged;
+          });
+        }
+      })
+      .catch(() => { });
+
+    fetchFavorites()
+      .then((serverFavs) => {
+        if (serverFavs && serverFavs.length > 0) {
+          setFavorites((prev) => {
+            const map = new Map();
+            [...prev, ...serverFavs].forEach((item) => {
+              if (item?.code && !map.has(item.code)) {
+                map.set(item.code, item);
+              }
+            });
+            const merged = Array.from(map.values());
+            try {
+              const savedUser = JSON.parse(localStorage.getItem('3tv_user') || 'null');
+              localStorage.setItem(getFavoritesKey(savedUser), JSON.stringify(merged));
             } catch (e) { }
             return merged;
           });
@@ -206,14 +266,14 @@ export default function App() {
       .catch(() => { });
   }, []);
 
-  // Save Favorites to LocalStorage
+  // Save Favorites to LocalStorage scoped per user
   useEffect(() => {
     try {
-      localStorage.setItem('3tv_favorites', JSON.stringify(favorites));
+      localStorage.setItem(getFavoritesKey(currentUser), JSON.stringify(favorites));
     } catch (e) {
       console.error(e);
     }
-  }, [favorites]);
+  }, [favorites, currentUser]);
 
   // Đồng bộ URL hash và localStorage cho currentAppMode & showProfileModal (F5 Reload Persistence)
   useEffect(() => {
@@ -305,12 +365,15 @@ export default function App() {
   const handleToggleFavorite = (prop) => {
     setFavorites((prev) => {
       const exists = prev.some((p) => p.code === prop.code);
-      if (exists) {
-        return prev.filter((p) => p.code !== prop.code);
-      } else {
-        return [...prev, prop];
-      }
+      const updated = exists ? prev.filter((p) => p.code !== prop.code) : [...prev, prop];
+      try {
+        localStorage.setItem(getFavoritesKey(currentUser), JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
     });
+    if (prop.id) {
+      toggleFavoriteApi(prop.id).catch(() => {});
+    }
   };
 
   const handleToggleCompare = (prop) => {
@@ -338,7 +401,7 @@ export default function App() {
       const filtered = prev.filter((p) => p.code !== prop.code);
       const updated = [enrichedProp, ...filtered].slice(0, 30);
       try {
-        localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
+        localStorage.setItem(getRecentViewsKey(currentUser), JSON.stringify(updated));
       } catch (e) {
         console.error(e);
       }
@@ -353,7 +416,7 @@ export default function App() {
     setRecentViews((prev) => {
       const updated = prev.filter((p) => p.code !== code);
       try {
-        localStorage.setItem('3tv_recent_views', JSON.stringify(updated));
+        localStorage.setItem(getRecentViewsKey(currentUser), JSON.stringify(updated));
       } catch (e) { }
       return updated;
     });
@@ -363,7 +426,7 @@ export default function App() {
   const handleClearRecent = () => {
     setRecentViews([]);
     try {
-      localStorage.removeItem('3tv_recent_views');
+      localStorage.removeItem(getRecentViewsKey(currentUser));
     } catch (e) { }
     clearViewHistoryApi().catch(() => { });
   };
@@ -388,14 +451,60 @@ export default function App() {
     localStorage.setItem('3tv_user', JSON.stringify(user));
     if (token) {
       localStorage.setItem('3tv_token', token);
+    } else {
+      localStorage.removeItem('3tv_token');
     }
+
+    // Đổi không gian lưu trữ sang tài khoản người dùng mới (cô lập hoàn toàn với tài khoản Admin cũ)
+    const userFavs = readPropertyList(getFavoritesKey(user));
+    setFavorites(userFavs);
+
+    const userRecents = readPropertyList(getRecentViewsKey(user));
+    setRecentViews(userRecents);
+
+    setComparedList([]);
+
+    // Đồng bộ lại từ server cho riêng tài khoản này
+    fetchViewHistory()
+      .then((serverViews) => {
+        if (serverViews && serverViews.length > 0) {
+          setRecentViews(serverViews);
+          try {
+            localStorage.setItem(getRecentViewsKey(user), JSON.stringify(serverViews));
+          } catch (e) {}
+        } else {
+          setRecentViews([]);
+          try {
+            localStorage.setItem(getRecentViewsKey(user), JSON.stringify([]));
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
+
+    fetchFavorites()
+      .then((serverFavs) => {
+        if (serverFavs && serverFavs.length > 0) {
+          setFavorites(serverFavs);
+          try {
+            localStorage.setItem(getFavoritesKey(user), JSON.stringify(serverFavs));
+          } catch (e) {}
+        } else {
+          setFavorites([]);
+          try {
+            localStorage.setItem(getFavoritesKey(user), JSON.stringify([]));
+          } catch (e) {}
+        }
+      })
+      .catch(() => {});
+
     if (user.role_id === 1) {
       setCurrentAppMode('admin');
+    } else {
+      setCurrentAppMode('client');
     }
   };
 
   const handleLogout = async () => {
-
     try { await logoutUser(); } catch { /* Clear the local session even if the network fails. */ }
     setCurrentUser(null);
     setShowProfileModal(false);
@@ -405,6 +514,11 @@ export default function App() {
     localStorage.setItem('3tv_app_mode', 'client');
     setCurrentAppMode('client');
     window.location.hash = '';
+
+    // Xóa sạch trạng thái giỏ hàng / tin đã lưu và lịch sử xem của user cũ trên màn hình
+    setFavorites(readPropertyList(getFavoritesKey(null)));
+    setRecentViews(readPropertyList(getRecentViewsKey(null)));
+    setComparedList([]);
   };
 
   // Dropdown Lists Extracted Dynamically

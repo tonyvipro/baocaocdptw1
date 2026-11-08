@@ -1,0 +1,1893 @@
+{
+  "run": "QA-LIVE-1794145008738",
+  "base": "http://127.0.0.1:3000",
+  "startedAt": "2026-11-08T13:36:48.738Z",
+  "mode": "real HTTP and real browser; no mocked application API responses",
+  "checks": [
+    {
+      "id": "SEC-03",
+      "feature": "Guest truy cập danh sách của chủ tin",
+      "kind": "Security",
+      "expected": "401",
+      "startedAt": "2026-11-08T13:36:48.790Z",
+      "actual": 401,
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-01",
+      "feature": "Guest truy cập nhánh quản trị",
+      "kind": "Security",
+      "expected": "401/403; không trả tin hạn chế",
+      "startedAt": "2026-11-08T13:36:48.789Z",
+      "status": "FAIL",
+      "actual": "{\"status\":200,\"total\":38,\"returned\":1,\"fields\":[\"id\",\"code\",\"user_id\",\"property_type_id\",\"title\",\"description\",\"price\",\"area\",\"address\",\"province_id\",\"district_id\",\"ward_id\",\"bedrooms\",\"bathrooms\",\"floors\",\"direction\",\"legal_status\",\"build_year\",\"amenities\",\"latitude\",\"longitude\",\"status\",\"closed_reason\",\"closed_at\",\"closed_contract_id\",\"expire_date\",\"deleted_at\",\"developer\",\"project\",\"purpose\",\"type\",\"price_sale\",\"price_sale_text\",\"price_rent\",\"price_rent_text\",\"deposit\",\"deposit_text\",\"unit_price\",\"legal\",\"rent_period_min\",\"furniture\",\"management_fee\",\"available_date\",\"street\",\"district\",\"city\",\"lat\",\"lng\",\"image\",\"badge\",\"badge_class\",\"owner_name\",\"owner_phone\",\"created_at\",\"updated_at\",\"images\"]}"
+    },
+    {
+      "id": "SEC-02",
+      "feature": "Guest truy cập thống kê quản trị",
+      "kind": "Security",
+      "expected": "401/403; không lộ tên DB",
+      "startedAt": "2026-11-08T13:36:48.789Z",
+      "status": "FAIL",
+      "actual": "{\"status\":200,\"fields\":[\"total\",\"active\",\"sold\",\"expired\",\"pending\",\"hidden\",\"trash\",\"total_value_text\"],\"databaseHeaderPresent\":true}"
+    },
+    {
+      "id": "AUTH-01",
+      "feature": "Đăng nhập Poster",
+      "kind": "Happy",
+      "expected": "200; tài khoản hoạt động, không phải Admin",
+      "startedAt": "2026-11-08T13:36:48.783Z",
+      "actual": {
+        "id": 17,
+        "role_id": 5
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "AUTH-02",
+      "feature": "Đăng nhập Admin",
+      "kind": "Happy",
+      "expected": "200; role_id=1",
+      "startedAt": "2026-11-08T13:36:48.787Z",
+      "actual": {
+        "id": 1,
+        "role_id": 1
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "AUTH-03",
+      "feature": "Bearer token quản trị không kèm cookie",
+      "kind": "Negative",
+      "expected": "Token đăng nhập hợp lệ được nhận diện",
+      "startedAt": "2026-11-08T13:37:03.930Z",
+      "status": "FAIL",
+      "actual": "Bearer-only returned 401\n\n401 !== 200\n"
+    },
+    {
+      "id": "TYPE-01",
+      "feature": "Tạo danh mục QA",
+      "kind": "Happy",
+      "expected": "201; danh mục lưu đúng",
+      "startedAt": "2026-11-08T13:37:23.863Z",
+      "actual": {
+        "id": 9,
+        "name": "QA-LIVE-1794145008738-Căn hộ"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "TYPE-02",
+      "feature": "Poster không được tạo danh mục",
+      "kind": "Negative",
+      "expected": "403",
+      "startedAt": "2026-11-08T13:37:38.625Z",
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "id": "TYPE-03",
+      "feature": "Chặn chu trình danh mục",
+      "kind": "Negative",
+      "expected": "422; không tạo vòng lặp cha–con",
+      "startedAt": "2026-11-08T13:37:48.242Z",
+      "actual": 422,
+      "status": "PASS"
+    },
+    {
+      "id": "CREATE-01",
+      "feature": "Poster tạo tin chờ duyệt",
+      "kind": "Happy",
+      "expected": "201; status=0; chủ tin từ session",
+      "startedAt": "2026-11-08T13:38:08.944Z",
+      "actual": {
+        "id": 39,
+        "code": "BDS-JKKI5ZTDOTGH",
+        "status": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-04",
+      "feature": "Khách không thấy tin chờ duyệt công khai",
+      "kind": "Edge",
+      "expected": "Catalog công khai không trả fixture chờ duyệt",
+      "startedAt": "2026-11-08T13:38:21.405Z",
+      "actual": {
+        "status": 200,
+        "count": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-05",
+      "feature": "Khách lấy tin chờ duyệt qua admin=1",
+      "kind": "Security",
+      "expected": "401/403; không trả fixture",
+      "startedAt": "2026-11-08T13:38:34.287Z",
+      "status": "FAIL",
+      "actual": "{\"status\":200,\"fixtureExposed\":true}"
+    },
+    {
+      "id": "STATUS-01",
+      "feature": "Poster không tự duyệt tin",
+      "kind": "Negative",
+      "expected": "403",
+      "startedAt": "2026-11-08T13:38:44.809Z",
+      "actual": 403,
+      "status": "PASS"
+    },
+    {
+      "id": "MOD-01",
+      "feature": "Lưu lý do từ chối sau đọc lại",
+      "kind": "Happy",
+      "expected": "Lý do được lưu trong rejection_reason",
+      "startedAt": "2026-11-08T13:38:57.733Z",
+      "status": "FAIL",
+      "actual": "{\"status\":4}\n+ actual - expected\n\n+ undefined\n- 'QA-LIVE-1794145008738: thiếu thông tin pháp lý'\n"
+    },
+    {
+      "id": "MOD-02",
+      "feature": "Bulk từ chối bắt buộc lý do",
+      "kind": "Negative",
+      "expected": "422 khi reject thiếu reason",
+      "startedAt": "2026-11-08T13:39:12.340Z",
+      "status": "FAIL",
+      "actual": "reject without reason returned 200\n\n200 !== 422\n"
+    },
+    {
+      "id": "MOD-03",
+      "feature": "Sửa và gửi lại rồi Admin phê duyệt",
+      "kind": "Happy",
+      "expected": "Poster update về 0; Admin approve về 1; công khai thấy tin",
+      "startedAt": "2026-11-08T13:39:29.669Z",
+      "actual": {
+        "status": 1
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "OWN-01",
+      "feature": "Poster không sửa/xóa tin Admin",
+      "kind": "Security",
+      "expected": "403 cho cả sửa và xóa",
+      "startedAt": "2026-11-08T13:40:14.953Z",
+      "actual": [
+        403,
+        403
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "CREATE-02",
+      "feature": "Khách không được tạo tin",
+      "kind": "Negative",
+      "expected": "401; không tạo bản ghi",
+      "startedAt": "2026-11-08T13:40:45.750Z",
+      "actual": 401,
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-01",
+      "feature": "Giá âm",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:40:57.594Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "price"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-02",
+      "feature": "Diện tích có chữ",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:41:16.316Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "area"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-03",
+      "feature": "Thiếu tiêu đề",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:41:32.265Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "title"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-04",
+      "feature": "Thiếu diện tích",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:41:41.523Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "area"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-05",
+      "feature": "Giá vượt giới hạn",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:41:45.951Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "price"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-06",
+      "feature": "Giá vượt BIGINT",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:41:51.745Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "price"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-07",
+      "feature": "Diện tích quá độ chính xác",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:42:11.780Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "area"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-08",
+      "feature": "Ký pháp số mũ",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:42:23.718Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "price"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-09",
+      "feature": "Tiêu đề 251 ký tự",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:42:33.471Z",
+      "actual": {
+        "status": 422,
+        "fields": [
+          "title"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "VAL-10",
+      "feature": "Thiếu giá cố định",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:42:42.387Z",
+      "status": "FAIL",
+      "actual": "{\"status\":201,\"createdId\":41,\"price\":0,\"type\":\"QA-LIVE-1794145008738-Căn hộ\",\"lat\":\"10.7769\",\"lng\":\"106.7009\"}\n\n201 !== 422\n"
+    },
+    {
+      "id": "VAL-11",
+      "feature": "Loại BĐS không tồn tại",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:42:51.856Z",
+      "status": "FAIL",
+      "actual": "{\"status\":201,\"createdId\":42,\"price\":\"2500000000\",\"type\":\"QA-LIVE-1794145008738-UNKNOWN\",\"lat\":\"10.7769\",\"lng\":\"106.7009\"}\n\n201 !== 422\n"
+    },
+    {
+      "id": "VAL-12",
+      "feature": "Tọa độ ngoài vùng Việt Nam",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:43:00.013Z",
+      "status": "FAIL",
+      "actual": "{\"status\":201,\"createdId\":43,\"price\":\"2500000000\",\"type\":\"QA-LIVE-1794145008738-Căn hộ\",\"lat\":\"35.6762\",\"lng\":\"139.6503\"}\n\n201 !== 422\n"
+    },
+    {
+      "id": "VAL-13",
+      "feature": "Chỉ có một thành phần tọa độ",
+      "kind": "Negative",
+      "expected": "422; không tạo tin không hợp lệ",
+      "startedAt": "2026-11-08T13:43:15.413Z",
+      "status": "FAIL",
+      "actual": "{\"status\":201,\"createdId\":44,\"price\":\"2500000000\",\"type\":\"QA-LIVE-1794145008738-Căn hộ\",\"lat\":\"10.7769\",\"lng\":null}\n\n201 !== 422\n"
+    },
+    {
+      "id": "UPDATE-01",
+      "feature": "Sửa thông tin BĐS và giá tiền tỷ",
+      "kind": "Happy",
+      "expected": "Giá 3 tỷ và diện tích 100,25 lưu chính xác",
+      "startedAt": "2026-11-08T13:43:29.006Z",
+      "actual": {
+        "price": "3000000000",
+        "area": 100.25
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "AREA-01",
+      "feature": "Round-trip diện tích lớn có 2 số lẻ",
+      "kind": "Edge",
+      "expected": "99999999.99 được giữ nguyên nếu API chấp nhận",
+      "startedAt": "2026-11-08T13:43:42.349Z",
+      "actual": 99999999.99,
+      "status": "PASS"
+    },
+    {
+      "id": "TYPE-04",
+      "feature": "Không xóa danh mục đang có tin",
+      "kind": "Negative",
+      "expected": "422; quan hệ được giữ",
+      "startedAt": "2026-11-08T13:44:16.728Z",
+      "actual": 422,
+      "status": "PASS"
+    },
+    {
+      "id": "EXT-01",
+      "feature": "Gia hạn tin còn hạn",
+      "kind": "Happy",
+      "expected": "Hạn cũ +30 ngày, không mất thời gian còn lại",
+      "startedAt": "2026-11-08T13:44:22.707Z",
+      "actual": {
+        "before": "2026-12-08 20:38:18",
+        "after": "2027-01-07T13:38:18.000000Z"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "EXT-02",
+      "feature": "Thời lượng gia hạn không hợp lệ",
+      "kind": "Negative",
+      "expected": "422 cho 0, âm và vượt 3650",
+      "startedAt": "2026-11-08T13:44:43.908Z",
+      "actual": [
+        422,
+        422,
+        422
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "EXT-03",
+      "feature": "Gia hạn không tự hiển thị tin ẩn",
+      "kind": "Edge",
+      "expected": "Hạn tăng; status vẫn 4; catalog không trả tin",
+      "startedAt": "2026-11-08T13:45:24.960Z",
+      "actual": {
+        "status": 4
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-06",
+      "feature": "Khách lấy tin ẩn qua admin=1",
+      "kind": "Security",
+      "expected": "401/403; không trả fixture ẩn",
+      "startedAt": "2026-11-08T13:45:47.756Z",
+      "status": "FAIL",
+      "actual": "{\"status\":200,\"hiddenFixtureExposed\":true}"
+    },
+    {
+      "id": "DELETE-01",
+      "feature": "Xóa mềm và thùng rác",
+      "kind": "Happy",
+      "expected": "Tin rời catalog và có trong thùng rác, dữ liệu vẫn còn",
+      "startedAt": "2026-11-08T13:46:01.857Z",
+      "actual": {
+        "status": 200,
+        "inTrash": true
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "DELETE-02",
+      "feature": "Poster không hard delete/restore",
+      "kind": "Negative",
+      "expected": "403",
+      "startedAt": "2026-11-08T13:46:41.221Z",
+      "actual": [
+        403,
+        403
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "RESTORE-01",
+      "feature": "Admin khôi phục giữ trạng thái ẩn",
+      "kind": "Happy",
+      "expected": "200; dữ liệu, chủ tin và trạng thái được giữ",
+      "startedAt": "2026-11-08T13:47:14.281Z",
+      "actual": {
+        "status": 4,
+        "deleted_at": null
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "DELETE-03",
+      "feature": "Hard delete chỉ áp dụng tin trong thùng rác",
+      "kind": "Negative",
+      "expected": "422",
+      "startedAt": "2026-11-08T13:47:30.010Z",
+      "actual": 422,
+      "status": "PASS"
+    },
+    {
+      "id": "BULK-01",
+      "feature": "Bulk rollback khi có ID không tồn tại",
+      "kind": "Edge",
+      "expected": "404; tin QA đầu tiên không bị xóa một phần",
+      "startedAt": "2026-11-08T13:47:44.054Z",
+      "actual": {
+        "status": 404,
+        "existingFixturePreserved": true
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "TYPE-05",
+      "feature": "Đổi tên danh mục cập nhật tin liên kết",
+      "kind": "Happy",
+      "expected": "Tên mới xuất hiện ở tin nhưng giữ ID phân loại",
+      "startedAt": "2026-11-08T13:48:58.442Z",
+      "actual": {
+        "categoryId": 9,
+        "linkedType": "QA-LIVE-1794145008738-Căn hộ-Đổi tên"
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "HISTORY-01",
+      "feature": "Lịch sử DB chống trùng và xóa đúng một mục QA",
+      "kind": "Happy",
+      "expected": "Hai lượt xem cùng tin tạo một mục; xóa theo code chỉ xóa mục QA",
+      "startedAt": "2026-11-08T13:49:31.043Z",
+      "actual": {
+        "duplicateCount": 1,
+        "serverTitleTrusted": true,
+        "unrelatedHistoryPreserved": true
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "EXPIRY-01",
+      "feature": "Tin tự mất công khai khi qua thời điểm hết hạn",
+      "kind": "Edge",
+      "expected": "Tin công khai trước hạn, không công khai sau hạn mà không cần job nền",
+      "startedAt": "2026-11-08T13:50:18.634Z",
+      "status": "FAIL",
+      "actual": "Expected values to be strictly equal:\n\n500 !== 201\n"
+    },
+    {
+      "id": "HISTORY-02",
+      "feature": "Chặn ghi lịch sử cho tin status=1 đã hết hạn",
+      "kind": "Edge",
+      "expected": "404/422 khi tin không còn công khai",
+      "startedAt": "2026-11-08T13:50:27.594Z",
+      "status": "FAIL",
+      "actual": "Dependent expiry fixture unavailable"
+    },
+    {
+      "id": "EXT-04",
+      "feature": "Gia hạn tin đã hết hạn lấy thời điểm hiện tại",
+      "kind": "Happy",
+      "expected": "Hạn mới gần thời điểm xử lý +2 ngày, tin công khai lại",
+      "startedAt": "2026-11-08T13:50:27.629Z",
+      "status": "FAIL",
+      "actual": "Dependent expiry fixture unavailable"
+    },
+    {
+      "id": "UI-01",
+      "feature": "Tải catalog thực tế trên Chrome",
+      "kind": "Happy",
+      "expected": "Có đầy đủ các fixture công khai",
+      "startedAt": "2026-11-08T13:50:28.356Z",
+      "actual": {
+        "visibleFixtureTitles": [
+          "QA-LIVE-1794145008738-PRIMARY",
+          "QA-LIVE-1794145008738-SECOND",
+          "QA-LIVE-1794145008738-VAL-10",
+          "QA-LIVE-1794145008738-VAL-11",
+          "QA-LIVE-1794145008738-VAL-12",
+          "QA-LIVE-1794145008738-VAL-13",
+          "QA-LIVE-1794145008738-LAND"
+        ]
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "UI-02",
+      "feature": "Lọc đồng thời loại, giá và diện tích",
+      "kind": "Happy",
+      "expected": "Chỉ các fixture thỏa tất cả điều kiện",
+      "startedAt": "2026-11-08T13:50:39.344Z",
+      "actual": [
+        "QA-LIVE-1794145008738-SECOND"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "UI-03",
+      "feature": "Sắp xếp giá tăng/giảm",
+      "kind": "Happy",
+      "expected": "2,5 tỷ < 3 tỷ < 4 tỷ và ngược lại",
+      "startedAt": "2026-11-08T13:50:48.055Z",
+      "actual": [
+        "QA-LIVE-1794145008738-LAND",
+        "QA-LIVE-1794145008738-SECOND",
+        "QA-LIVE-1794145008738-PRIMARY"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "UI-04",
+      "feature": "Sắp xếp diện tích và mới nhất",
+      "kind": "Happy",
+      "expected": "Đất 120 m² đứng trước căn hộ 100,25 khi giảm; tin tạo sau đứng trước",
+      "startedAt": "2026-11-08T13:51:00.962Z",
+      "actual": [
+        "QA-LIVE-1794145008738-LAND",
+        "QA-LIVE-1794145008738-SECOND",
+        "QA-LIVE-1794145008738-PRIMARY"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "UI-05",
+      "feature": "Giá tùy chỉnh đủ hai đầu, gồm biên",
+      "kind": "Edge",
+      "expected": "Khoảng 2,5–3 tỷ chứa cả hai căn hộ QA",
+      "startedAt": "2026-11-08T13:51:09.333Z",
+      "actual": [
+        "QA-LIVE-1794145008738-PRIMARY",
+        "QA-LIVE-1794145008738-SECOND",
+        "QA-LIVE-1794145008738-VAL-11",
+        "QA-LIVE-1794145008738-VAL-12",
+        "QA-LIVE-1794145008738-VAL-13"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": "UI-06",
+      "feature": "Giá chỉ có tối thiểu",
+      "kind": "Edge",
+      "expected": "Giá từ 3 tỷ trở lên vẫn có căn hộ 3 tỷ và đất 4 tỷ",
+      "startedAt": "2026-11-08T13:51:19.587Z",
+      "status": "FAIL",
+      "actual": "{\"submitted\":\"min=3 tỷ, max trống\",\"found\":[]}",
+      "screenshot": "ui-06.png"
+    },
+    {
+      "id": "UI-07",
+      "feature": "Diện tích chỉ có tối thiểu",
+      "kind": "Edge",
+      "expected": "Từ 100 m² trở lên có các fixture 100,25 và 120 m²",
+      "startedAt": "2026-11-08T13:51:31.112Z",
+      "status": "FAIL",
+      "actual": "{\"submitted\":\"min=100 m², max trống\",\"found\":[]}",
+      "screenshot": "ui-07.png"
+    },
+    {
+      "id": "UI-08",
+      "feature": "Khoảng giá min lớn hơn max",
+      "kind": "Negative",
+      "expected": "Thông báo lỗi; không áp dụng bộ lọc sai",
+      "startedAt": "2026-11-08T13:51:40.471Z",
+      "actual": "Mức giá tối thiểu không thể lớn hơn mức giá tối đa!",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-09",
+      "feature": "Chi tiết dùng đúng mô tả BĐS",
+      "kind": "Happy",
+      "expected": "Hiển thị nội dung description do server lưu",
+      "startedAt": "2026-11-08T13:51:50.735Z",
+      "status": "FAIL",
+      "actual": "{\"expectedDescription\":\"QA đã bổ sung thông tin pháp lý.\",\"found\":false}",
+      "screenshot": "ui-09.png"
+    },
+    {
+      "id": "UI-10",
+      "feature": "Bản đồ chi tiết dùng tọa độ ghim",
+      "kind": "Happy",
+      "expected": "Iframe ưu tiên tọa độ fixture, không chỉ định vị quận/thành phố",
+      "startedAt": "2026-11-08T13:52:02.838Z",
+      "status": "FAIL",
+      "actual": "{\"savedLat\":\"10.7769000\",\"savedLng\":\"106.7009000\",\"iframeQuery\":\"Thủ Đức, TP. Hồ Chí Minh, Vietnam\"}",
+      "screenshot": "ui-10.png"
+    },
+    {
+      "id": "UI-11",
+      "feature": "Yêu thích thêm và giữ sau reload",
+      "kind": "Happy",
+      "expected": "Local storage có đúng một mục QA, danh sách mở đúng tin",
+      "startedAt": "2026-11-08T13:52:17.224Z",
+      "status": "FAIL",
+      "actual": "locator.innerText: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.app-dialog-layer').filter({ hasText: 'Danh Sách Tin Đăng Đã Lưu' })\u001b[22m\n",
+      "screenshot": "ui-11.png"
+    },
+    {
+      "id": "UI-12",
+      "feature": "So sánh hai căn hộ tương thích",
+      "kind": "Happy",
+      "expected": "Có hai cột và đúng giá/diện tích",
+      "startedAt": "2026-11-08T13:52:54.381Z",
+      "status": "FAIL",
+      "actual": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main div.group').filter({ has: getByRole('heading', { name: 'QA-LIVE-1794145008738-SECOND', exact: true }) }).last().locator('button[title=\"Thêm vào so sánh\"]')\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"Thêm vào so sánh\" class=\"w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-md backdrop-blur-md cursor-pointer bg-white/90 text-slate-700 hover:bg-white hover:text-blue-600\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <th scope=\"row\" class=\"sticky left-0 z-10 border-b border-slate-100 bg-slate-50 px-3 py-3.5 text-left text-xs font-medium text-slate-500\">Loại BĐS</th> from <section tabindex=\"-1\" id=\"compare-drawer\" aria-label=\"So sánh bất động sản\" class=\"fixed bottom-0 inset-x-0 z-40 rounded-t-3xl border border-slate-200 bg-white shadow-2xl focus:outline-none\">…</section> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <th scope=\"row\" class=\"sticky left-0 z-10 border-b border-slate-100 bg-slate-50 px-3 py-3.5 text-left t",
+      "screenshot": "ui-12.png"
+    },
+    {
+      "id": "UI-13",
+      "feature": "So sánh đất nền với căn hộ",
+      "kind": "Negative",
+      "expected": "Chặn hoặc có thông báo không tương thích rõ ràng",
+      "startedAt": "2026-11-08T13:54:21.337Z",
+      "status": "FAIL",
+      "actual": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main div.group').filter({ has: getByRole('heading', { name: 'QA-LIVE-1794145008738-LAND', exact: true }) }).last().locator('button[title=\"Thêm vào so sánh\"]')\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"Thêm vào so sánh\" class=\"w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-md backdrop-blur-md cursor-pointer bg-white/90 text-slate-700 hover:bg-white hover:text-blue-600\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <td class=\"border-b border-slate-100 px-3 py-3.5 text-slate-700\">QA-LIVE-1794145008738-Căn hộ-Đổi tên</td> from <section tabindex=\"-1\" id=\"compare-drawer\" aria-label=\"So sánh bất động sản\" class=\"fixed bottom-0 inset-x-0 z-40 rounded-t-3xl border border-slate-200 bg-white shadow-2xl focus:outline-none\">…</section> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <td class=\"border-b border-slate-100 px-3 py-3.5 text-slate-700\">Chưa cập nhật</td> from <section tabindex=\"-1\" id=\"compare-drawer\" aria-label=\"So sán",
+      "screenshot": "ui-13.png"
+    },
+    {
+      "id": "UI-14",
+      "feature": "Giới hạn so sánh 4 tin",
+      "kind": "Edge",
+      "expected": "Thêm thứ 5 bị chặn, số cột không vượt 4",
+      "startedAt": "2026-11-08T13:54:36.620Z",
+      "status": "FAIL",
+      "actual": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('main button[title=\"Thêm vào so sánh\"]').nth(1)\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"Thêm vào so sánh\" class=\"w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-md backdrop-blur-md cursor-pointer bg-white/90 text-slate-700 hover:bg-white hover:text-blue-600\">…</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <img alt=\"\" src=\"/property-images/photo-1545324418-cc1a3fa10c00.jpg\" class=\"h-28 w-full rounded-xl bg-slate-100 object-cover\"/> from <section tabindex=\"-1\" id=\"compare-drawer\" aria-label=\"So sánh bất động sản\" class=\"fixed bottom-0 inset-x-0 z-40 rounded-t-3xl border border-slate-200 bg-white shadow-2xl focus:outline-none\">…</section> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <td class=\"border-b border-slate-100 px-3 py-3.5 text-slate-700\">Vinhomes Grand Park</td> from <section tabindex=\"-1\" id=\"compare-drawer\" aria-label=\"So sánh bất động sản\" class=\"fixed bottom-0 inset-x-0 z-40 rounded-t-3xl border border-slat",
+      "screenshot": "ui-14.png"
+    },
+    {
+      "id": "UI-23",
+      "feature": "Copy link bằng clipboard thật",
+      "kind": "Happy",
+      "expected": "Clipboard chứa URL đúng code và không chứa token",
+      "startedAt": "2026-11-08T13:55:10.156Z",
+      "status": "FAIL",
+      "actual": "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'QA-LIVE-1794145008738-PRIMARY', exact: true }) to be visible\u001b[22m\n",
+      "screenshot": "ui-23.png"
+    },
+    {
+      "id": "UI-15",
+      "feature": "Clipboard thất bại trên card",
+      "kind": "Negative",
+      "expected": "Không báo đã chép khi writeText bị từ chối",
+      "startedAt": "2026-11-08T13:56:12.180Z",
+      "status": "FAIL",
+      "actual": "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: 'QA-LIVE-1794145008738-PRIMARY', exact: true }) to be visible\u001b[22m\n",
+      "screenshot": "ui-15.png"
+    },
+    {
+      "id": "UI-16",
+      "feature": "Link chia sẻ mở đúng tin",
+      "kind": "Happy",
+      "expected": "URL ?property mở đúng modal cho khách",
+      "startedAt": "2026-11-08T13:57:14.323Z",
+      "status": "FAIL",
+      "actual": "locator.waitFor: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.app-dialog-layer').filter({ has: locator('button[title=\"Chia sẻ liên kết\"]') }).last() to be visible\u001b[22m\n",
+      "screenshot": "ui-16.png"
+    },
+    {
+      "id": "UI-17",
+      "feature": "Đóng modal từ link chia sẻ",
+      "kind": "Edge",
+      "expected": "Modal giữ đóng sau catalog refresh",
+      "startedAt": "2026-11-08T13:58:15.759Z",
+      "status": "FAIL",
+      "actual": "page.waitForResponse: Timeout 35000ms exceeded while waiting for event \"response\"",
+      "screenshot": "ui-17.png"
+    },
+    {
+      "id": "UI-18",
+      "feature": "Lịch sử xem ghi nhận và khử trùng",
+      "kind": "Happy",
+      "expected": "Xem lại một tin chỉ có một mục, mới nhất đứng đầu",
+      "startedAt": "2026-11-08T13:58:55.489Z",
+      "actual": {
+        "firstCode": "BDS-JKKI5ZTDOTGH",
+        "matchingCount": 1
+      },
+      "status": "PASS"
+    },
+    {
+      "id": "UI-19",
+      "feature": "Tin bị ẩn vẫn mở từ yêu thích",
+      "kind": "Edge",
+      "expected": "Không mở lại nội dung snapshot đã mất quyền công khai",
+      "startedAt": "2026-11-08T13:59:19.987Z",
+      "actual": {
+        "privateSnapshotReopened": false
+      },
+      "status": "PASS"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?mine=1",
+      "status": 401,
+      "ms": 13676,
+      "error": {
+        "message": "Vui lòng đăng nhập lại."
+      }
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&per_page=1",
+      "status": 200,
+      "ms": 13682
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties/stats",
+      "status": 200,
+      "ms": 14002
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/login",
+      "status": 200,
+      "ms": 15053
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/login",
+      "status": 200,
+      "ms": 15130
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties/trash",
+      "status": 401,
+      "ms": 19884,
+      "error": {
+        "message": "Vui lòng đăng nhập lại."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/property-types",
+      "status": 201,
+      "ms": 14748
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/property-types",
+      "status": 403,
+      "ms": 9614,
+      "error": {
+        "message": "Chỉ quản trị viên được sửa danh mục."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/property-types",
+      "status": 201,
+      "ms": 9620
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/property-types/9",
+      "status": 422,
+      "ms": 11074,
+      "error": {
+        "message": "Danh mục cha tạo vòng lặp."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 12448
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 12879
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=0&search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 10516
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 403,
+      "ms": 12920,
+      "error": {
+        "message": "Bạn không có quyền quản lý tin này."
+      }
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 200,
+      "ms": 7549
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&search=QA-LIVE-1794145008738&per_page=100",
+      "status": 200,
+      "ms": 7024
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/bulk-action",
+      "status": 200,
+      "ms": 17325
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/properties/39",
+      "status": 200,
+      "ms": 21085
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 200,
+      "ms": 7939
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 16248
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 10646
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/properties/40",
+      "status": 403,
+      "ms": 9688,
+      "error": {
+        "message": "Bạn không có quyền quản lý tin này."
+      }
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/40",
+      "status": 403,
+      "ms": 10452,
+      "error": {
+        "message": "Bạn không có quyền quản lý tin này."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 401,
+      "ms": 11839,
+      "error": {
+        "message": "Vui lòng đăng nhập lại."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 18712,
+      "error": {
+        "message": "Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e.",
+        "errors": {
+          "price": [
+            "Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 15945,
+      "error": {
+        "message": "Diện tích phải là số.",
+        "errors": {
+          "area": [
+            "Diện tích phải là số."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 9245,
+      "error": {
+        "message": "Vui lòng nhập tiêu đề hóa đơn.",
+        "errors": {
+          "title": [
+            "Vui lòng nhập tiêu đề hóa đơn."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 4425,
+      "error": {
+        "message": "Vui lòng nhập area.",
+        "errors": {
+          "area": [
+            "Vui lòng nhập area."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 5791,
+      "error": {
+        "message": "Mức giá không được vượt quá 9.999.999.999.999 VNĐ.",
+        "errors": {
+          "price": [
+            "Mức giá không được vượt quá 9.999.999.999.999 VNĐ."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 20031,
+      "error": {
+        "message": "Mức giá không được vượt quá 9.999.999.999.999 VNĐ.",
+        "errors": {
+          "price": [
+            "Mức giá không được vượt quá 9.999.999.999.999 VNĐ."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 11932,
+      "error": {
+        "message": "Diện tích chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e.",
+        "errors": {
+          "area": [
+            "Diện tích chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 9749,
+      "error": {
+        "message": "Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e.",
+        "errors": {
+          "price": [
+            "Mức giá chỉ được nhập số thông thường, tối đa 2 chữ số thập phân; không dùng chữ e."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 422,
+      "ms": 8913,
+      "error": {
+        "message": "Thông tin không được vượt quá 250 ký tự.",
+        "errors": {
+          "title": [
+            "Thông tin không được vượt quá 250 ký tự."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 9427
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 8151
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 15385
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 13587
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/properties/40",
+      "status": 200,
+      "ms": 13329
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/properties/40",
+      "status": 200,
+      "ms": 17008
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&search=QA-LIVE-1794145008738&per_page=100",
+      "status": 200,
+      "ms": 10373
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/properties/40",
+      "status": 200,
+      "ms": 6988
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/property-types/9",
+      "status": 422,
+      "ms": 5976,
+      "error": {
+        "message": "Danh mục còn danh mục con hoặc bất động sản sử dụng."
+      }
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&search=QA-LIVE-1794145008738&per_page=100",
+      "status": 200,
+      "ms": 11913
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/39/extend",
+      "status": 200,
+      "ms": 9281
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/39/extend",
+      "status": 422,
+      "ms": 11635,
+      "error": {
+        "message": "Trường days phải nằm trong khoảng 1 đến 3650.",
+        "errors": {
+          "days": [
+            "Trường days phải nằm trong khoảng 1 đến 3650."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/39/extend",
+      "status": 422,
+      "ms": 14972,
+      "error": {
+        "message": "Trường days phải nằm trong khoảng 1 đến 3650.",
+        "errors": {
+          "days": [
+            "Trường days phải nằm trong khoảng 1 đến 3650."
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/39/extend",
+      "status": 422,
+      "ms": 14432,
+      "error": {
+        "message": "Trường days phải nằm trong khoảng 1 đến 3650.",
+        "errors": {
+          "days": [
+            "Trường days phải nằm trong khoảng 1 đến 3650."
+          ]
+        }
+      }
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 200,
+      "ms": 6721
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/39/extend",
+      "status": 200,
+      "ms": 7190
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 8872
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=4&search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 14072
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/39",
+      "status": 200,
+      "ms": 20767
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties/trash",
+      "status": 200,
+      "ms": 18572
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/39/force",
+      "status": 403,
+      "ms": 18180,
+      "error": {
+        "message": "Bạn không có quyền quản lý tin này."
+      }
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/restore",
+      "status": 403,
+      "ms": 14844,
+      "error": {
+        "message": "Bạn không có quyền quản lý tin này."
+      }
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/restore",
+      "status": 200,
+      "ms": 15719
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/39/force",
+      "status": 422,
+      "ms": 14041,
+      "error": {
+        "message": "Chỉ xóa vĩnh viễn tin trong thùng rác."
+      }
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties/bulk-action",
+      "status": 404,
+      "ms": 18814,
+      "error": {
+        "message": "No query results for model [App\\Models\\Property] 2147483647"
+      }
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&search=QA-LIVE-1794145008738&per_page=100",
+      "status": 200,
+      "ms": 16473
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 200,
+      "ms": 13116
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?admin=1&status=all&search=QA-LIVE-1794145008738&per_page=100",
+      "status": 200,
+      "ms": 9632
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 201,
+      "ms": 15547
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/property-types",
+      "status": 200,
+      "ms": 12458
+    },
+    {
+      "method": "PUT",
+      "endpoint": "/api/property-types/9",
+      "status": 200,
+      "ms": 9817
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 10313
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 9954
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 10341
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 9157
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 5022
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 4224
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 4974
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/history",
+      "status": 200,
+      "ms": 3881
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/properties",
+      "status": 500,
+      "ms": 8901,
+      "error": {
+        "message": "SQLSTATE[22007]: Invalid datetime format: 1292 Incorrect datetime value: '2026-11-08T13:51:03.634Z' for column 'expire_date' at row 1 (Connection: mysql, Host: db, Port: 3306, Database: baocaocdptw1_db, SQL: insert into `properties` (`title`, `purpose`, `type`, `price`, `area`, `property_type_id`, `expire_date`, `address`, `price_sale`, `price_sale_text`, `price_rent_text`, `price_rent`, `street`, `code`, `user_id`, `status`, `updated_at`, `created_at`) values (QA-LIVE-1794145008738-EXPIRY, sale, QA-LIVE-1794145008738-Căn hộ-Đổi tên, 1000000000, 80, 9, 2026-11-08T13:51:03.634Z, QA expiry fixture, 1000000000, 1 tỷ, ?, ?, QA expiry fixture, BDS-5QYAO2BSZOKK, 1, 1, 2026-11-08 20:50:25, 2026-11-08 20:50:25))"
+      }
+    },
+    {
+      "method": "PATCH",
+      "endpoint": "/api/properties/39/status",
+      "status": 200,
+      "ms": 10877
+    },
+    {
+      "method": "GET",
+      "endpoint": "/api/properties?search=BDS-JKKI5ZTDOTGH",
+      "status": 200,
+      "ms": 9323
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/45",
+      "status": 200,
+      "ms": 14282
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/45/force",
+      "status": 200,
+      "ms": 16311
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/44",
+      "status": 200,
+      "ms": 12058
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/44/force",
+      "status": 200,
+      "ms": 24487
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/43",
+      "status": 200,
+      "ms": 13869
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/43/force",
+      "status": 200,
+      "ms": 13336
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/42",
+      "status": 200,
+      "ms": 15828
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/42/force",
+      "status": 200,
+      "ms": 15733
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/41",
+      "status": 200,
+      "ms": 17791
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/41/force",
+      "status": 200,
+      "ms": 18714
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/40",
+      "status": 200,
+      "ms": 15211
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/40/force",
+      "status": 200,
+      "ms": 13332
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/39",
+      "status": 200,
+      "ms": 15098
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/properties/39/force",
+      "status": 200,
+      "ms": 14797
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/property-types/10",
+      "status": 200,
+      "ms": 11769
+    },
+    {
+      "method": "DELETE",
+      "endpoint": "/api/property-types/9",
+      "status": 200,
+      "ms": 12477
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/logout",
+      "status": 200,
+      "ms": 11305
+    },
+    {
+      "method": "POST",
+      "endpoint": "/api/logout",
+      "status": 200,
+      "ms": 12593
+    }
+  ],
+  "fixtures": [
+    {
+      "id": 39,
+      "code": "BDS-JKKI5ZTDOTGH",
+      "title": "QA-LIVE-1794145008738-PRIMARY"
+    },
+    {
+      "id": 40,
+      "code": "BDS-STTTAZP0HBSN",
+      "title": "QA-LIVE-1794145008738-SECOND"
+    },
+    {
+      "id": 41,
+      "code": "BDS-GJO4838AOVK5",
+      "title": "QA-LIVE-1794145008738-VAL-10"
+    },
+    {
+      "id": 42,
+      "code": "BDS-TC9XTQZ75BRW",
+      "title": "QA-LIVE-1794145008738-VAL-11"
+    },
+    {
+      "id": 43,
+      "code": "BDS-VX0C3RIJBJ5K",
+      "title": "QA-LIVE-1794145008738-VAL-12"
+    },
+    {
+      "id": 44,
+      "code": "BDS-U0VRDNAV2D2E",
+      "title": "QA-LIVE-1794145008738-VAL-13"
+    },
+    {
+      "id": 45,
+      "code": "BDS-BNSIGQSXGIGI",
+      "title": "QA-LIVE-1794145008738-LAND"
+    }
+  ],
+  "categories": [
+    9,
+    10
+  ],
+  "cleanup": [
+    {
+      "kind": "property",
+      "id": 45,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 44,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 43,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 42,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 41,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 40,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "property",
+      "id": 39,
+      "softStatus": 200,
+      "hardStatus": 200
+    },
+    {
+      "kind": "category",
+      "id": 10,
+      "status": 200
+    },
+    {
+      "kind": "category",
+      "id": 9,
+      "status": 200
+    },
+    {
+      "kind": "logout",
+      "actor": "poster",
+      "status": 200
+    },
+    {
+      "kind": "logout",
+      "actor": "admin",
+      "status": 200
+    }
+  ],
+  "browserFixtures": {
+    "property": {
+      "id": 39,
+      "code": "BDS-JKKI5ZTDOTGH",
+      "user_id": 17,
+      "property_type_id": 9,
+      "title": "QA-LIVE-1794145008738-PRIMARY",
+      "description": "QA đã bổ sung thông tin pháp lý.",
+      "price": "2500000000.00",
+      "area": 100.25,
+      "address": "123 Đường QA, Thành phố Thủ Đức",
+      "province_id": null,
+      "district_id": null,
+      "ward_id": null,
+      "bedrooms": 0,
+      "bathrooms": 0,
+      "floors": 1,
+      "direction": null,
+      "legal_status": null,
+      "build_year": null,
+      "amenities": null,
+      "latitude": null,
+      "longitude": null,
+      "status": 1,
+      "closed_reason": null,
+      "closed_at": null,
+      "closed_contract_id": null,
+      "expire_date": "2027-01-08 20:38:18",
+      "deleted_at": null,
+      "developer": null,
+      "project": null,
+      "purpose": "sale",
+      "type": "QA-LIVE-1794145008738-Căn hộ",
+      "price_sale": "2500000000.00",
+      "price_sale_text": "2.5 tỷ",
+      "price_rent": null,
+      "price_rent_text": null,
+      "deposit": null,
+      "deposit_text": null,
+      "unit_price": null,
+      "legal": null,
+      "rent_period_min": null,
+      "furniture": null,
+      "management_fee": null,
+      "available_date": null,
+      "street": "123 Đường QA",
+      "district": "Thủ Đức",
+      "city": "TP. Hồ Chí Minh",
+      "lat": "10.7769000",
+      "lng": "106.7009000",
+      "image": null,
+      "badge": null,
+      "badge_class": null,
+      "owner_name": "QA Test Fixture",
+      "owner_phone": null,
+      "created_at": "2026-11-08T13:38:18.000000Z",
+      "updated_at": "2026-11-08T13:48:30.000000Z",
+      "images": []
+    },
+    "second": {
+      "id": 40,
+      "code": "BDS-STTTAZP0HBSN",
+      "user_id": 1,
+      "property_type_id": 9,
+      "title": "QA-LIVE-1794145008738-SECOND",
+      "description": "Nội dung mô tả QA riêng biệt để kiểm tra dữ liệu thực tế.",
+      "price": "3000000000",
+      "area": 100.25,
+      "address": "123 Đường QA, Thành phố Thủ Đức",
+      "province_id": null,
+      "district_id": null,
+      "ward_id": null,
+      "bedrooms": 0,
+      "bathrooms": 0,
+      "floors": 1,
+      "direction": null,
+      "legal_status": null,
+      "build_year": null,
+      "amenities": null,
+      "latitude": null,
+      "longitude": null,
+      "status": 1,
+      "closed_reason": null,
+      "closed_at": null,
+      "closed_contract_id": null,
+      "expire_date": "2026-12-08 20:40:24",
+      "deleted_at": null,
+      "developer": null,
+      "project": null,
+      "purpose": "sale",
+      "type": "QA-LIVE-1794145008738-Căn hộ",
+      "price_sale": "3000000000",
+      "price_sale_text": "3 tỷ",
+      "price_rent": null,
+      "price_rent_text": null,
+      "deposit": null,
+      "deposit_text": null,
+      "unit_price": null,
+      "legal": null,
+      "rent_period_min": null,
+      "furniture": null,
+      "management_fee": null,
+      "available_date": null,
+      "street": "123 Đường QA",
+      "district": "Thủ Đức",
+      "city": "TP. Hồ Chí Minh",
+      "lat": "10.7769000",
+      "lng": "106.7009000",
+      "image": null,
+      "badge": null,
+      "badge_class": null,
+      "owner_name": "QA Test Fixture",
+      "owner_phone": null,
+      "created_at": "2026-11-08T13:40:24.000000Z",
+      "updated_at": "2026-11-08T13:43:40.000000Z"
+    },
+    "land": {
+      "title": "QA-LIVE-1794145008738-LAND",
+      "purpose": "sale",
+      "type": "Đất nền dự án",
+      "price": "4000000000",
+      "area": 120,
+      "property_type_id": 5,
+      "lat": "10.7769",
+      "lng": "106.7009",
+      "description": "Nội dung mô tả QA riêng biệt để kiểm tra dữ liệu thực tế.",
+      "address": "123 Đường QA, Thành phố Thủ Đức",
+      "street": "123 Đường QA",
+      "district": "Thủ Đức",
+      "city": "TP. Hồ Chí Minh",
+      "owner_name": "QA Test Fixture",
+      "price_sale": "4000000000",
+      "price_sale_text": "4 tỷ",
+      "price_rent_text": null,
+      "price_rent": null,
+      "code": "BDS-BNSIGQSXGIGI",
+      "user_id": 1,
+      "status": 1,
+      "expire_date": "2026-12-08T13:48:56.128578Z",
+      "updated_at": "2026-11-08T13:48:56.000000Z",
+      "created_at": "2026-11-08T13:48:56.000000Z",
+      "id": 45
+    }
+  },
+  "browserEnvironment": {
+    "title": "3TV LAND - Kênh Thông Tin & Sàn Giao Dịch Bất Động Sản Uy Tín",
+    "scripts": [
+      "http://127.0.0.1:3000/assets/index-BHkLr-0s.js"
+    ]
+  },
+  "browserErrors": [],
+  "browserApiResponses": [
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/properties",
+      "status": 200
+    }
+  ],
+  "fatal": "apiRequestContext.fetch: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - → PATCH http://127.0.0.1:3000/api/properties/39/status\u001b[22m\n\u001b[2m    - user-agent: Playwright/1.64.1 (x64; windows 10.0) node/24.22\u001b[22m\n\u001b[2m    - accept: application/json\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 54\u001b[22m\n\u001b[2m    - cookie: XSRF-TOKEN=eyJpdiI6IlVOc01CT2J1RlBqVEhRZ0Z2K2lwbmc9PSIsInZhbHVlIjoibG16WUNQdUxPWERKTDY1dlRTM1lranJOSDRQOG0zaHZVRU1raWZHS0dJcDZwTnJTZUFZdnowM0ZMdUlQSDdZMVhVcHcrT25HNGhITDhrc1h2TWRRcnpBTHpnSldVK1FNR0ZDMlN1SUlqbEVOR2xUSzdJZjZNN2VQcDRYMGhsTmQiLCJtYWMiOiI2NTFmOWQ2ZjA2Yzc5ZmVkYTg3NDhiYTEzYWI4OWQ0NDAzNDdhMGU4Zjc1YTdjZjkxOWRmYTAyYmU2NDg0MDBkIiwidGFnIjoiIn0%3D; 3tvland-session=eyJpdiI6Ijd1TTRhc0l0TW5taWNFSTd4WWJoY3c9PSIsInZhbHVlIjoibVk5R3pJUVEyeXNXbEpoZ1JOSDV1eU9WVjhuNCs0VTNBMU5wWWpNQzF3MVl5cExsbWpwY2t0L3BTaXN2WGhuVllHMEkrY1NYOVFVbnJta1lyaXdNdlRUbzAxYTBrTFdzdlJSamx6eW41a3VyUjYzRkNwc0xMZUpZMDBKQnlBYW8iLCJtYWMiOiIzZTdkN2E1ZTc4MWNhMmM2OTI4MThkNmI5NDM0ZmI3NzY3YzJiZTJiM2U4NTNjOGRkZjQ5Mzk4NzczNzBlOTk5IiwidGFnIjoiIn0%3D; remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d=eyJpdiI6IkcxdHBRcUl1YVhkbzBINTgwZW5xcFE9PSIsInZhbHVlIjoiOURWMkdRY2VLdnJmRVdGY1dlWENyK3drajFyLzRIczFQeHlrRXpxQ2ljNVQ1eEVjNkhtSkphRFpQcFVKa1laajlHU0ROdnNvZ25qanhmZEU5bXhUcDRuR20yVE9mSVlJTDIxbmZPYlM0UGV5VXpVcHFCbDd1RWltUVdGdEMyYmUxeEh1NGJuMVphTzdUUlovS0hNOUhodVBoQ2tCaXpQVHN3K2ZLSjhYVFlkYWI2U2ptQTlWQnI5Mzl3MHk5TDNWOGp2bXhMU2RQZ2ZCWWJOVDlBeXpx",
+  "finishedAt": "2026-11-08T14:06:22.417Z",
+  "summary": {
+    "PASS": 42,
+    "FAIL": 26,
+    "BLOCKED": 0
+  }
+}

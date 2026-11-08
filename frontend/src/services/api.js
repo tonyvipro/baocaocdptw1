@@ -183,6 +183,30 @@ export const clearViewHistoryApi = async (code = null) => {
 };
 
 /**
+ * Lấy danh sách tin đã lưu (favorites) từ backend
+ */
+export const fetchFavorites = async () => {
+  try {
+    const response = await axios.get(`${activeBaseUrl}/favorites`, { timeout: 4000 });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Bật/tắt lưu tin yêu thích trên backend
+ */
+export const toggleFavoriteApi = async (propertyId) => {
+  try {
+    const response = await axios.post(`${activeBaseUrl}/favorites/toggle`, { property_id: propertyId }, { timeout: 3000 });
+    return response.data;
+  } catch {
+    return { status: 'fallback_local' };
+  }
+};
+
+/**
  * Xử lý link avatar (hỗ trợ full URL, relative path từ backend, hoặc data URI)
  */
 export const resolveAvatarUrl = (avatar) => {
