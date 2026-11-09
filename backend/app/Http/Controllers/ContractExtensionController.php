@@ -26,20 +26,37 @@ class ContractExtensionController extends Controller
 
     protected function getAuthUser(): User
     {
-        return auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
+        return auth()->user() ?? auth('sanctum')->user() ?? User::where('role_id', 1)->first();
     }
 
     /**
      * Lấy lịch sử gia hạn của 1 hợp đồng
      * GET /api/contracts/{contract}/extensions
      */
-    public function indexByContract(Request $request, int $contractId): JsonResponse
+    public function indexByContract(Request $request, $contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $user = $this->getAuthUser();
-        $this->authorize('viewAny', ContractExtension::class);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractExtension::class);
 
         $perPage = (int)$request->input('per_page', 15);
-        $extensions = $this->extensionService->getHistory($contractId, $perPage);
+        $extensions = $this->extensionService->getHistory((int) $contractId, $perPage);
 
         return response()->json([
             'success' => true,
@@ -56,12 +73,19 @@ class ContractExtensionController extends Controller
      * Kiểm tra điều kiện đủ để gia hạn hợp đồng
      * GET /api/contracts/{contract}/extension-eligibility
      */
-    public function checkEligibility(int $contractId): JsonResponse
+    public function checkEligibility($contractId): JsonResponse
     {
-        $user = $this->getAuthUser();
-        $this->authorize('viewAny', ContractExtension::class);
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
 
-        $eligibility = $this->extensionService->checkEligibility($contractId);
+        $user = $this->getAuthUser();
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractExtension::class);
+
+        $eligibility = $this->extensionService->checkEligibility((int) $contractId);
 
         return response()->json([
             'success' => true,
@@ -73,12 +97,19 @@ class ContractExtensionController extends Controller
      * Lấy bản nháp gia hạn hiện có của hợp đồng (nếu có)
      * GET /api/contracts/{contract}/extension-draft
      */
-    public function getDraft(int $contractId): JsonResponse
+    public function getDraft($contractId): JsonResponse
     {
-        $user = $this->getAuthUser();
-        $this->authorize('viewAny', ContractExtension::class);
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
 
-        $draft = $this->extensionService->getDraft($contractId);
+        $user = $this->getAuthUser();
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractExtension::class);
+
+        $draft = $this->extensionService->getDraft((int) $contractId);
         if (!$draft) {
             return response()->json([
                 'success' => false,
@@ -96,17 +127,24 @@ class ContractExtensionController extends Controller
      * Lưu bản nháp gia hạn mới (status = 0)
      * POST /api/contracts/{contract}/extensions
      */
-    public function storeDraft(StoreContractExtensionDraftRequest $request, int $contractId): JsonResponse
+    public function storeDraft(StoreContractExtensionDraftRequest $request, $contractId): JsonResponse
     {
-        $user = $this->getAuthUser();
-        $contract = Contract::findOrFail($contractId);
-        $this->authorize('create', [ContractExtension::class, $contract]);
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
 
-        $extension = $this->extensionService->saveDraft($contractId, $request->validated(), $user);
+        $user = $this->getAuthUser();
+        $contract = Contract::findOrFail((int) $contractId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('create', [ContractExtension::class, $contract]);
+
+        $extension = $this->extensionService->saveDraft((int) $contractId, $request->validated(), $user);
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã lưu bản nháp gia hạn thành công.',
+            'message' => 'Gửi yêu cầu gia hạn hợp đồng thành công!',
             'data' => new ContractExtensionResource($extension)
         ], 201);
     }
@@ -115,11 +153,18 @@ class ContractExtensionController extends Controller
      * Sửa nội dung bản nháp
      * PUT /api/contract-extensions/{extension}
      */
-    public function updateDraft(UpdateContractExtensionDraftRequest $request, int $id): JsonResponse
+    public function updateDraft(UpdateContractExtensionDraftRequest $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with('contract')->findOrFail($id);
-        $this->authorize('update', $extension);
+        $extension = ContractExtension::with('contract')->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('update', $extension);
 
         $updated = $this->extensionService->updateDraft($extension, $request->validated(), $user);
 
@@ -134,17 +179,24 @@ class ContractExtensionController extends Controller
      * Gửi yêu cầu gia hạn lên cấp trên duyệt (status: 0 -> 1)
      * POST /api/contract-extensions/{extension}/submit
      */
-    public function submit(SubmitContractExtensionRequest $request, int $id): JsonResponse
+    public function submit(SubmitContractExtensionRequest $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with(['contract', 'documents'])->findOrFail($id);
-        $this->authorize('submit', $extension);
+        $extension = ContractExtension::with(['contract', 'documents'])->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('submit', $extension);
 
         $submitted = $this->extensionService->submit($extension, $request->validated(), $user);
 
         return response()->json([
             'success' => true,
-            'message' => 'Gửi yêu cầu gia hạn hợp đồng thành công! Đang chờ cấp trên phê duyệt.',
+            'message' => 'Gửi yêu cầu gia hạn hợp đồng thành công!',
             'data' => new ContractExtensionResource($submitted)
         ]);
     }
@@ -153,11 +205,18 @@ class ContractExtensionController extends Controller
      * Phê duyệt yêu cầu gia hạn (status: 1 -> 2)
      * POST /api/contract-extensions/{extension}/approve
      */
-    public function approve(Request $request, int $id): JsonResponse
+    public function approve(Request $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with(['contract', 'creator'])->findOrFail($id);
-        $this->authorize('approve', $extension);
+        $extension = ContractExtension::with(['contract', 'creator'])->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('approve', $extension);
 
         $approved = $this->extensionService->approve($extension, $user);
 
@@ -172,11 +231,18 @@ class ContractExtensionController extends Controller
      * Từ chối yêu cầu gia hạn (status: 1 -> 3)
      * POST /api/contract-extensions/{extension}/reject
      */
-    public function reject(RejectContractExtensionRequest $request, int $id): JsonResponse
+    public function reject(RejectContractExtensionRequest $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with(['contract', 'creator'])->findOrFail($id);
-        $this->authorize('reject', $extension);
+        $extension = ContractExtension::with(['contract', 'creator'])->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('reject', $extension);
 
         $rejected = $this->extensionService->reject($extension, $request->validated()['reject_reason'], $user);
 
@@ -191,11 +257,18 @@ class ContractExtensionController extends Controller
      * Hủy/rút lại yêu cầu gia hạn
      * POST /api/contract-extensions/{extension}/cancel
      */
-    public function cancel(Request $request, int $id): JsonResponse
+    public function cancel(Request $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with('contract')->findOrFail($id);
-        $this->authorize('cancel', $extension);
+        $extension = ContractExtension::with('contract')->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('cancel', $extension);
 
         $cancelled = $this->extensionService->cancel($extension, $user);
 
@@ -210,11 +283,18 @@ class ContractExtensionController extends Controller
      * Xóa bản nháp gia hạn (chỉ status = 0)
      * DELETE /api/contract-extensions/{extension}
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy($id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::findOrFail($id);
-        $this->authorize('delete', $extension);
+        $extension = ContractExtension::findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('delete', $extension);
 
         $this->extensionService->deleteDraft($extension, $user);
 
@@ -228,11 +308,18 @@ class ContractExtensionController extends Controller
      * Tải lên tài liệu đính kèm phụ lục
      * POST /api/contract-extensions/{extension}/documents
      */
-    public function uploadDocuments(UploadExtensionDocumentRequest $request, int $id): JsonResponse
+    public function uploadDocuments(UploadExtensionDocumentRequest $request, $id): JsonResponse
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $extension = ContractExtension::with('contract')->findOrFail($id);
-        $this->authorize('uploadDocument', $extension);
+        $extension = ContractExtension::with('contract')->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('uploadDocument', $extension);
 
         $docs = $this->extensionService->uploadDocuments($extension, $request->file('files'), $user);
 
@@ -247,13 +334,20 @@ class ContractExtensionController extends Controller
      * Xóa tài liệu đính kèm
      * DELETE /api/contract-extensions/{extension}/documents/{document}
      */
-    public function destroyDocument(int $id, int $documentId): JsonResponse
+    public function destroyDocument($id, $documentId): JsonResponse
     {
-        $user = $this->getAuthUser();
-        $extension = ContractExtension::with('contract')->findOrFail($id);
-        $this->authorize('uploadDocument', $extension);
+        if (!is_numeric($id) || intval($id) <= 0 || !is_numeric($documentId) || intval($documentId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
 
-        $this->extensionService->deleteDocument($extension, $documentId, $user);
+        $user = $this->getAuthUser();
+        $extension = ContractExtension::with('contract')->findOrFail((int) $id);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('uploadDocument', $extension);
+
+        $this->extensionService->deleteDocument($extension, (int) $documentId, $user);
 
         return response()->json([
             'success' => true,
@@ -267,8 +361,18 @@ class ContractExtensionController extends Controller
      */
     public function indexAll(Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $user = $this->getAuthUser();
-        $this->authorize('viewAny', ContractExtension::class);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractExtension::class);
 
         $filters = [
             'status' => $request->input('status'),

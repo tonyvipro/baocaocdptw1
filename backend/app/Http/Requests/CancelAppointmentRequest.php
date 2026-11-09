@@ -14,6 +14,17 @@ class CancelAppointmentRequest extends FormRequest
         return true; // Authorization is handled in the controller
     }
 
+    protected function prepareForValidation(): void
+    {
+        $id = $this->route('id');
+        if (!is_numeric($id) || intval($id) <= 0 || !\App\Models\Appointment::where('id', $id)->exists()) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.',
+            ], 404));
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *

@@ -16,9 +16,14 @@ class AppointmentResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'property_id' => $this->property_id,
+            'broker_id' => $this->broker_id,
+            'customer_id' => $this->customer_id,
             'appointment_time' => $this->appointment_time,
             'status' => $this->status,
             'note' => $this->note,
+            'cancel_reason' => $this->cancel_reason,
+            'version' => (int) ($this->version ?? 1),
             
             // Nested resources for related data
             'customer' => $this->whenLoaded('customer', function () {

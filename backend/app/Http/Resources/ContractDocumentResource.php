@@ -21,12 +21,14 @@ class ContractDocumentResource extends JsonResource
             'file_size_formatted' => $this->file_size_formatted,
             'mime_type' => $this->mime_type,
             'description' => $this->description,
+            'version' => (int) ($this->version ?? 1),
             'uploaded_by' => $this->uploader ? [
                 'id' => $this->uploader->id,
                 'name' => $this->uploader->name,
                 'email' => $this->uploader->email,
             ] : null,
             'created_at' => $this->created_at?->toIso8601String(),
+            'created_at_formatted' => $this->created_at?->format('d/m/Y H:i'),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }

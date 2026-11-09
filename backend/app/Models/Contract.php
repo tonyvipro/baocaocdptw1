@@ -26,6 +26,7 @@ class Contract extends Model
         'tax_code',
         'terms',
         'status',
+        'version',
         'signing_method',
         'meeting_location',
         'meeting_time',
@@ -37,6 +38,7 @@ class Contract extends Model
 
     protected $casts = [
         'is_high_value' => 'boolean',
+        'version' => 'integer',
         'deposit_amount' => 'decimal:2',
         'rental_price' => 'decimal:2',
         'start_date' => 'date',

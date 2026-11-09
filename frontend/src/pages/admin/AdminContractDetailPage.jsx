@@ -139,7 +139,7 @@ export default function AdminContractDetailPage({
     }
     setExtActionLoading(rejectModalExt.id);
     try {
-      await contractExtensionApi.rejectExtension(rejectModalExt.id, { reason: rejectReason.trim() });
+      await contractExtensionApi.rejectExtension(rejectModalExt.id, { reject_reason: rejectReason.trim() });
       setRejectModalExt(null);
       setRejectReason('');
       setRejectError('');
@@ -373,7 +373,7 @@ export default function AdminContractDetailPage({
                           {doc.uploader && ` • Bởi: ${doc.uploader.name}`}
                         </p>
                         {doc.description && (
-                          <p className="text-[11px] text-slate-500 italic mt-0.5">{doc.description}</p>
+                          <p className="text-[11px] text-slate-500 italic mt-0.5 break-all whitespace-pre-wrap">{doc.description}</p>
                         )}
                       </div>
                     </div>
@@ -451,9 +451,12 @@ export default function AdminContractDetailPage({
             ) : (
               <div className="divide-y divide-slate-100">
                 {extensions.map((ext, idx) => {
-                  const isApproved = ext.status === 1 || ext.status === 'APPROVED';
-                  const isPending = ext.status === 0 || ext.status === 'PENDING' || ext.status === 'SUBMITTED';
-                  const isRejected = ext.status === 2 || ext.status === 'REJECTED';
+                  const statusNum = Number(ext.status);
+                  const isDraft = statusNum === 0 || ext.status === 'DRAFT';
+                  const isPending = statusNum === 1 || ext.status === 'PENDING' || ext.status === 'SUBMITTED';
+                  const isApproved = statusNum === 2 || ext.status === 'APPROVED';
+                  const isRejected = statusNum === 3 || ext.status === 'REJECTED';
+                  const isCancelled = statusNum === 4 || ext.status === 'CANCELLED';
 
                   return (
                     <div key={ext.id || idx} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -461,7 +464,7 @@ export default function AdminContractDetailPage({
                         <div className="font-bold text-slate-800 flex items-center gap-2">
                           {isApproved ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          ) : isRejected ? (
+                          ) : isRejected || isCancelled ? (
                             <XCircle className="w-4 h-4 text-red-500" />
                           ) : (
                             <Clock className="w-4 h-4 text-amber-500" />
@@ -470,11 +473,13 @@ export default function AdminContractDetailPage({
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                             isApproved
                               ? 'bg-emerald-100 text-emerald-800'
-                              : isRejected
+                              : isRejected || isCancelled
                               ? 'bg-red-100 text-red-800'
+                              : isDraft
+                              ? 'bg-slate-100 text-slate-700'
                               : 'bg-amber-100 text-amber-800'
                           }`}>
-                            {isApproved ? 'Đã duyệt' : isRejected ? 'Từ chối' : 'Chờ duyệt'}
+                            {isApproved ? 'Đã duyệt' : isRejected ? 'Đã từ chối' : isCancelled ? 'Đã hủy' : isDraft ? 'Bản nháp' : 'Chờ duyệt'}
                           </span>
                         </div>
                         <div className="text-slate-600 mt-1 pl-6 space-y-0.5">
@@ -487,8 +492,8 @@ export default function AdminContractDetailPage({
                           {ext.reason && (
                             <p className="text-slate-500 italic">Lý do: {ext.reason}</p>
                           )}
-                          {ext.rejection_reason && (
-                            <p className="text-red-600 italic">Lý do từ chối: {ext.rejection_reason}</p>
+                          {(ext.reject_reason || ext.rejection_reason) && (
+                            <p className="text-red-600 italic">Lý do từ chối: {ext.reject_reason || ext.rejection_reason}</p>
                           )}
                         </div>
                       </div>

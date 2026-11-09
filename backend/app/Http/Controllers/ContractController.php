@@ -15,6 +15,36 @@ class ContractController extends Controller
      */
     public function index(Request $request)
     {
+        if ($request->has('page')) {
+            $pageParam = $request->query('page');
+            if (!is_numeric($pageParam) || intval($pageParam) <= 0 || strval(intval($pageParam)) !== strval($pageParam)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
+        if ($request->has('per_page')) {
+            $perPageParam = $request->query('per_page');
+            if (!is_numeric($perPageParam) || intval($perPageParam) <= 0 || intval($perPageParam) > 100) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
+        // Lọc theo trạng thái hợp đồng (0: Nháp/Chờ ký, 1: Hiệu lực, 2: Hết hạn, 3: Đã hủy)
+        if ($request->has('status') && $request->status !== '' && $request->status !== null && $request->status !== 'all') {
+            if (!in_array((string) $request->status, ['0', '1', '2', '3'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         $query = Contract::query()->with([
             'property:id,code,title,address,price,area,type',
@@ -76,6 +106,13 @@ class ContractController extends Controller
      */
     public function show($id)
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
         $contract = Contract::with([
             'property',
             'broker',
@@ -186,9 +223,24 @@ class ContractController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $contract = Contract::findOrFail($id);
 
+        if ($request->has('version') && (int) $contract->version !== (int) $request->input('version')) {
+            throw new \App\Exceptions\StaleVersionException(
+                __('spec_messages.row_2_stale_version'),
+                $contract->fresh(['property', 'broker', 'customer'])
+            );
+        }
+
         $validated = $request->validate([
+            'version' => 'nullable|integer|min:1',
             'contract_name' => 'sometimes|required|string|max:255',
             'start_date' => 'sometimes|required|date',
             'end_date' => 'sometimes|required|date|after:start_date',
@@ -202,6 +254,17 @@ class ContractController extends Controller
             'party_b_info' => 'nullable|string',
             'tax_code' => 'nullable|string|max:50',
             'terms' => 'nullable|string',
+        ], [
+            'contract_name.required' => 'Tên hợp đồng không được để trống',
+            'contract_name.max' => 'Tên hợp đồng không được vượt quá 255 ký tự',
+            'start_date.date' => 'Ngày bắt đầu không đúng định dạng',
+            'end_date.date' => 'Ngày kết thúc không đúng định dạng',
+            'end_date.after' => 'Ngày kết thúc hợp đồng phải sau ngày bắt đầu',
+            'deposit_amount.numeric' => 'Số tiền đặt cọc chỉ được phép nhập số',
+            'deposit_amount.min' => 'Giá trị tiền không hợp lệ (phải lớn hơn hoặc bằng 0)',
+            'rental_price.numeric' => 'Giá trị hợp đồng/tiền thuê chỉ được phép nhập số',
+            'rental_price.min' => 'Giá trị tiền không hợp lệ (phải lớn hơn hoặc bằng 0)',
+            'tax_code.max' => 'Mã số thuế không được vượt quá 50 ký tự',
         ]);
 
         // Nếu thay đổi deposit_amount, kiểm tra xem khoản cọc đã phát sinh giao dịch thu chưa
@@ -228,6 +291,7 @@ class ContractController extends Controller
         $deposit = floatval($request->input('deposit_amount', $contract->deposit_amount));
         $isHighValue = Contract::isHighValue($price, $deposit);
         $validated['is_high_value'] = $isHighValue;
+        $validated['version'] = ($contract->version ?? 1) + 1;
 
         if ($isHighValue) {
             $validated['signing_method'] = 'DIRECT_MEETING';
@@ -262,10 +326,29 @@ class ContractController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $contract = Contract::findOrFail($id);
+
+        if ($request->has('version') && (int) $contract->version !== (int) $request->input('version')) {
+            throw new \App\Exceptions\StaleVersionException(
+                __('spec_messages.row_2_stale_version'),
+                $contract->fresh(['property', 'broker', 'customer'])
+            );
+        }
 
         $request->validate([
             'status' => 'required|integer|in:0,1,2,3',
+            'version' => 'nullable|integer|min:1',
+        ], [
+            'status.required' => 'Vui lòng chọn trạng thái hợp đồng.',
+            'status.integer' => 'Trạng thái hợp đồng không hợp lệ.',
+            'status.in' => 'Trạng thái hợp đồng không hợp lệ.',
         ]);
 
         $newStatus = intval($request->status);
@@ -300,6 +383,7 @@ class ContractController extends Controller
         }
 
         $contract->status = $newStatus;
+        $contract->version = ($contract->version ?? 1) + 1;
         $contract->save();
 
         $statusTitles = [
@@ -330,6 +414,13 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => 'Chỉ Quản trị viên (Admin) mới có quyền xóa hợp đồng khỏi hệ thống.'
             ], 403);
+        }
+
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.',
+            ], 404);
         }
 
         $contract = Contract::findOrFail($id);

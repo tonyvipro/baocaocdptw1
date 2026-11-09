@@ -31,6 +31,15 @@ export default function QrPaymentModal({
     }
   };
 
+  // Reset trạng thái mỗi khi mở modal hoặc đổi mã QR mới
+  useEffect(() => {
+    if (isOpen && qrData?.transaction_code) {
+      setStatus('pending');
+      setErrorMessage('');
+      setPollIntervalMs(2000);
+    }
+  }, [isOpen, qrData?.transaction_code]);
+
   // Tính thời gian đếm ngược dựa trên expires_at
   useEffect(() => {
     if (!isOpen || !qrData?.expires_at) return;
@@ -55,54 +64,54 @@ export default function QrPaymentModal({
     };
   }, [isOpen, qrData, status]);
 
-  // Polling hỏi trạng thái đơn từ server (3s -> giãn dần tới 10s)
+  // Polling hỏi trạng thái đơn từ server (2.5s cố định để phản hồi nhanh ngay khi quét QR)
   const pollStatus = useCallback(async () => {
     if (!qrData?.transaction_code || status !== 'pending') return;
 
     try {
       const res = await paymentApi.pollTransactionStatus(qrData.transaction_code);
-      const tx = res.data;
+      const tx = res?.data;
+      if (!tx) return;
 
-      if (tx.status === 1) { // THÀNH CÔNG
+      const txStatus = Number(tx.status);
+      if (txStatus === 1 || Number(res?.invoice_status) === 1) { // THÀNH CÔNG
         setStatus('success');
-      } else if (tx.status === 2) { // THẤT BẠI
+        if (typeof onSuccess === 'function') onSuccess(tx);
+        if (typeof onSuccessPayment === 'function') onSuccessPayment(tx);
+      } else if (txStatus === 2) { // THẤT BẠI
         setStatus('failed');
         setErrorMessage(tx.failure_reason || 'Giao dịch thanh toán không thành công.');
-      } else if (tx.status === 4) { // HẾT HẠN
+      } else if (txStatus === 4) { // HẾT HẠN
         setStatus('expired');
         setErrorMessage('Giao dịch thanh toán đã hết hạn.');
-      } else if (tx.status === 5) { // ĐÃ HỦY
+      } else if (txStatus === 5) { // ĐÃ HỦY
         setStatus('cancelled');
         setErrorMessage('Giao dịch thanh toán đã bị hủy.');
-      } else if (tx.status === 6) { // CẦN ĐỐI SOÁT
+      } else if (txStatus === 6) { // CẦN ĐỐI SOÁT
         setStatus('failed');
         setErrorMessage('Giao dịch có sai lệch số tiền, đang chờ đối soát thủ công từ Quản trị viên.');
       }
     } catch (err) {
       console.warn('Lỗi polling trạng thái thanh toán:', err);
     }
-  }, [qrData, status, onSuccess]);
+  }, [qrData, status, onSuccess, onSuccessPayment]);
 
   useEffect(() => {
     if (!isOpen || status !== 'pending') {
-      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       return;
     }
 
-    const scheduleNextPoll = () => {
-      pollTimerRef.current = setTimeout(async () => {
-        await pollStatus();
-        // Giãn dần tần suất polling từ 3s -> 5s -> tối đa 8s
-        setPollIntervalMs((prev) => Math.min(prev + 1000, 8000));
-      }, pollIntervalMs);
-    };
-
-    scheduleNextPoll();
+    // Kiểm tra ngay lập tức và lặp lại mỗi 2.5 giây
+    pollStatus();
+    pollTimerRef.current = setInterval(() => {
+      pollStatus();
+    }, 2500);
 
     return () => {
-      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [isOpen, status, pollIntervalMs, pollStatus]);
+  }, [isOpen, status, pollStatus]);
 
   if (!isOpen || !qrData) return null;
 

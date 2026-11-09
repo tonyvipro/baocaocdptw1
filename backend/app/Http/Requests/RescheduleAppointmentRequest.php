@@ -15,6 +15,17 @@ class RescheduleAppointmentRequest extends FormRequest
         return true; // Xử lý phân quyền chi tiết trong Controller
     }
 
+    protected function prepareForValidation(): void
+    {
+        $id = $this->route('id');
+        if (!is_numeric($id) || intval($id) <= 0 || !\App\Models\Appointment::where('id', $id)->exists()) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404));
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -29,7 +40,7 @@ class RescheduleAppointmentRequest extends FormRequest
                 'date',
                 function ($attribute, $value, $fail) {
                     $time = Carbon::parse($value);
-                    if ($time->isPast() || $time->diffInHours(now()) < 2) {
+                    if ($time->lessThan(now()->addHours(2))) {
                         $fail('Thời gian hẹn mới phải diễn ra ít nhất 2 tiếng kể từ thời điểm hiện tại.');
                     }
                 },

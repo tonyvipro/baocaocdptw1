@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
         $middleware->prepend(\App\Http\Middleware\RequestDiagnostics::class);
         $middleware->append(\App\Http\Middleware\ValidateInputPolicy::class);
         $middleware->web(append: [\App\Http\Middleware\RecordUserActivity::class]);
@@ -78,6 +79,56 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => 'Đã xảy ra lỗi cơ sở dữ liệu. Vui lòng liên hệ quản trị viên.',
                     ], 500);
                 }
+            }
+        });
+
+        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                $path = $request->path();
+                $isDeleteOrCancel = $request->isMethod('DELETE')
+                    || str_ends_with($path, '/cancel')
+                    || str_ends_with($path, '/void')
+                    || str_ends_with($path, '/cancel-manual');
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $isDeleteOrCancel
+                        ? 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.'
+                        : 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                if ($e->getPrevious() instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    $path = $request->path();
+                    $isDeleteOrCancel = $request->isMethod('DELETE')
+                        || str_ends_with($path, '/cancel')
+                        || str_ends_with($path, '/void')
+                        || str_ends_with($path, '/cancel-manual');
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => $isDeleteOrCancel
+                            ? 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.'
+                            : 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                    ], 404);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e, $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Method Not Allowed',
+                ], 405);
             }
         });
 

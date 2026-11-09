@@ -12,10 +12,13 @@ export default function HeroSection({
   setSelectedType,
   selectedCity,
   setSelectedCity,
+  selectedDistrict = 'all',
+  setSelectedDistrict = () => {},
   activeTab,
   setActiveTab,
   projectsList,
   citiesList,
+  districtsList = [],
   typesList,
   totalResults,
   searchLoading = false,
@@ -101,7 +104,7 @@ export default function HeroSection({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
             
             {/* Input Keyword */}
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-3">
               <PropertySearchBar value={searchKeyword} onChange={setSearchKeyword} isLoading={searchLoading} error={searchError} suggestions={suggestions} onSelect={onSelectSuggestion} />
             </div>
 
@@ -109,10 +112,10 @@ export default function HeroSection({
               <ProjectSearchSelect projects={projectsList} value={selectedProject} onChange={setSelectedProject} />
             </div>
 
-            {/* Select City / Region */}
-            <div className="lg:col-span-3">
+            {/* Select City / Region (F16) */}
+            <div className="lg:col-span-2">
               <label className="block text-[11px] font-bold text-white uppercase mb-1 tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                Khu Vực / Tỉnh Thành
+                Tỉnh / Thành Phố
               </label>
               <div className="relative">
                 <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/80 pointer-events-none" />
@@ -124,6 +127,29 @@ export default function HeroSection({
                   <option value="all" className="bg-slate-900 text-white">Toàn quốc</option>
                   {citiesList.map((c) => (
                     <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/80 text-xs">
+                  ▼
+                </div>
+              </div>
+            </div>
+
+            {/* Select District / Area (F16) */}
+            <div className="lg:col-span-2">
+              <label className="block text-[11px] font-bold text-white uppercase mb-1 tracking-wider drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                Quận / Huyện / Khu Vực
+              </label>
+              <div className="relative">
+                <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/80 pointer-events-none" />
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2.5 bg-black/25 hover:bg-black/35 focus:bg-black/45 text-sm text-white border border-white/25 focus:border-white/70 rounded-none focus:outline-none focus:ring-2 focus:ring-red-500/40 appearance-none transition-all shadow-inner cursor-pointer backdrop-blur-[1px]"
+                >
+                  <option value="all" className="bg-slate-900 text-white">Tất cả Quận/Huyện</option>
+                  {districtsList.map((d) => (
+                    <option key={d} value={d} className="bg-slate-900 text-white">{d}</option>
                   ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/80 text-xs">

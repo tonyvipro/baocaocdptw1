@@ -359,7 +359,7 @@ export default function ContractDocumentsManager({ currentUser, onNavigateToCont
 
                     {/* Ngày hết hạn */}
                     <td className="py-3.5 px-4 text-slate-600 font-medium">
-                      {contract.end_date || '—'}
+                      {contract.end_date ? String(contract.end_date).slice(0, 10) : '—'}
                     </td>
 
                     {/* Trạng thái */}

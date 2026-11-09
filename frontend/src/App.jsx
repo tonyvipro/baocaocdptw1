@@ -101,6 +101,7 @@ export default function App() {
   const smartSearch = usePropertySearch(searchKeyword);
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
+  const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [selectedDeveloper, setSelectedDeveloper] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedBedrooms, setSelectedBedrooms] = useState('all');
@@ -171,9 +172,13 @@ export default function App() {
       if (data?.user) {
         setCurrentUser(data.user);
         localStorage.setItem('3tv_user', JSON.stringify(data.user));
+        if (data.token) {
+          localStorage.setItem('3tv_token', data.token);
+        }
       } else if (currentUser) {
         setCurrentUser(null);
         localStorage.removeItem('3tv_user');
+        localStorage.removeItem('3tv_token');
         setAuthMode('login');
         setShowAuthModal(true);
       }
@@ -418,6 +423,12 @@ export default function App() {
     return Array.from(set);
   }, [properties]);
 
+  const districtsList = useMemo(() => {
+    const source = selectedCity !== 'all' ? properties.filter((p) => p.city === selectedCity) : properties;
+    const set = new Set(source.map((p) => p.district).filter(Boolean));
+    return Array.from(set);
+  }, [properties, selectedCity]);
+
   const developersList = useMemo(() => {
     const set = new Set(properties.map((p) => p.developer).filter(Boolean));
     return Array.from(set);
@@ -431,8 +442,8 @@ export default function App() {
   // Filtered & Sorted Properties
   const filteredProperties = useMemo(() => {
     const catalog = searchKeyword.trim() ? rankSearchCatalog(properties, smartSearch.ids) : properties;
-    return filterCatalog(catalog, { purpose: activeTab, project: selectedProject, city: selectedCity, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
-  }, [properties, activeTab, searchKeyword, smartSearch.ids, selectedProject, selectedCity, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
+    return filterCatalog(catalog, { purpose: activeTab, project: selectedProject, city: selectedCity, district: selectedDistrict, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+  }, [properties, activeTab, searchKeyword, smartSearch.ids, selectedProject, selectedCity, selectedDistrict, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
 
   useEffect(() => {
     const code = new URL(window.location.href).searchParams.get('property');
@@ -444,6 +455,7 @@ export default function App() {
     setSearchKeyword('');
     setSelectedProject('all');
     setSelectedCity('all');
+    setSelectedDistrict('all');
     setSelectedDeveloper('all');
     setSelectedType('all');
     setSelectedBedrooms('all');
@@ -596,11 +608,17 @@ export default function App() {
         selectedType={selectedType}
         setSelectedType={setSelectedType}
         selectedCity={selectedCity}
-        setSelectedCity={setSelectedCity}
+        setSelectedCity={(val) => {
+          setSelectedCity(val);
+          setSelectedDistrict('all');
+        }}
+        selectedDistrict={selectedDistrict}
+        setSelectedDistrict={setSelectedDistrict}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         projectsList={projectsList}
         citiesList={citiesList}
+        districtsList={districtsList}
         typesList={typesList}
         totalResults={filteredProperties.length}
         searchLoading={smartSearch.isLoading}
@@ -826,6 +844,7 @@ export default function App() {
       {showContactModal && (
         <ContactModal
           property={contactProperty}
+          properties={properties}
           currentUser={currentUser}
           onOpenAuth={(mode) => {
             setAuthMode(mode || 'login');

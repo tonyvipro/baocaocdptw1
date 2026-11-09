@@ -151,6 +151,11 @@ export default function UploadContractDocumentModal({
       return;
     }
 
+    if (description.length > 250) {
+      setValidationError('Ghi chú mô tả tài liệu không được vượt quá 250 ký tự.');
+      return;
+    }
+
     const formData = new FormData();
     selectedFiles.forEach((file) => {
       formData.append('files[]', file);
@@ -304,15 +309,32 @@ export default function UploadContractDocumentModal({
 
           {/* Ghi chú mô tả */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Ghi chú / Mô tả chi tiết (Tùy chọn)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                Ghi chú / Mô tả chi tiết (Tùy chọn)
+              </label>
+              <span className={`text-[11px] font-bold ${description.length > 250 ? 'text-red-600' : 'text-slate-400'}`}>
+                {description.length}/250 ký tự
+              </span>
+            </div>
             <textarea
               rows={2}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ví dụ: Bản scan có đầy đủ chữ ký 2 bên và dấu đỏ công chứng ngày 01/11..."
-              className="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                const val = e.target.value;
+                setDescription(val);
+                if (val.length > 250) {
+                  setValidationError('Ghi chú mô tả tài liệu không được vượt quá 250 ký tự.');
+                } else if (validationError === 'Ghi chú mô tả tài liệu không được vượt quá 250 ký tự.') {
+                  setValidationError('');
+                }
+              }}
+              placeholder="Ví dụ: Bản scan có đầy đủ chữ ký 2 bên và dấu đỏ công chứng ngày 01/11... (Tối đa 250 ký tự)"
+              className={`w-full text-xs p-3 border rounded-xl focus:outline-none focus:ring-2 ${
+                description.length > 250
+                  ? 'border-red-400 focus:ring-red-500'
+                  : 'border-slate-200 focus:ring-blue-500'
+              }`}
             />
           </div>
 

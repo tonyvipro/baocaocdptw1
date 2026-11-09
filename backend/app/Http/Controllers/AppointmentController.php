@@ -16,6 +16,36 @@ class AppointmentController extends Controller
      */
     public function index(\Illuminate\Http\Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $pageParam = $request->query('page');
+            if (!is_numeric($pageParam) || intval($pageParam) <= 0 || strval(intval($pageParam)) !== strval($pageParam)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
+        if ($request->has('per_page')) {
+            $perPageParam = $request->query('per_page');
+            if (!is_numeric($perPageParam) || intval($perPageParam) <= 0 || intval($perPageParam) > 100) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
+        if ($request->filled('status') && $request->query('status') !== 'all') {
+            $statusParam = $request->query('status');
+            if (!in_array((string) $statusParam, ['0', '1', '2', '3'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         
         // Gọi query builder thông qua Scope, Eager Load các relations cần thiết
@@ -114,12 +144,19 @@ class AppointmentController extends Controller
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         
         // 1. Tìm lịch hẹn thông qua Model
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.'
+            ], 404);
+        }
+
         $appointment = Appointment::findById($id);
 
         if (!$appointment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lịch hẹn không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng làm mới lại trang.'
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.'
             ], 404);
         }
 
@@ -163,11 +200,18 @@ class AppointmentController extends Controller
     {
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.'
+            ], 404);
+        }
+
         $appointment = Appointment::findById($id);
         if (!$appointment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lịch hẹn không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng làm mới lại trang.'
+                'message' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.'
             ], 404);
         }
 
@@ -216,11 +260,18 @@ class AppointmentController extends Controller
     {
         $user = auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
         
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.'
+            ], 404);
+        }
+
         $appointment = Appointment::findById($id);
         if (!$appointment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lịch hẹn không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng làm mới lại trang.'
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.'
             ], 404);
         }
 

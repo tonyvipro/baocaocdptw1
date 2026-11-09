@@ -17,7 +17,7 @@ return [
     /*
     | URL công khai frontend để điều hướng sau khi thanh toán
     */
-    'app_public_url' => env('APP_PUBLIC_URL', 'http://localhost:3000'),
+    'app_public_url' => env('APP_PUBLIC_URL', 'http://localhost:3001'),
 
     /*
     | Cấu hình chi tiết các cổng

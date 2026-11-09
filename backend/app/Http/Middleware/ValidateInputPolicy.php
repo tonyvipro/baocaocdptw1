@@ -35,7 +35,13 @@ class ValidateInputPolicy
                     }
                     continue;
                 }
-                if (is_string($value) && mb_strlen($value) > 250) {
+                $longTextFields = [
+                    'terms', 'note', 'notes', 'description', 'reason',
+                    'cancel_reason', 'reject_reason', 'deduction_reason',
+                    'early_refund_reason', 'party_a_info', 'party_b_info',
+                    'contract_name', 'meeting_location', 'notary_office',
+                ];
+                if (is_string($value) && !in_array($field, $longTextFields, true) && mb_strlen($value) > 250) {
                     $errors[$path] = ['Thông tin không được vượt quá 250 ký tự.'];
                     continue;
                 }

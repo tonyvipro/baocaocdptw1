@@ -11,6 +11,17 @@ class RejectContractExtensionRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $extId = $this->route('extension') ?? $this->route('id');
+        if (!is_numeric($extId) || intval($extId) <= 0 || !\App\Models\ContractExtension::where('id', (int) $extId)->exists()) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404));
+        }
+    }
+
     public function rules(): array
     {
         return [

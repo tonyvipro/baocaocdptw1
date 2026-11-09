@@ -111,9 +111,15 @@ class RentPaymentController extends Controller
     /**
      * Chi tiết hóa đơn tiền thuê kèm danh sách giao dịch (GET /api/rent-payments/{id})
      */
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request, $id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('view', $invoice);
 
         if ($request->user() && (int) $request->user()->role_id === 5) {
@@ -131,9 +137,15 @@ class RentPaymentController extends Controller
      * Ghi nhận thanh toán cho hóa đơn tiền thuê (POST /api/invoices/{id}/payments)
      * Điểm vào chung tái sử dụng cho cả thanh toán nhập tay và thanh toán cổng (QR).
      */
-    public function recordPayment(RecordPaymentRequest $request, int $id): JsonResponse
+    public function recordPayment(RecordPaymentRequest $request, $id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('update', $invoice);
 
         $result = $this->paymentService->recordPayment(

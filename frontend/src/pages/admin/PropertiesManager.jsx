@@ -580,7 +580,7 @@ export default function PropertiesManager() {
           
           {/* Filter & Search Toolbar */}
           <div className="bg-white/90 backdrop-blur-xl p-5 rounded-3xl border border-slate-200/60 shadow-xl shadow-slate-200/20 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
               
               {/* Search input */}
               <div className="lg:col-span-2 relative group">
@@ -589,9 +589,25 @@ export default function PropertiesManager() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nhập Địa chỉ, Mã BĐS, Tiêu đề..."
+                  placeholder="Nhập Khu vực, Địa chỉ, Số tờ/thửa, Mã BĐS..."
                   className="w-full pl-10 pr-4 py-2.5 text-xs font-medium rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
                 />
+              </div>
+
+              {/* City / Area filter (F16) */}
+              <div>
+                <select
+                  value={cityFilter}
+                  onChange={(e) => setCityFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 font-semibold text-slate-700"
+                >
+                  <option value="all">Tất cả Khu vực / Tỉnh</option>
+                  <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                  <option value="Hà Nội">Hà Nội</option>
+                  <option value="Đà Nẵng">Đà Nẵng</option>
+                  <option value="Bình Dương">Bình Dương</option>
+                  <option value="Đồng Nai">Đồng Nai</option>
+                </select>
               </div>
 
               {/* Type filter */}

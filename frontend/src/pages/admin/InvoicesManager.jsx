@@ -167,7 +167,7 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
 
   const openSendEmail = (inv) => {
     setEmailModalInvoice(inv);
-    setEmailInput(inv.customer_phone || '');
+    setEmailInput(inv.customer_email || '');
     setEmailResult({ success: null, error: null });
   };
 
@@ -195,7 +195,7 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
     if (!cancelModalInvoice || !cancelReason.trim()) return;
     try {
       setCancelling(true);
-      await invoiceApi.cancelInvoice(cancelModalInvoice.id, cancelReason.trim());
+      await invoiceApi.cancelInvoice(cancelModalInvoice.id, cancelReason.trim(), cancelModalInvoice.version || 1);
       setCancelModalInvoice(null);
       setCancelReason('');
       alert('Đã hủy hóa đơn thành công!');
@@ -257,7 +257,10 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
       };
 
       if (editingInvoice) {
-        await invoiceApi.updateInvoice(editingInvoice.id, payload);
+        await invoiceApi.updateInvoice(editingInvoice.id, {
+          ...payload,
+          version: editingInvoice.version || 1,
+        });
         alert('Cập nhật hóa đơn thành công!');
       } else {
         await invoiceApi.createInvoice(payload);
@@ -283,7 +286,7 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
     setFormData({
       contract_id: activeContracts[0]?.id || '',
       type: 'rent',
-      title: 'Tiền thuê tháng ' + new Date().getMonth() + 1 + '/' + new Date().getFullYear(),
+      title: 'Tiền thuê tháng ' + (new Date().getMonth() + 1) + '/' + new Date().getFullYear(),
       due_date: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
       billing_period_start: new Date().toISOString().split('T')[0],
       billing_period_end: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
@@ -571,16 +574,25 @@ export default function InvoicesManager({ currentUser, onSelectInvoice }) {
                         </button>
 
                         {(inv.status === 0 || inv.status === 2) && inv.paid_amount === 0 && (
-                          <button
-                            onClick={() => {
-                              setCancelModalInvoice(inv);
-                              setCancelReason('');
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Hủy hóa đơn"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
+                          <>
+                            <button
+                              onClick={() => openEditModal(inv)}
+                              className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              title="Chỉnh sửa hóa đơn"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCancelModalInvoice(inv);
+                                setCancelReason('');
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Hủy hóa đơn"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

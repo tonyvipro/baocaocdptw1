@@ -237,7 +237,7 @@ class ContractDocumentService
 
         $document->update([
             'title' => trim($data['title']),
-            'document_type' => (int)$data['document_type'],
+            'document_type' => isset($data['document_type']) ? (int)$data['document_type'] : $document->document_type,
             'description' => isset($data['description']) ? trim($data['description']) : $document->description,
         ]);
 

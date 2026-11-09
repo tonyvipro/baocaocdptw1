@@ -368,10 +368,29 @@ function AppointmentsManager() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
-  
+  const [toastMsg, setToastMsg] = useState(null);
+
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Modal Đổi lịch (F03)
+  const [rescheduleModalApp, setRescheduleModalApp] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('09:00');
+  const [rescheduleError, setRescheduleError] = useState('');
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
+
+  // Modal Hủy / Từ chối lịch (F04)
+  const [cancelModalApp, setCancelModalApp] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState('');
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  const showToast = (msg, type = 'success') => {
+    setToastMsg({ text: msg, type });
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   useEffect(() => {
     fetchAppointments();
@@ -404,7 +423,6 @@ function AppointmentsManager() {
   };
 
   const handleConfirm = async (id) => {
-    if (!window.confirm('Xác nhận duyệt lịch hẹn này?')) return;
     setActionLoading(id);
     try {
       const token = localStorage.getItem('3tv_token') || '';
@@ -415,7 +433,7 @@ function AppointmentsManager() {
         method: 'PATCH',
         headers
       });
-      if (!res.ok) {
+      if (!res.ok && res.status >= 500) {
         res = await fetch(`http://localhost:8080/api/appointments/${id}/confirm`, {
           method: 'PATCH',
           headers
@@ -423,10 +441,137 @@ function AppointmentsManager() {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Lỗi không xác định.');
-      alert(data.message || 'Xác nhận thành công!');
-      setAppointments(prev => prev.map(app => app.id === id ? { ...app, status: 1 } : app));
+      showToast(data.message || 'Xác nhận lịch hẹn thành công!', 'success');
+      setAppointments(prev => prev.map(app => app.id === id ? { ...app, ...(data.data || {}), status: 1 } : app));
     } catch (err) {
-      alert(`[LỖI]: ${err.message}`);
+      showToast(err.message, 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openRescheduleModal = (app) => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    setRescheduleDate(d.toISOString().split('T')[0]);
+    setRescheduleTime('10:00');
+    setRescheduleError('');
+    setRescheduleModalApp(app);
+  };
+
+  const handleRescheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!rescheduleModalApp) return;
+    setRescheduleError('');
+    if (!rescheduleDate || !rescheduleTime) {
+      setRescheduleError('Vui lòng chọn ngày và giờ hẹn mới.');
+      return;
+    }
+
+    const newAppointmentTime = `${rescheduleDate} ${rescheduleTime}:00`;
+    setRescheduleSubmitting(true);
+    try {
+      const token = localStorage.getItem('3tv_token') || '';
+      const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/appointments/${rescheduleModalApp.id}/reschedule`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          new_appointment_time: newAppointmentTime,
+          version: rescheduleModalApp.version || 1,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const firstErr = data.errors ? Object.values(data.errors).flat()[0] : null;
+        setRescheduleError(firstErr || data.message || 'Không thể thay đổi lịch hẹn.');
+        return;
+      }
+
+      showToast(data.message || 'Thay đổi lịch hẹn thành công!', 'success');
+      setAppointments(prev => prev.map(app => app.id === rescheduleModalApp.id ? {
+        ...app,
+        ...(data.data || {}),
+        appointment_time: newAppointmentTime,
+        version: (app.version || 1) + 1,
+      } : app));
+      setRescheduleModalApp(null);
+    } catch (err) {
+      setRescheduleError(err.message || 'Lỗi kết nối máy chủ.');
+    } finally {
+      setRescheduleSubmitting(false);
+    }
+  };
+
+  const openCancelModal = (app) => {
+    setCancelReason('');
+    setCancelError('');
+    setCancelModalApp(app);
+  };
+
+  const handleCancelSubmit = async (e) => {
+    e.preventDefault();
+    if (!cancelModalApp) return;
+    setCancelError('');
+
+    setCancelSubmitting(true);
+    try {
+      const token = localStorage.getItem('3tv_token') || '';
+      const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/appointments/${cancelModalApp.id}/cancel`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          cancel_reason: cancelReason.trim(),
+          version: cancelModalApp.version || 1,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const firstErr = data.errors ? Object.values(data.errors).flat()[0] : null;
+        setCancelError(firstErr || data.message || 'Không thể hủy lịch hẹn.');
+        return;
+      }
+
+      showToast(data.message || 'Đã hủy lịch hẹn thành công!', 'success');
+      setAppointments(prev => prev.map(app => app.id === cancelModalApp.id ? {
+        ...app,
+        ...(data.data || {}),
+        status: 3,
+        cancel_reason: cancelReason.trim(),
+        version: (app.version || 1) + 1,
+      } : app));
+      setCancelModalApp(null);
+    } catch (err) {
+      setCancelError(err.message || 'Lỗi kết nối máy chủ.');
+    } finally {
+      setCancelSubmitting(false);
+    }
+  };
+
+  const handleDeleteAppointment = async (id) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa lịch hẹn #${id}?`)) return;
+    setActionLoading(id);
+    try {
+      const token = localStorage.getItem('3tv_token') || '';
+      const headers = { 'Accept': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Không thể xóa lịch hẹn.');
+
+      showToast(data.message || 'Đã xóa lịch hẹn thành công!', 'success');
+      setAppointments(prev => prev.filter(app => app.id !== id));
+    } catch (err) {
+      showToast(err.message, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -443,7 +588,19 @@ function AppointmentsManager() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full relative">
+      {toastMsg && (
+        <div className={`mx-4 mt-3 px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center justify-between ${
+          toastMsg.type === 'error'
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+        }`}>
+          <span>{toastMsg.text}</span>
+          <button onClick={() => setToastMsg(null)} className="ml-2 text-slate-400 hover:text-slate-700">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-slate-50 shrink-0 gap-4">
         <h3 className="font-bold text-slate-800 text-base">Danh sách lịch hẹn</h3>
         <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -491,7 +648,17 @@ function AppointmentsManager() {
 
                 <div className="flex justify-between items-start mb-4">
                   {getStatusBadge(app.status)}
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">ID: #{app.id}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">ID: #{app.id}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAppointment(app.id)}
+                      className="text-[10px] font-bold text-slate-400 hover:text-red-600 px-1.5 py-0.5 rounded hover:bg-red-50 transition-colors"
+                      title="Xóa lịch hẹn"
+                    >
+                      Xóa
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 flex-1">
@@ -523,28 +690,45 @@ function AppointmentsManager() {
                   </div>
 
                   {app.note && (
-                    <div className="text-[11px] text-slate-500 italic bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/50">
+                    <div className="text-[11px] text-slate-500 italic bg-amber-50/50 p-2.5 rounded-lg border border-amber-100/50 break-all whitespace-pre-wrap">
                       <span className="font-bold text-amber-700">Ghi chú: </span>
                       {app.note}
                     </div>
                   )}
+
+                  {app.status === 3 && app.cancel_reason && (
+                    <div className="text-[11px] text-red-700 bg-red-50 p-2.5 rounded-lg border border-red-100 break-all whitespace-pre-wrap">
+                      <span className="font-bold">Lý do hủy: </span>
+                      {app.cancel_reason}
+                    </div>
+                  )}
                 </div>
 
-                {app.status === 0 && (
-                  <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
+                {(app.status === 0 || app.status === 1) && (
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                    {app.status === 0 && (
+                      <button 
+                        onClick={() => handleConfirm(app.id)}
+                        disabled={actionLoading === app.id}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {actionLoading === app.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
+                        Xác Nhận
+                      </button>
+                    )}
                     <button 
-                      onClick={() => handleConfirm(app.id)}
-                      disabled={actionLoading === app.id}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                      onClick={() => openRescheduleModal(app)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors"
                     >
-                      {actionLoading === app.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
-                      Xác Nhận
+                      <Clock className="w-3.5 h-3.5" />
+                      Đổi Lịch
                     </button>
                     <button 
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold transition-colors"
+                      onClick={() => openCancelModal(app)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-red-200 hover:bg-red-50 text-red-600 rounded-lg text-xs font-bold transition-colors"
                     >
                       <XCircle className="w-3.5 h-3.5" />
-                      Từ Chối
+                      {app.status === 0 ? 'Từ Chối / Hủy' : 'Hủy Lịch'}
                     </button>
                   </div>
                 )}
@@ -553,6 +737,126 @@ function AppointmentsManager() {
           </div>
         )}
       </div>
+
+      {/* MODAL ĐỔI LỊCH HẸN (F03) */}
+      {rescheduleModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h4 className="font-bold text-slate-900 text-sm">Thay Đổi Thời Gian Lịch Hẹn #{rescheduleModalApp.id}</h4>
+              <button onClick={() => setRescheduleModalApp(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleRescheduleSubmit} className="space-y-4">
+              <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <p><strong>BĐS:</strong> {rescheduleModalApp.property_title}</p>
+                <p><strong>Khách hàng:</strong> {rescheduleModalApp.customer_name}</p>
+                <p><strong>Giờ hẹn hiện tại:</strong> {new Date(rescheduleModalApp.appointment_time).toLocaleString('vi-VN')}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ngày hẹn mới <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Giờ mới (08:00 - 20:00) <span className="text-red-500">*</span></label>
+                  <input
+                    type="time"
+                    value={rescheduleTime}
+                    onChange={(e) => setRescheduleTime(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+              {rescheduleError && (
+                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  {rescheduleError}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModalApp(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  disabled={rescheduleSubmitting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg"
+                >
+                  {rescheduleSubmitting ? 'Đang lưu...' : 'Lưu Giờ Hẹn Mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HỦY / TỪ CHỐI LỊCH HẸN (F04) */}
+      {cancelModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h4 className="font-bold text-slate-900 text-sm">Hủy / Từ Chối Lịch Hẹn #{cancelModalApp.id}</h4>
+              <button onClick={() => setCancelModalApp(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleCancelSubmit} className="space-y-4">
+              <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <p><strong>BĐS:</strong> {cancelModalApp.property_title}</p>
+                <p><strong>Khách hàng:</strong> {cancelModalApp.customer_name}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Lý do hủy lịch hẹn <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => {
+                    setCancelReason(e.target.value);
+                    setCancelError('');
+                  }}
+                  placeholder="Nhập lý do hủy hoặc từ chối lịch hẹn..."
+                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+              {cancelError && (
+                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  {cancelError}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCancelModalApp(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  disabled={cancelSubmitting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:bg-red-400 rounded-lg"
+                >
+                  {cancelSubmitting ? 'Đang xử lý...' : 'Xác Nhận Hủy Lịch'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

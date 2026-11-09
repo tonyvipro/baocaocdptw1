@@ -26,6 +26,34 @@ class PropertyReadController extends Controller
 
     public function publicIndex(Request $request)
     {
+        if ($request->has('page')) {
+            $pageParam = $request->query('page');
+            if (!is_numeric($pageParam) || intval($pageParam) <= 0 || strval(intval($pageParam)) !== strval($pageParam)) {
+                return response()->json([
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
+        if ($request->filled('city') && $request->input('city') !== 'all') {
+            $cityVal = trim((string) $request->input('city'));
+            $cityExists = Property::where('city', $cityVal)->exists();
+            if (!$cityExists) {
+                return response()->json([
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+            if ($request->filled('district') && $request->input('district') !== 'all') {
+                $districtVal = trim((string) $request->input('district'));
+                $districtExists = Property::where('city', $cityVal)->where('district', $districtVal)->exists();
+                if (!$districtExists) {
+                    return response()->json([
+                        'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                    ], 404);
+                }
+            }
+        }
+
         // A reachable, empty database is an empty catalog, never demo data.
         $ownListings = $request->boolean('all') || $request->boolean('mine');
         $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
@@ -49,6 +77,15 @@ class PropertyReadController extends Controller
 
     public function index(Request $request)
     {
+        if ($request->has('page')) {
+            $pageParam = $request->query('page');
+            if (!is_numeric($pageParam) || intval($pageParam) <= 0 || strval(intval($pageParam)) !== strval($pageParam)) {
+                return response()->json([
+                    'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+                ], 404);
+            }
+        }
+
         $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
         \App\Support\PropertySearch::apply($query, $request);
         foreach (['type', 'purpose', 'city'] as $field) {
