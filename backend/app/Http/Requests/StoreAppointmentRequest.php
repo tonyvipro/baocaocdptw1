@@ -24,30 +24,6 @@ class StoreAppointmentRequest extends FormRequest
     public function rules()
     {
         return [
-            'broker_id' => [
-                'required', 
-                'exists:users,id',
-                function ($attribute, $value, $fail) {
-                    // [Lỗi Logic Mở Rộng]: Kiểm tra xem môi giới có hợp lệ không (có role là Môi giới hoặc Admin)
-                    // (Giả sử logic DB của bạn role_id = 2 là Môi giới). Ở đây ta tạm kiểm tra có tồn tại.
-                }
-            ],
-            'property_id' => [
-                'required', 
-                'exists:properties,id',
-                function ($attribute, $value, $fail) {
-                    // [Lỗi Logic Mở Rộng]: BĐS phải đang ở trạng thái hiển thị/Đang bán (status = 1)
-                    $property = Property::find($value);
-                    if ($property && $property->status != 1) {
-                        $fail('Bất động sản này hiện không còn khả dụng để đặt lịch.');
-                    }
-                    
-                    // [Lỗi Logic Mở Rộng]: Kiểm tra xem broker_id có đúng là người phụ trách BĐS này không
-                    if ($property && $property->user_id != $this->broker_id) {
-                        $fail('Môi giới này không phụ trách bất động sản bạn chọn.');
-                    }
-                }
-            ],
             'appointment_time' => [
                 'required',
                 'date',
@@ -68,8 +44,32 @@ class StoreAppointmentRequest extends FormRequest
                     // 3. [Lỗi Logic Mở Rộng]: Không được đặt lịch vào quá khứ (đã xử lý bởi điều kiện 1)
                 },
             ],
+            'broker_id' => [
+                'required', 
+                'exists:users,id',
+                function ($attribute, $value, $fail) {
+                    // [Lỗi Logic Mở Rộng]: Kiểm tra xem môi giới có hợp lệ không (có role là Môi giới hoặc Admin)
+                    // (Giả sử logic DB của bạn role_id = 2 là Môi giới). Ở đây ta tạm kiểm tra có tồn tại.
+                }
+            ],
+            'property_id' => [
+                'required', 
+                'exists:properties,id',
+                function ($attribute, $value, $fail) {
+                    // [Lỗi Logic Mở Rộng]: BĐS phải đang ở trạng thái hiển thị/Đang bán (status = 1)
+                    $property = Property::find($value);
+                    if ($property && $property->status != 1) {
+                        $fail('Bất động sản này hiện không còn khả dụng để đặt lịch.');
+                    }
+                    
+                    // [Lỗi Logic Mở Rộng]: Kiểm tra xem broker_id có đúng là người phụ trách BĐS này không
+                    if ($property && $property->user_id && $property->user_id != $this->broker_id) {
+                        $fail('Môi giới này không phụ trách bất động sản bạn chọn.');
+                    }
+                }
+            ],
             'phone' => ['required', 'regex:/^(03|05|07|08|09)\d{8}$/'],
-            'note' => ['nullable', 'string'],
+            'note' => ['nullable', 'string', 'max:250'],
         ];
     }
 
@@ -79,14 +79,15 @@ class StoreAppointmentRequest extends FormRequest
     public function messages()
     {
         return [
-            'appointment_time.required' => 'Vui lòng chọn thời gian hẹn.',
+            'appointment_time.required' => 'Vui lòng nhập thời gian hẹn.',
             'appointment_time.date' => 'Định dạng ngày giờ không hợp lệ.',
             'phone.required' => 'Vui lòng nhập số điện thoại liên hệ.',
-            'phone.regex' => 'Số điện thoại liên hệ không hợp lệ.',
-            'broker_id.required' => 'Mã môi giới là bắt buộc.',
-            'broker_id.exists' => 'Môi giới không tồn tại trên hệ thống.',
-            'property_id.required' => 'Mã bất động sản là bắt buộc.',
-            'property_id.exists' => 'Bất động sản không tồn tại trên hệ thống.',
+            'phone.regex' => 'Số điện thoại phải có 10–11 chữ số, không chứa dấu hoặc chữ.',
+            'broker_id.required' => 'Vui lòng chọn môi giới phụ trách.',
+            'broker_id.exists' => 'Môi giới không tồn tại.',
+            'property_id.required' => 'Vui lòng chọn bất động sản.',
+            'property_id.exists' => 'Bất động sản không tồn tại.',
+            'note.max' => 'Ghi chú không được vượt quá 250 ký tự.',
         ];
     }
 }

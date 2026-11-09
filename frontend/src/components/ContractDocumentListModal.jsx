@@ -82,6 +82,16 @@ export default function ContractDocumentListModal({
     }
   };
 
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const str = String(dateStr);
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      const [y, m, d] = str.slice(0, 10).split('-');
+      return `${d}/${m}/${y}`;
+    }
+    return str;
+  };
+
   return (
     <div className="app-dialog-layer fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="form-surface bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden border border-slate-200">
@@ -126,7 +136,7 @@ export default function ContractDocumentListModal({
         <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
           <div className="flex items-center gap-4 text-slate-600">
             <span>BĐS: <strong className="text-slate-800">{contract.property?.title || contract.property_title || 'N/A'}</strong></span>
-            <span>Hiệu lực: <strong className="text-slate-800">{contract.start_date} → {contract.end_date}</strong></span>
+            <span>Hiệu lực: <strong className="text-slate-800">{formatShortDate(contract.start_date)} → {formatShortDate(contract.end_date)}</strong></span>
           </div>
           <div>
             <span className="text-[11px] font-bold text-slate-500 mr-2">Tổng số tài liệu:</span>
@@ -197,17 +207,17 @@ export default function ContractDocumentListModal({
                       </p>
 
                       {doc.description && (
-                        <p className="text-[11px] text-slate-600 italic mt-1 bg-slate-50 p-1.5 rounded border border-slate-100">
+                        <p className="text-[11px] text-slate-600 italic mt-1 bg-slate-50 p-2 rounded border border-slate-100 break-all whitespace-pre-wrap">
                           {doc.description}
                         </p>
                       )}
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1.5">
+                      <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1.5 flex-wrap">
                         <span>Dung lượng: <strong className="text-slate-600">{doc.file_size_formatted}</strong></span>
                         <span>•</span>
                         <span>Người tải: <strong className="text-slate-600">{doc.uploaded_by?.name || 'Hệ thống'}</strong></span>
                         <span>•</span>
-                        <span>Ngày: {doc.created_at_formatted}</span>
+                        <span>Ngày: <strong className="text-slate-600">{doc.created_at_formatted || formatShortDate(doc.created_at)}</strong></span>
                       </div>
                     </div>
                   </div>

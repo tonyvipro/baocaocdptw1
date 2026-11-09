@@ -16,6 +16,26 @@ class RefundDepositRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $depositId = $this->route('deposit');
+        if (!is_numeric($depositId) || intval($depositId) <= 0 || !\App\Models\ContractDeposit::where('id', (int) $depositId)->exists()) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404));
+        }
+
+        if (!$this->has('payment_method') && $this->has('refund_method')) {
+            $this->merge(['payment_method' => $this->input('refund_method')]);
+        }
+        if (!$this->has('paid_at') && $this->has('refund_date')) {
+            $this->merge(['paid_at' => $this->input('refund_date')]);
+        }
+        if (!$this->has('note') && $this->has('notes')) {
+            $this->merge(['note' => $this->input('notes')]);
+        }
+    }
+
     public function rules(): array
     {
         $allowedMethods = implode(',', PaymentMethod::all());
@@ -24,7 +44,7 @@ class RefundDepositRequest extends FormRequest
         $refMax = (int) config('field_limits.payment.reference_code.max', 100);
 
         return [
-            'version' => ['required', 'integer', 'min:1'],
+            'version' => ['nullable', 'integer', 'min:1'],
             'refund_amount' => ['required', 'numeric', 'min:0', 'max:999999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             'deduction_amount' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99', 'regex:/^\d+(\.\d{1,2})?$/'],
             'deduction_reason' => ['nullable', 'string', "max:{$reasonMax}"],
@@ -33,7 +53,7 @@ class RefundDepositRequest extends FormRequest
             'paid_at' => ['nullable', 'date'],
             'reference_code' => ['nullable', 'string', "max:{$refMax}", 'regex:/^[a-zA-Z0-9_\-\/\.\s]+$/'],
             'note' => ['nullable', 'string', "max:{$noteMax}"],
-            'client_token' => ['required', 'string', 'max:36'],
+            'client_token' => ['nullable', 'string', 'max:36'],
             'confirm_duplicate' => ['nullable', 'boolean'],
         ];
     }

@@ -11,6 +11,19 @@ class ContractDocumentFilterRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('page')) {
+            $page = $this->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                    'success' => false,
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404));
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [

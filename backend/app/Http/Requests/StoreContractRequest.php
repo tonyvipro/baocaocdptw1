@@ -22,7 +22,7 @@ class StoreContractRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_code' => 'required|string|unique:contracts,contract_code',
+            'contract_code' => 'required|string|max:50|unique:contracts,contract_code',
             'contract_name' => 'required|string|max:255',
             'property_id' => 'required|integer|exists:properties,id',
             'broker_id' => 'required|integer|exists:users,id',
@@ -51,6 +51,9 @@ class StoreContractRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
             $price = floatval($this->input('rental_price', 0));
             $deposit = floatval($this->input('deposit_amount', 0));
             $signingMethod = $this->input('signing_method', 'ONLINE');
@@ -79,15 +82,24 @@ class StoreContractRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'contract_code.required' => 'Mã hợp đồng là bắt buộc.',
+            'contract_code.required' => 'Vui lòng nhập mã hợp đồng.',
+            'contract_code.max' => 'Mã hợp đồng không được vượt quá 50 ký tự.',
             'contract_code.unique' => 'Mã số hợp đồng đã tồn tại trên hệ thống.',
-            'contract_name.required' => 'Tên hợp đồng là bắt buộc.',
-            'property_id.required' => 'Bất động sản là bắt buộc.',
-            'broker_id.required' => 'Môi giới là bắt buộc.',
-            'customer_id.required' => 'Khách hàng là bắt buộc.',
-            'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
-            'end_date.required' => 'Ngày kết thúc là bắt buộc.',
+            'contract_name.required' => 'Vui lòng nhập tên hợp đồng.',
+            'contract_name.max' => 'Tên hợp đồng không được vượt quá 255 ký tự.',
+            'property_id.required' => 'Vui lòng chọn bất động sản.',
+            'property_id.exists' => 'Bất động sản không tồn tại.',
+            'broker_id.required' => 'Vui lòng chọn môi giới.',
+            'broker_id.exists' => 'Môi giới không tồn tại.',
+            'customer_id.required' => 'Vui lòng chọn khách hàng.',
+            'customer_id.exists' => 'Khách hàng không tồn tại.',
+            'start_date.required' => 'Vui lòng nhập ngày bắt đầu.',
+            'end_date.required' => 'Vui lòng nhập ngày kết thúc.',
             'end_date.after' => 'Ngày kết thúc hợp đồng phải sau ngày bắt đầu.',
+            'rental_price.numeric' => 'Giá thuê phải là một số.',
+            'rental_price.min' => 'Giá thuê không được là số âm.',
+            'deposit_amount.numeric' => 'Tiền đặt cọc phải là một số.',
+            'deposit_amount.min' => 'Tiền đặt cọc không được là số âm.',
             'signing_method.in' => 'Phương thức ký kết không hợp lệ.',
         ];
     }

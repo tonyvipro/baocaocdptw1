@@ -207,7 +207,8 @@ class AuthController extends Controller
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
                 'version' => (int) ($user->version ?? 1),
-            ]
+            ],
+            'token' => $request->bearerToken() ?: $user->createToken('auth_token')->plainTextToken,
         ]);
     }
 

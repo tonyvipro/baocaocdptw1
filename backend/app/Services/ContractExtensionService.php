@@ -31,19 +31,16 @@ class ContractExtensionService
         if ($contract->status === 0) {
             $isEligible = false;
             $ineligibleReason = 'Hợp đồng đang ở trạng thái Nháp / Chờ ký, chưa có hiệu lực pháp lý để gia hạn.';
-        } elseif ($contract->status === 3) {
-            $isEligible = false;
-            $ineligibleReason = 'Hợp đồng đã bị hủy bỏ trước đó, không thể thực hiện gia hạn.';
-        } elseif ($contract->status === 2) {
-            // Hết hạn: chỉ được phép gia hạn nếu trong khoảng ân hạn 30 ngày
+        } elseif ($contract->status === 3 || $contract->status === 2) {
+            // Hết hạn / Thanh lý hoặc đã hủy
             $daysSinceExpiry = $endDate->diffInDays($now, false);
-            if ($daysSinceExpiry > Contract::GRACE_PERIOD_DAYS) {
+            if ($contract->status === 3 || $daysSinceExpiry > Contract::GRACE_PERIOD_DAYS) {
                 $isEligible = false;
-                $ineligibleReason = 'Hợp đồng đã hết hạn quá thời gian ân hạn ' . Contract::GRACE_PERIOD_DAYS . ' ngày. Vui lòng lập hợp đồng mới.';
+                $ineligibleReason = 'Hợp đồng đã thanh lý hoặc bị hủy, không thể gia hạn.';
             }
         } elseif ($contract->status !== 1) {
             $isEligible = false;
-            $ineligibleReason = 'Trạng thái hợp đồng hiện tại không hợp lệ để gia hạn.';
+            $ineligibleReason = 'Hợp đồng đã thanh lý hoặc bị hủy, không thể gia hạn.';
         }
 
         // 2. Kiểm tra xem có yêu cầu gia hạn nào đang ở trạng thái Nháp (0) hoặc Chờ duyệt (1) không

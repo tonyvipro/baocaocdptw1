@@ -331,26 +331,33 @@ class PaymentSeeder extends Seeder
                 }
 
                 // (5) Hóa đơn TIỀN CỌC QUÁ HẠN (10.000 VND)
-                $invDeposit = Invoice::firstOrCreate([
-                    'invoice_no' => "SEED-PAY-{$curYearMonth}-05",
-                ], [
-                    'contract_id' => $contractRented->id,
-                    'title' => '[Dữ liệu mẫu] Tiền đặt cọc hợp đồng bảo chứng (Quá hạn 10.000đ)',
-                    'type' => InvoiceType::DEPOSIT,
-                    'amount' => 10000,
-                    'due_date' => $today->copy()->subDays(2)->toDateString(),
-                    'issue_date' => $today->copy()->subDays(10)->toDateString(),
-                    'status' => InvoiceStatus::OVERDUE,
-                ]);
-                if ($invDeposit->items()->doesntExist()) {
-                    InvoiceItem::create([
-                        'invoice_id' => $invDeposit->id,
-                        'item_name' => 'Tiền đặt cọc bảo chứng bổ sung',
-                        'description' => 'Khoản đặt cọc giữ chỗ căn hộ bổ sung',
-                        'quantity' => 1,
-                        'unit_price' => 10000,
-                        'total_price' => 10000,
+                $invDeposit = Invoice::where('contract_id', $contractRented->id)
+                    ->where('type', InvoiceType::DEPOSIT)
+                    ->where('status', '!=', 3)
+                    ->first();
+
+                if (!$invDeposit) {
+                    $invDeposit = Invoice::firstOrCreate([
+                        'invoice_no' => "SEED-PAY-{$curYearMonth}-05",
+                    ], [
+                        'contract_id' => $contractRented->id,
+                        'title' => '[Dữ liệu mẫu] Tiền đặt cọc hợp đồng bảo chứng (Quá hạn 10.000đ)',
+                        'type' => InvoiceType::DEPOSIT,
+                        'amount' => 10000,
+                        'due_date' => $today->copy()->subDays(2)->toDateString(),
+                        'issue_date' => $today->copy()->subDays(10)->toDateString(),
+                        'status' => InvoiceStatus::OVERDUE,
                     ]);
+                    if ($invDeposit->items()->doesntExist()) {
+                        InvoiceItem::create([
+                            'invoice_id' => $invDeposit->id,
+                            'item_name' => 'Tiền đặt cọc bảo chứng bổ sung',
+                            'description' => 'Khoản đặt cọc giữ chỗ căn hộ bổ sung',
+                            'quantity' => 1,
+                            'unit_price' => 10000,
+                            'total_price' => 10000,
+                        ]);
+                    }
                 }
 
                 // (6) Hóa đơn CÓ GIAO DỊCH QR ĐANG CHỜ (6.000 VND)
@@ -406,13 +413,14 @@ class PaymentSeeder extends Seeder
                     ]);
                 }
                 if ($invExpired->transactions()->where('status', TransactionStatus::EXPIRED)->doesntExist()) {
-                    Transaction::create([
+                    Transaction::firstOrCreate([
+                        'transaction_code' => "TXN-EXPIRED-{$curYearMonth}",
+                    ], [
                         'invoice_id' => $invExpired->id,
-                        'transaction_code' => 'TXN-EXPIRED-SAMPLE',
                         'amount' => 3000,
                         'payment_method' => PaymentMethod::MOMO,
                         'gateway' => 'momo',
-                        'gateway_order_id' => 'MOMO-EXP-001',
+                        'gateway_order_id' => "MOMO-EXP-{$curYearMonth}",
                         'status' => TransactionStatus::EXPIRED,
                         'source' => 'gateway',
                         'expires_at' => $today->copy()->subMinutes(30),
@@ -445,14 +453,15 @@ class PaymentSeeder extends Seeder
                     ]);
                 }
                 if ($invReconcile->transactions()->where('status', TransactionStatus::RECONCILE)->doesntExist()) {
-                    Transaction::create([
+                    Transaction::firstOrCreate([
+                        'transaction_code' => "TXN-RECONCILE-{$curYearMonth}",
+                    ], [
                         'invoice_id' => $invReconcile->id,
-                        'transaction_code' => 'TXN-RECONCILE-SAMPLE',
                         'amount' => 7000,
                         'payment_method' => PaymentMethod::SEPAY,
                         'gateway' => 'sepay',
-                        'gateway_order_id' => 'SEPAY-REC-001',
-                        'gateway_txn_id' => 'SP-TXN-DISCREPANCY',
+                        'gateway_order_id' => "SEPAY-REC-{$curYearMonth}",
+                        'gateway_txn_id' => "SP-TXN-DISCREPANCY-{$curYearMonth}",
                         'status' => TransactionStatus::RECONCILE,
                         'source' => 'gateway',
                         'failure_reason' => 'Số tiền webhook báo (5.000 VND) không khớp số tiền giao dịch yêu cầu (7.000 VND)',

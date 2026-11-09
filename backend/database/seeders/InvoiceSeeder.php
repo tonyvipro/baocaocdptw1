@@ -165,6 +165,10 @@ class InvoiceSeeder extends Seeder
                 if (Schema::hasTable('transactions') && Transaction::where('invoice_id', $demoInvoice->id)->count() === 0) {
                     Transaction::create([
                         'invoice_id' => $demoInvoice->id,
+                        'transaction_code' => 'TXN-' . $today->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                        'type' => 'payment',
+                        'source' => 'manual',
+                        'status' => 1,
                         'amount' => 16700000.00,
                         'payment_method' => PaymentMethod::BANK_TRANSFER,
                         'paid_at' => $today->copy()->subDays(3)->setTime(14, 30),
@@ -179,64 +183,49 @@ class InvoiceSeeder extends Seeder
                         $propCode = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $contract->property->code));
                     }
 
-                    // Tình huống 1: Tiền cọc (Deposit) đã thanh toán
-                    $depPaidNo = "QLTT-INV-" . $today->copy()->subMonths(3)->format('Ym') . "-{$propCode}-DEP1";
-                    $depPaid = Invoice::firstOrCreate([
-                        'invoice_no' => $depPaidNo,
-                    ], [
-                        'contract_id' => $contract->id,
-                        'issue_date' => $today->copy()->subMonths(3)->toDateString(),
-                        'due_date' => $today->copy()->subMonths(3)->addDays(3)->toDateString(),
-                        'title' => 'Tiền đặt cọc hợp đồng thuê ' . $contract->contract_code,
-                        'type' => InvoiceType::DEPOSIT,
-                        'amount' => 30000000.00,
-                        'paid_amount' => 30000000.00,
-                        'paid_at' => $today->copy()->subMonths(3)->addDays(1)->setTime(10, 0),
-                        'status' => InvoiceStatus::PAID,
-                        'note' => '[Dữ liệu mẫu] Tiền cọc đã thanh toán đủ',
-                        'created_by' => $broker->id,
-                    ]);
-                    if ($depPaid->items()->count() === 0) {
-                        $depPaid->items()->create([
-                            'item_name' => 'Tiền đặt cọc giữ chỗ & bảo đảm hợp đồng',
-                            'quantity' => 1,
-                            'unit_price' => 30000000.00,
-                            'total_price' => 30000000.00,
-                            'description' => '2 tháng tiền nhà',
-                        ]);
-                    }
-                    if (Schema::hasTable('transactions') && $depPaid->transactions()->count() === 0) {
-                        $depPaid->transactions()->create([
-                            'amount' => 30000000.00,
-                            'payment_method' => PaymentMethod::BANK_TRANSFER,
-                            'paid_at' => $today->copy()->subMonths(3)->addDays(1)->setTime(10, 0),
-                        ]);
-                    }
+                    // Tình huống 1: Tiền cọc (Deposit) đã thanh toán (chỉ tạo nếu HĐ chưa có hóa đơn deposit active)
+                    $existingDeposit = Invoice::where('contract_id', $contract->id)
+                        ->where('type', InvoiceType::DEPOSIT)
+                        ->where('status', '!=', 3)
+                        ->first();
 
-                    // Tình huống 2: Tiền cọc chưa thanh toán (cho chức năng Tiền cọc dùng sau)
-                    $depUnpaidNo = "QLTT-INV-" . $today->copy()->format('Ym') . "-{$propCode}-DEP2";
-                    $depUnpaid = Invoice::firstOrCreate([
-                        'invoice_no' => $depUnpaidNo,
-                    ], [
-                        'contract_id' => $contract->id,
-                        'issue_date' => $today->toDateString(),
-                        'due_date' => $today->copy()->addDays(5)->toDateString(),
-                        'title' => 'Thu bổ sung tiền cọc bảo đảm tài sản',
-                        'type' => InvoiceType::DEPOSIT,
-                        'amount' => 10000000.00,
-                        'paid_amount' => 0.00,
-                        'status' => InvoiceStatus::UNPAID,
-                        'note' => '[Dữ liệu mẫu] Tiền cọc chưa thanh toán',
-                        'created_by' => $broker->id,
-                    ]);
-                    if ($depUnpaid->items()->count() === 0) {
-                        $depUnpaid->items()->create([
-                            'item_name' => 'Tiền cọc bổ sung bảo đảm trang thiết bị',
-                            'quantity' => 1,
-                            'unit_price' => 10000000.00,
-                            'total_price' => 10000000.00,
-                            'description' => 'Cọc thiết bị điện tử mới',
+                    if (!$existingDeposit) {
+                        $depPaidNo = "QLTT-INV-" . $today->copy()->subMonths(3)->format('Ym') . "-{$propCode}-DEP1";
+                        $depPaid = Invoice::firstOrCreate([
+                            'invoice_no' => $depPaidNo,
+                        ], [
+                            'contract_id' => $contract->id,
+                            'issue_date' => $today->copy()->subMonths(3)->toDateString(),
+                            'due_date' => $today->copy()->subMonths(3)->addDays(3)->toDateString(),
+                            'title' => 'Tiền đặt cọc hợp đồng thuê ' . $contract->contract_code,
+                            'type' => InvoiceType::DEPOSIT,
+                            'amount' => 30000000.00,
+                            'paid_amount' => 30000000.00,
+                            'paid_at' => $today->copy()->subMonths(3)->addDays(1)->setTime(10, 0),
+                            'status' => InvoiceStatus::PAID,
+                            'note' => '[Dữ liệu mẫu] Tiền cọc đã thanh toán đủ',
+                            'created_by' => $broker->id,
                         ]);
+                        if ($depPaid->items()->count() === 0) {
+                            $depPaid->items()->create([
+                                'item_name' => 'Tiền đặt cọc giữ chỗ & bảo đảm hợp đồng',
+                                'quantity' => 1,
+                                'unit_price' => 30000000.00,
+                                'total_price' => 30000000.00,
+                                'description' => '2 tháng tiền nhà',
+                            ]);
+                        }
+                        if (Schema::hasTable('transactions') && $depPaid->transactions()->count() === 0) {
+                            $depPaid->transactions()->create([
+                                'transaction_code' => 'TXN-' . $today->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                                'type' => 'payment',
+                                'source' => 'manual',
+                                'status' => 1,
+                                'amount' => 30000000.00,
+                                'payment_method' => PaymentMethod::BANK_TRANSFER,
+                                'paid_at' => $today->copy()->subMonths(3)->addDays(1)->setTime(10, 0),
+                            ]);
+                        }
                     }
 
                     // Tình huống 3: Rent các kỳ trước đã thanh toán đủ (Kỳ -2 tháng và -1 tháng)
@@ -245,23 +234,29 @@ class InvoiceSeeder extends Seeder
                         $ym = $pDate->format('Ym');
                         $rNo = "QLTT-INV-{$ym}-{$propCode}-" . str_pad($scenarioCounter++, 2, '0', STR_PAD_LEFT);
 
-                        $rInv = Invoice::firstOrCreate([
-                            'invoice_no' => $rNo,
-                        ], [
-                            'contract_id' => $contract->id,
-                            'issue_date' => $pDate->toDateString(),
-                            'due_date' => $pDate->copy()->addDays(7)->toDateString(),
-                            'billing_period_start' => $pDate->toDateString(),
-                            'billing_period_end' => $pDate->copy()->endOfMonth()->toDateString(),
-                            'title' => 'Tiền thuê tháng ' . $pDate->format('m/Y') . ' - ' . $contract->contract_code,
-                            'type' => InvoiceType::RENT,
-                            'amount' => (float)$contract->rental_price ?: 15000000.00,
-                            'paid_amount' => (float)$contract->rental_price ?: 15000000.00,
-                            'paid_at' => $pDate->copy()->addDays(3)->setTime(9, 15),
-                            'status' => InvoiceStatus::PAID,
-                            'note' => '[Dữ liệu mẫu] Đã thanh toán đúng hạn',
-                            'created_by' => $broker->id,
-                        ]);
+                        $rInv = Invoice::where('contract_id', $contract->id)
+                            ->where('type', InvoiceType::RENT)
+                            ->whereDate('billing_period_start', $pDate->toDateString())
+                            ->first();
+                        if (!$rInv) {
+                            $rInv = Invoice::firstOrCreate([
+                                'invoice_no' => $rNo,
+                            ], [
+                                'contract_id' => $contract->id,
+                                'issue_date' => $pDate->toDateString(),
+                                'due_date' => $pDate->copy()->addDays(7)->toDateString(),
+                                'billing_period_start' => $pDate->toDateString(),
+                                'billing_period_end' => $pDate->copy()->endOfMonth()->toDateString(),
+                                'title' => 'Tiền thuê tháng ' . $pDate->format('m/Y') . ' - ' . $contract->contract_code,
+                                'type' => InvoiceType::RENT,
+                                'amount' => (float)$contract->rental_price ?: 15000000.00,
+                                'paid_amount' => (float)$contract->rental_price ?: 15000000.00,
+                                'paid_at' => $pDate->copy()->addDays(3)->setTime(9, 15),
+                                'status' => InvoiceStatus::PAID,
+                                'note' => '[Dữ liệu mẫu] Đã thanh toán đúng hạn',
+                                'created_by' => $broker->id,
+                            ]);
+                        }
 
                         if ($rInv->items()->count() === 0) {
                             $rInv->items()->create([
@@ -276,6 +271,10 @@ class InvoiceSeeder extends Seeder
                         if (Schema::hasTable('transactions') && $rInv->transactions()->count() === 0) {
                             $methods = [PaymentMethod::BANK_TRANSFER, PaymentMethod::CASH, PaymentMethod::MOMO, PaymentMethod::VNPAY];
                             $rInv->transactions()->create([
+                                'transaction_code' => 'TXN-' . $pDate->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                                'type' => 'payment',
+                                'source' => 'manual',
+                                'status' => 1,
                                 'amount' => $rInv->amount,
                                 'payment_method' => $methods[$m % count($methods)],
                                 'paid_at' => $pDate->copy()->addDays(3)->setTime(9, 15),
@@ -395,6 +394,10 @@ class InvoiceSeeder extends Seeder
                     }
                     if (Schema::hasTable('transactions') && $partial1->transactions()->count() === 0) {
                         $partial1->transactions()->create([
+                            'transaction_code' => 'TXN-' . $today->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                            'type' => 'payment',
+                            'source' => 'manual',
+                            'status' => 1,
                             'amount' => 5000000.00,
                             'payment_method' => PaymentMethod::ZALOPAY,
                             'paid_at' => $today->copy()->subDays(1)->setTime(16, 20),
@@ -427,6 +430,10 @@ class InvoiceSeeder extends Seeder
                     }
                     if (Schema::hasTable('transactions') && $partial2->transactions()->count() === 0) {
                         $partial2->transactions()->create([
+                            'transaction_code' => 'TXN-' . $today->format('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                            'type' => 'payment',
+                            'source' => 'manual',
+                            'status' => 1,
                             'amount' => 4000000.00,
                             'payment_method' => PaymentMethod::CASH,
                             'paid_at' => $today->copy()->subDays(10)->setTime(11, 0),

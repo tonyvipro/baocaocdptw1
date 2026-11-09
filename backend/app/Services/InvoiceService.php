@@ -203,7 +203,7 @@ class InvoiceService
             // Kiểm tra version (Khóa lạc quan - Mục 3.12)
             if (isset($data['version']) && (int) $locked->version !== (int) $data['version']) {
                 throw new StaleVersionException(
-                    'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
+                    __('spec_messages.row_2_stale_version'),
                     new \App\Http\Resources\InvoiceResource($locked->fresh(['contract.property', 'contract.customer', 'items', 'transactions', 'updater']))
                 );
             }
@@ -336,7 +336,7 @@ class InvoiceService
             // Kiểm tra version (Khóa lạc quan - Mục 3.12)
             if ($version !== null && (int) $locked->version !== (int) $version) {
                 throw new StaleVersionException(
-                    'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
+                    __('spec_messages.row_2_stale_version'),
                     new \App\Http\Resources\InvoiceResource($locked->fresh(['contract.property', 'contract.customer', 'items', 'transactions', 'updater']))
                 );
             }

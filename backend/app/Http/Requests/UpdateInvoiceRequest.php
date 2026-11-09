@@ -11,6 +11,18 @@ class UpdateInvoiceRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $invoiceParam = $this->route('invoice') ?? $this->route('id');
+        if (!$invoiceParam instanceof \App\Models\Invoice) {
+            if (!is_numeric($invoiceParam) || intval($invoiceParam) <= 0 || !\App\Models\Invoice::where('id', (int) $invoiceParam)->exists()) {
+                throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                    'message' => __('spec_messages.row_3_not_found'),
+                ], 404));
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [

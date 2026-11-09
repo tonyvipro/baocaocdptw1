@@ -25,7 +25,7 @@ class InvoiceEmailService
         // 1. Xác định địa chỉ email nhận
         $recipientEmail = trim($overrideEmail ?: ($invoice->contract?->customer?->email ?? ''));
 
-        if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+        if (empty($recipientEmail) || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL) || str_contains($recipientEmail, '@invalid-domain')) {
             throw new HttpResponseException(response()->json([
                 'message' => 'Không thể gửi email: Địa chỉ email khách hàng không tồn tại hoặc lỗi máy chủ SMTP.',
             ], 422));

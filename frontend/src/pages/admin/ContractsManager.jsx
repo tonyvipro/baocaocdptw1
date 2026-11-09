@@ -23,6 +23,19 @@ export default function ContractsManager({ currentUser }) {
   const [selectedNewStatus, setSelectedNewStatus] = useState(0);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
+  // Modal Chỉnh sửa Hợp đồng (F07)
+  const [editModalContract, setEditModalContract] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    contract_name: '',
+    start_date: '',
+    end_date: '',
+    rental_price: '',
+    deposit_amount: '',
+    terms: '',
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
+
   // List State
   const [contracts, setContracts] = useState([]);
   const [listLoading, setListLoading] = useState(false);
@@ -202,16 +215,20 @@ export default function ContractsManager({ currentUser }) {
     if (!statusModalContract) return;
     setStatusUpdating(true);
     try {
+      const payload = {
+        status: selectedNewStatus,
+        version: statusModalContract.version || 1,
+      };
       let res = await fetch(`/api/contracts/${statusModalContract.id}/status`, {
         method: 'PATCH',
         headers: getHeaders(),
-        body: JSON.stringify({ status: selectedNewStatus })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) {
+      if (!res.ok && res.status >= 500) {
         res = await fetch(`http://localhost:8080/api/contracts/${statusModalContract.id}/status`, {
           method: 'PATCH',
           headers: getHeaders(),
-          body: JSON.stringify({ status: selectedNewStatus })
+          body: JSON.stringify(payload)
         });
       }
 
@@ -220,14 +237,73 @@ export default function ContractsManager({ currentUser }) {
         throw new Error(data.message || 'Không thể cập nhật trạng thái hợp đồng.');
       }
 
-      // Cập nhật state trực tiếp
-      setContracts(prev => prev.map(c => c.id === statusModalContract.id ? { ...c, status: selectedNewStatus } : c));
+      // Cập nhật state trực tiếp kèm version mới
+      setContracts(prev => prev.map(c => c.id === statusModalContract.id ? {
+        ...c,
+        ...(data.data || {}),
+        status: selectedNewStatus,
+        version: data.data?.version || ((c.version || 1) + 1),
+      } : c));
       setStatusModalContract(null);
       alert(data.message || 'Đã cập nhật trạng thái hợp đồng thành công!');
     } catch (err) {
       alert(`[LỖI]: ${err.message}`);
     } finally {
       setStatusUpdating(false);
+    }
+  };
+
+  // Mở modal chỉnh sửa hợp đồng (F07)
+  const openEditContractModal = (contract) => {
+    setEditModalContract(contract);
+    setEditFormData({
+      contract_name: contract.contract_name || '',
+      start_date: contract.start_date ? String(contract.start_date).slice(0, 10) : '',
+      end_date: contract.end_date ? String(contract.end_date).slice(0, 10) : '',
+      rental_price: contract.rental_price || '',
+      deposit_amount: contract.deposit_amount || '',
+      terms: contract.terms || '',
+    });
+    setEditError('');
+  };
+
+  const handleEditContractSubmit = async (e) => {
+    e.preventDefault();
+    if (!editModalContract) return;
+    setEditError('');
+    setEditSubmitting(true);
+    try {
+      const res = await fetch(`/api/contracts/${editModalContract.id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          contract_name: editFormData.contract_name.trim(),
+          start_date: editFormData.start_date,
+          end_date: editFormData.end_date,
+          rental_price: Number(editFormData.rental_price),
+          deposit_amount: editFormData.deposit_amount ? Number(editFormData.deposit_amount) : 0,
+          terms: editFormData.terms.trim() || null,
+          version: editModalContract.version || 1,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const firstErr = data.errors ? Object.values(data.errors).flat()[0] : null;
+        setEditError(firstErr || data.message || 'Không thể cập nhật hợp đồng.');
+        return;
+      }
+
+      setContracts(prev => prev.map(c => c.id === editModalContract.id ? {
+        ...c,
+        ...(data.data || {}),
+        version: data.data?.version || ((c.version || 1) + 1),
+      } : c));
+      setEditModalContract(null);
+      alert(data.message || 'Cập nhật hợp đồng thành công!');
+    } catch (err) {
+      setEditError(err.message || 'Lỗi kết nối máy chủ.');
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -512,6 +588,15 @@ export default function ContractsManager({ currentUser }) {
                                   title="Xem chi tiết & In Hợp Đồng"
                                 >
                                   <Eye className="w-4 h-4" />
+                                </button>
+
+                                {/* Nút Sửa Hợp Đồng (F07) */}
+                                <button
+                                  onClick={() => openEditContractModal(c)}
+                                  className="p-2 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Chỉnh sửa thông tin hợp đồng"
+                                >
+                                  <Edit3 className="w-4 h-4" />
                                 </button>
 
                                 {/* Nút Gia Hạn Hợp Đồng (Hình 41) */}
@@ -1100,6 +1185,118 @@ export default function ContractsManager({ currentUser }) {
           contract={documentModalContract}
           currentUser={currentUser}
         />
+      )}
+
+      {/* Modal Chỉnh Sửa Hợp Đồng (F07) */}
+      {editModalContract && (
+        <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="form-surface bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h4 className="text-base font-extrabold text-slate-900">Chỉnh Sửa Hợp Đồng</h4>
+                <p className="text-xs text-slate-500">Mã HĐ: <span className="font-bold text-blue-600">{editModalContract.contract_code}</span></p>
+              </div>
+              <button
+                onClick={() => setEditModalContract(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditContractSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Tên hợp đồng <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editFormData.contract_name}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, contract_name: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ngày bắt đầu <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={editFormData.start_date}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Ngày kết thúc <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={editFormData.end_date}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Giá thuê/bán (VNĐ) <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    value={editFormData.rental_price}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, rental_price: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tiền đặt cọc (VNĐ)</label>
+                  <input
+                    type="number"
+                    value={editFormData.deposit_amount}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, deposit_amount: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Điều khoản bổ sung</label>
+                <textarea
+                  rows={3}
+                  value={editFormData.terms}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, terms: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {editError && (
+                <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  {editError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalContract(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-70 shadow-md"
+                >
+                  {editSubmitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  Lưu Thay Đổi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

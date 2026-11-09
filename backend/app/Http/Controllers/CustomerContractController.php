@@ -41,6 +41,16 @@ class CustomerContractController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $customer = $this->getAuthCustomer();
         $perPage = (int)$request->input('per_page', 10);
         $paginator = $this->customerService->getMyContracts($customer, $request->only(['search', 'status']), $perPage);
@@ -61,10 +71,17 @@ class CustomerContractController extends Controller
      * Chi tiết 1 hợp đồng của khách hàng
      * GET /api/my/contracts/{contract}
      */
-    public function show(int $contractId): JsonResponse
+    public function show($contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $customer = $this->getAuthCustomer();
-        $contract = $this->customerService->getMyContractDetail($contractId, $customer);
+        $contract = $this->customerService->getMyContractDetail((int) $contractId, $customer);
 
         return response()->json([
             'success' => true,
@@ -76,10 +93,17 @@ class CustomerContractController extends Controller
      * Danh sách tài liệu hợp đồng mà khách hàng được phép xem ({0, 1, 4})
      * GET /api/my/contracts/{contract}/documents
      */
-    public function documents(int $contractId): JsonResponse
+    public function documents($contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $customer = $this->getAuthCustomer();
-        $docs = $this->customerService->getMyContractDocuments($contractId, $customer);
+        $docs = $this->customerService->getMyContractDocuments((int) $contractId, $customer);
 
         return response()->json([
             'success' => true,
@@ -91,29 +115,37 @@ class CustomerContractController extends Controller
      * Khách hàng xem trước file tài liệu được phép (PDF, ảnh)
      * GET /api/my/contract-documents/{document}/preview
      */
-    public function preview(int $documentId): StreamedResponse|BinaryFileResponse
+    public function preview($documentId): StreamedResponse|BinaryFileResponse
     {
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            abort(404);
+        }
+
         $customer = $this->getAuthCustomer();
-        $document = $this->documentService->getDocumentDetail($documentId);
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
 
         // Kiểm tra phân quyền qua Policy (chống IDOR)
         $this->authorize('view', $document);
 
-        return $this->documentService->previewDocument($documentId, $customer);
+        return $this->documentService->previewDocument((int) $documentId, $customer);
     }
 
     /**
      * Khách hàng tải về file tài liệu được phép
      * GET /api/my/contract-documents/{document}/download
      */
-    public function download(int $documentId): StreamedResponse|BinaryFileResponse
+    public function download($documentId): StreamedResponse|BinaryFileResponse
     {
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            abort(404);
+        }
+
         $customer = $this->getAuthCustomer();
-        $document = $this->documentService->getDocumentDetail($documentId);
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
 
         // Kiểm tra phân quyền qua Policy (chống IDOR)
         $this->authorize('download', $document);
 
-        return $this->documentService->downloadDocument($documentId, $customer);
+        return $this->documentService->downloadDocument((int) $documentId, $customer);
     }
 }

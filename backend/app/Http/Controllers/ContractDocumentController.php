@@ -26,7 +26,7 @@ class ContractDocumentController extends Controller
 
     protected function getAuthUser(): User
     {
-        return auth('sanctum')->user() ?? auth()->user() ?? User::where('role_id', 1)->first();
+        return auth()->user() ?? auth('sanctum')->user() ?? User::where('role_id', 1)->first();
     }
 
     /**
@@ -35,7 +35,8 @@ class ContractDocumentController extends Controller
      */
     public function index(ContractDocumentFilterRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', ContractDocument::class);
+        $user = $this->getAuthUser();
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractDocument::class);
 
         $perPage = (int)$request->input('per_page', 15);
         $paginator = $this->documentService->getContractsWithDocumentsCount($request->validated(), $perPage);
@@ -56,13 +57,20 @@ class ContractDocumentController extends Controller
      * Danh sách tài liệu của một hợp đồng
      * GET /api/contracts/{contract}/documents
      */
-    public function indexByContract(Request $request, int $contractId): JsonResponse
+    public function indexByContract(Request $request, $contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $this->authorize('viewAny', ContractDocument::class);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('viewAny', ContractDocument::class);
 
         $documentType = $request->has('document_type') ? (int)$request->input('document_type') : null;
-        $documents = $this->documentService->getDocumentsByContract($contractId, $documentType);
+        $documents = $this->documentService->getDocumentsByContract((int) $contractId, $documentType);
 
         return response()->json([
             'success' => true,
@@ -74,21 +82,31 @@ class ContractDocumentController extends Controller
      * Tải lên tài liệu mới cho hợp đồng
      * POST /api/contracts/{contract}/documents
      */
-    public function store(UploadContractDocumentsRequest $request, int $contractId): JsonResponse
+    public function store(UploadContractDocumentsRequest $request, $contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $contract = Contract::findOrFail($contractId);
-        $this->authorize('upload', [ContractDocument::class, $contract]);
+        $contract = Contract::findOrFail((int) $contractId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('upload', [ContractDocument::class, $contract]);
 
         try {
             $files = $request->file('files');
-            $result = $this->documentService->uploadDocuments($contractId, $files, $request->validated(), $user);
+            if (!$files && $request->hasFile('file')) {
+                $files = [$request->file('file')];
+            }
+            $result = $this->documentService->uploadDocuments((int) $contractId, $files, $request->validated(), $user);
 
             return response()->json([
                 'success' => true,
                 'data' => ContractDocumentResource::collection($result['documents']),
                 'warnings' => $result['warnings'],
-                'message' => $result['message'],
+                'message' => 'Tải lên tài liệu hợp đồng đính kèm thành công!',
             ], 201);
         } catch (\InvalidArgumentException $e) {
             $code = $e->getCode() ?: 422;
@@ -103,11 +121,18 @@ class ContractDocumentController extends Controller
      * Xem chi tiết metadata của 1 tài liệu
      * GET /api/contract-documents/{document}
      */
-    public function show(int $documentId): JsonResponse
+    public function show($documentId): JsonResponse
     {
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $document = $this->documentService->getDocumentDetail($documentId);
-        $this->authorize('view', $document);
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('view', $document);
 
         return response()->json([
             'success' => true,
@@ -119,44 +144,59 @@ class ContractDocumentController extends Controller
      * Xem trước file (stream inline)
      * GET /api/contract-documents/{document}/preview
      */
-    public function preview(int $documentId): StreamedResponse|BinaryFileResponse
+    public function preview($documentId): StreamedResponse|BinaryFileResponse
     {
-        $user = $this->getAuthUser();
-        $document = $this->documentService->getDocumentDetail($documentId);
-        $this->authorize('view', $document);
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            abort(404);
+        }
 
-        return $this->documentService->previewDocument($documentId, $user);
+        $user = $this->getAuthUser();
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('view', $document);
+
+        return $this->documentService->previewDocument((int) $documentId, $user);
     }
 
     /**
      * Tải về file (attachment stream)
      * GET /api/contract-documents/{document}/download
      */
-    public function download(int $documentId): StreamedResponse|BinaryFileResponse
+    public function download($documentId): StreamedResponse|BinaryFileResponse
     {
-        $user = $this->getAuthUser();
-        $document = $this->documentService->getDocumentDetail($documentId);
-        $this->authorize('download', $document);
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            abort(404);
+        }
 
-        return $this->documentService->downloadDocument($documentId, $user);
+        $user = $this->getAuthUser();
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('download', $document);
+
+        return $this->documentService->downloadDocument((int) $documentId, $user);
     }
 
     /**
      * Cập nhật thông tin hiển thị metadata của tài liệu
      * PUT /api/contract-documents/{document}
      */
-    public function update(UpdateContractDocumentRequest $request, int $documentId): JsonResponse
+    public function update(UpdateContractDocumentRequest $request, $documentId): JsonResponse
     {
-        $user = $this->getAuthUser();
-        $document = $this->documentService->getDocumentDetail($documentId);
-        $this->authorize('update', $document);
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
 
-        $updated = $this->documentService->updateDocument($documentId, $request->validated(), $user);
+        $user = $this->getAuthUser();
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('update', $document);
+
+        $updated = $this->documentService->updateDocument((int) $documentId, $request->validated(), $user);
 
         return response()->json([
             'success' => true,
             'data' => new ContractDocumentResource($updated),
-            'message' => 'Cập nhật thông tin tài liệu thành công.',
+            'message' => 'Cập nhật tài liệu hợp đồng thành công!',
         ]);
     }
 
@@ -164,14 +204,21 @@ class ContractDocumentController extends Controller
      * Xóa mềm tài liệu hợp đồng
      * DELETE /api/contract-documents/{document}
      */
-    public function destroy(int $documentId): JsonResponse
+    public function destroy($documentId): JsonResponse
     {
+        if (!is_numeric($documentId) || intval($documentId) <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
+
         $user = $this->getAuthUser();
-        $document = $this->documentService->getDocumentDetail($documentId);
-        $this->authorize('delete', $document);
+        $document = $this->documentService->getDocumentDetail((int) $documentId);
+        \Illuminate\Support\Facades\Gate::forUser($user)->authorize('delete', $document);
 
         try {
-            $this->documentService->deleteDocument($documentId, $user);
+            $this->documentService->deleteDocument((int) $documentId, $user);
 
             return response()->json([
                 'success' => true,

@@ -72,7 +72,7 @@ class PaymentService
             // 3. Khóa lạc quan (Optimistic Locking - Mục 3.12)
             if (isset($data['version']) && (int) $locked->version !== (int) $data['version']) {
                 throw new StaleVersionException(
-                    __('spec_messages.row_2_stale_version') ?: 'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
+                    __('spec_messages.row_2_stale_version') ?: 'Lỗi: Dữ liệu đã bị thay đổi bởi người khác trước đó. Vui lòng tải lại trang để xem dữ liệu mới nhất.',
                     new \App\Http\Resources\InvoiceResource($locked->fresh(['contract.property', 'contract.customer', 'items', 'transactions', 'updater']))
                 );
             }

@@ -112,14 +112,20 @@ class DepositController extends Controller
      * GET /api/deposits/{deposit}
      * Chi tiết khoản cọc + sổ giao dịch thu/hoàn/khấu trừ + chứng từ hợp đồng
      */
-    public function show(Request $request, int $depositId): JsonResponse
+    public function show(Request $request, $depositId): JsonResponse
     {
+        if (!is_numeric($depositId) || intval($depositId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
-        $deposit = ContractDeposit::with('contract')->find($depositId);
+        $deposit = ContractDeposit::with('contract')->find((int) $depositId);
 
         if (!$deposit) {
             return response()->json([
-                'message' => __('spec_messages.row_1_not_found'),
+                'message' => __('spec_messages.row_3_not_found'),
             ], 404);
         }
 
@@ -140,14 +146,20 @@ class DepositController extends Controller
      * POST /api/deposits/{deposit}/collect
      * Ghi nhận THU TIỀN CỌC (Mục 3.6 - Tab Thu cọc)
      */
-    public function collect(CollectDepositRequest $request, int $depositId): JsonResponse
+    public function collect(CollectDepositRequest $request, $depositId): JsonResponse
     {
+        if (!is_numeric($depositId) || intval($depositId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
-        $deposit = ContractDeposit::with('contract')->find($depositId);
+        $deposit = ContractDeposit::with('contract')->find((int) $depositId);
 
         if (!$deposit) {
             return response()->json([
-                'message' => __('spec_messages.row_1_not_found'),
+                'message' => __('spec_messages.row_3_not_found'),
             ], 404);
         }
 
@@ -172,14 +184,20 @@ class DepositController extends Controller
      * POST /api/deposits/{deposit}/refund
      * Ghi nhận HOÀN TRẢ và/hoặc KHẤU TRỪ TIỀN CỌC (Mục 3.6 - Tab Hoàn trả cọc)
      */
-    public function refund(RefundDepositRequest $request, int $depositId): JsonResponse
+    public function refund(RefundDepositRequest $request, $depositId): JsonResponse
     {
+        if (!is_numeric($depositId) || intval($depositId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
-        $deposit = ContractDeposit::with('contract')->find($depositId);
+        $deposit = ContractDeposit::with('contract')->find((int) $depositId);
 
         if (!$deposit) {
             return response()->json([
-                'message' => __('spec_messages.row_1_not_found'),
+                'message' => __('spec_messages.row_3_not_found'),
             ], 404);
         }
 
@@ -204,14 +222,20 @@ class DepositController extends Controller
      * PATCH /api/deposits/{deposit}
      * Chỉnh sửa thông tin tiền cọc (Mục 3.7b)
      */
-    public function update(UpdateDepositRequest $request, int $depositId): JsonResponse
+    public function update(UpdateDepositRequest $request, $depositId): JsonResponse
     {
+        if (!is_numeric($depositId) || intval($depositId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
-        $deposit = ContractDeposit::with('contract')->find($depositId);
+        $deposit = ContractDeposit::with('contract')->find((int) $depositId);
 
         if (!$deposit) {
             return response()->json([
-                'message' => __('spec_messages.row_1_not_found'),
+                'message' => __('spec_messages.row_3_not_found'),
             ], 404);
         }
 
@@ -233,8 +257,14 @@ class DepositController extends Controller
      * POST /api/deposit-movements/{transaction}/void
      * Hủy một giao dịch hoàn trả hoặc khấu trừ cọc bị nhập nhầm (Mục 5 - Admin only)
      */
-    public function voidMovement(VoidDepositMovementRequest $request, int $transactionId): JsonResponse
+    public function voidMovement(VoidDepositMovementRequest $request, $transactionId): JsonResponse
     {
+        if (!is_numeric($transactionId) || intval($transactionId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
         if (!$this->policy->voidMovement($user)) {
             return response()->json([
@@ -242,7 +272,7 @@ class DepositController extends Controller
             ], 403);
         }
 
-        $transaction = Transaction::find($transactionId);
+        $transaction = Transaction::find((int) $transactionId);
         if (!$transaction) {
             return response()->json([
                 'message' => __('spec_messages.row_1_not_found'),
@@ -264,6 +294,15 @@ class DepositController extends Controller
      */
     public function myDeposits(Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $user = $request->user();
         $paginator = $this->depositQuery->getPaginatedList([
             'per_page' => 20,
@@ -285,14 +324,20 @@ class DepositController extends Controller
      * GET /api/contracts/{contract}/deposit
      * Lấy thông tin tiền cọc của một hợp đồng cụ thể (dùng cho trang Chi tiết hợp đồng Admin & Khách hàng)
      */
-    public function showByContract(Request $request, int $contractId): JsonResponse
+    public function showByContract(Request $request, $contractId): JsonResponse
     {
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
         $user = $request->user();
-        $contract = Contract::find($contractId);
+        $contract = Contract::find((int) $contractId);
 
         if (!$contract) {
             return response()->json([
-                'message' => __('spec_messages.row_1_not_found'),
+                'message' => __('spec_messages.row_3_not_found'),
             ], 404);
         }
 

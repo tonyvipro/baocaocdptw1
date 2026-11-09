@@ -55,7 +55,7 @@ export function filterCatalog(properties, f = {}) {
   const result = properties.filter(p => {
     if (!p || (p.status !== undefined && ![1, '1', 'available'].includes(p.status)) || p.deleted_at) return false;
     if (p.expire_date && new Date(p.expire_date.replace(' ', 'T')).getTime() < Date.now()) return false;
-    for (const field of ['purpose', 'project', 'city', 'developer']) {
+    for (const field of ['purpose', 'project', 'city', 'district', 'developer']) {
       if (f[field] && f[field] !== 'all' && p[field] !== f[field]) return false;
     }
     if (!tokens.every(token => ['title', 'project', 'street', 'address', 'district', 'city', 'developer', 'code', 'type'].some(field => normalizeText(p[field]).includes(token)))) return false;

@@ -14,6 +14,16 @@ class UpdateDepositRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $depositId = $this->route('deposit');
+        if (!is_numeric($depositId) || intval($depositId) <= 0 || !\App\Models\ContractDeposit::where('id', (int) $depositId)->exists()) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404));
+        }
+    }
+
     public function rules(): array
     {
         $notesMax = (int) config('field_limits.deposit.notes.max', 1000);

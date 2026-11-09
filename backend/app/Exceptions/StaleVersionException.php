@@ -9,7 +9,7 @@ class StaleVersionException extends Exception
 {
     protected mixed $current;
 
-    public function __construct(string $message = 'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.', mixed $current = null)
+    public function __construct(string $message = 'Lỗi: Dữ liệu đã bị thay đổi bởi người khác trước đó. Vui lòng tải lại trang để xem dữ liệu mới nhất.', mixed $current = null)
     {
         parent::__construct($message, 409);
         $this->current = $current;

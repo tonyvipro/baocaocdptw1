@@ -2,9 +2,11 @@
 
 return [
     // 1. CÁC DÒNG NGUYÊN VĂN BẢNG LỖI CỦA SPEC
-    'row_1_not_found' => 'Dữ liệu không tồn tại trong hệ thống.',
-    'row_2_stale_version' => 'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại để xem phiên bản mới nhất.',
-    'row_3_invoice_not_found' => 'Hóa đơn không tồn tại.',
+    'row_1_not_found' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.',
+    'row_2_stale_version' => 'Lỗi: Dữ liệu đã bị thay đổi bởi người khác trước đó. Vui lòng tải lại trang để xem dữ liệu mới nhất.',
+    'row_3_invoice_not_found' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+    'row_3_not_found' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+    'row_10_invalid_url_param' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
     'row_19_deposit_exceed' => 'Số tiền cọc hoàn trả vượt quá tổng số tiền cọc đang giữ.',
     'row_19_deposit_success' => 'Ghi nhận thu/hoàn tiền cọc thành công!',
     'row_20_amount_positive' => 'Số tiền phải thu phải lớn hơn 0.',

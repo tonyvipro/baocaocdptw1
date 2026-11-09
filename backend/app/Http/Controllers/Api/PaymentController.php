@@ -43,6 +43,23 @@ class PaymentController extends Controller
      */
     public function debts(Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+        if ($request->has('per_page')) {
+            $perPage = $request->query('per_page');
+            if (!is_numeric($perPage) || intval($perPage) <= 0 || intval($perPage) > 100) {
+                return response()->json([
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $user = $request->user();
         $debts = $this->debtQuery->getDebts($user, $request->all());
 
@@ -106,7 +123,7 @@ class PaymentController extends Controller
     public function recordPayment(Invoice $invoice, RecordPaymentRequest $request): JsonResponse
     {
         $user = $request->user();
-        if ((int) $user->role_id === 3) { // Khách hàng không được ghi nhận tay
+        if (in_array((int) $user->role_id, [3, 5], true)) { // Khách hàng không được ghi nhận tay
             abort(403, 'Khách hàng không có quyền ghi nhận thanh toán thủ công.');
         }
 
@@ -167,7 +184,9 @@ class PaymentController extends Controller
     {
         $transaction = Transaction::where('transaction_code', $transactionCode)->first();
         if (!$transaction) {
-            abort(404, 'Không tìm thấy giao dịch thanh toán.');
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
         }
 
         $this->authorizeInvoiceAccess($request->user(), $transaction->invoice);
@@ -189,7 +208,9 @@ class PaymentController extends Controller
     {
         $transaction = Transaction::where('transaction_code', $transactionCode)->first();
         if (!$transaction) {
-            abort(404, 'Không tìm thấy giao dịch thanh toán.');
+            return response()->json([
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
         }
 
         $this->authorizeInvoiceAccess($request->user(), $transaction->invoice);
@@ -205,11 +226,24 @@ class PaymentController extends Controller
     /**
      * Hủy giao dịch ghi nhận nhập tay (POST /api/payment-transactions/{id}/cancel-manual) - Chỉ Admin
      */
-    public function cancelManualPayment(int $id, Request $request): JsonResponse
+    public function cancelManualPayment($id, Request $request): JsonResponse
     {
         $user = $request->user();
         if ((int) $user->role_id !== 1) {
             abort(403, 'Chỉ Quản trị viên (Admin) mới có quyền hủy giao dịch nhập tay.');
+        }
+
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
+        }
+
+        $transaction = Transaction::find((int) $id);
+        if (!$transaction) {
+            return response()->json([
+                'message' => __('spec_messages.row_1_not_found'),
+            ], 404);
         }
 
         $request->validate([
@@ -218,11 +252,6 @@ class PaymentController extends Controller
             'reason.required' => 'Vui lòng nhập lý do hủy giao dịch.',
             'reason.max' => 'Lý do hủy không được vượt quá 500 ký tự.',
         ]);
-
-        $transaction = Transaction::find($id);
-        if (!$transaction) {
-            abort(404, 'Giao dịch không tồn tại.');
-        }
 
         $cancelled = $this->paymentService->cancelManualPayment($transaction, $request->input('reason'), $user);
 
@@ -363,7 +392,7 @@ class PaymentController extends Controller
             return;
         }
 
-        if ((int) $user->role_id === 3) {
+        if (in_array((int) $user->role_id, [3, 5], true)) {
             // Khách hàng chỉ xem hóa đơn của chính mình
             if ($invoice->contract?->customer_id !== $user->id) {
                 abort(403, 'Bạn chỉ có quyền truy cập hóa đơn của chính mình.');

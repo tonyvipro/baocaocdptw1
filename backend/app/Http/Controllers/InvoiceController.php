@@ -66,9 +66,15 @@ class InvoiceController extends Controller
     /**
      * Chi tiết hóa đơn (GET /api/invoices/{id})
      */
-    public function show(int $id): JsonResponse
+    public function show($id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('view', $invoice);
 
         return response()->json([
@@ -79,9 +85,15 @@ class InvoiceController extends Controller
     /**
      * Chỉnh sửa hóa đơn (PUT /api/invoices/{id})
      */
-    public function update(UpdateInvoiceRequest $request, int $id): JsonResponse
+    public function update(UpdateInvoiceRequest $request, $id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('update', $invoice);
 
         $updated = $this->invoiceService->updateInvoice($invoice, $request->validated(), $request->user());
@@ -95,9 +107,15 @@ class InvoiceController extends Controller
     /**
      * Hủy hóa đơn (POST /api/invoices/{id}/cancel)
      */
-    public function cancel(CancelInvoiceRequest $request, int $id): JsonResponse
+    public function cancel(CancelInvoiceRequest $request, $id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'Xóa không hợp lệ! Mục này có thể đã bị xóa trước đó.',
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('cancel', $invoice);
 
         $validated = $request->validated();
@@ -117,9 +135,15 @@ class InvoiceController extends Controller
     /**
      * Xem hoặc tải PDF (GET /api/invoices/{id}/pdf)
      */
-    public function pdf(Request $request, int $id)
+    public function pdf(Request $request, $id)
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('downloadPdf', $invoice);
 
         $download = $request->boolean('download', false);
@@ -129,9 +153,15 @@ class InvoiceController extends Controller
     /**
      * Gửi hóa đơn qua email (POST /api/invoices/{id}/send-email)
      */
-    public function sendEmail(SendInvoiceEmailRequest $request, int $id): JsonResponse
+    public function sendEmail(SendInvoiceEmailRequest $request, $id): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('sendEmail', $invoice);
 
         $targetEmail = $request->validated()['email'] ?? null;
@@ -149,9 +179,15 @@ class InvoiceController extends Controller
     /**
      * Lấy danh sách hóa đơn theo hợp đồng (GET /api/contracts/{contract}/invoices)
      */
-    public function contractInvoices(int $contractId, Request $request): JsonResponse
+    public function contractInvoices($contractId, Request $request): JsonResponse
     {
-        $invoices = $this->invoiceService->getContractInvoices($contractId, $request->user());
+        if (!is_numeric($contractId) || intval($contractId) <= 0) {
+            return response()->json([
+                'message' => 'Không tìm thấy dữ liệu hoặc URL không hợp lệ.',
+            ], 404);
+        }
+
+        $invoices = $this->invoiceService->getContractInvoices((int) $contractId, $request->user());
 
         return response()->json([
             'data' => InvoiceListResource::collection($invoices),

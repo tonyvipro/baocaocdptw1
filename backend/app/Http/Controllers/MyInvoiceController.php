@@ -21,6 +21,15 @@ class MyInvoiceController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        if ($request->has('page')) {
+            $page = $request->query('page');
+            if (!is_numeric($page) || intval($page) <= 0 || (string) intval($page) !== (string) $page) {
+                return response()->json([
+                    'message' => __('spec_messages.row_10_invalid_url_param'),
+                ], 404);
+            }
+        }
+
         $invoices = $this->invoiceService->getCustomerInvoices($request->user(), $request->all());
 
         return response()->json([
@@ -37,9 +46,15 @@ class MyInvoiceController extends Controller
     /**
      * Chi tiết hóa đơn của tôi (GET /api/my/invoices/{id})
      */
-    public function show(int $id, Request $request): JsonResponse
+    public function show($id, Request $request): JsonResponse
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('view', $invoice);
 
         return response()->json([
@@ -50,9 +65,15 @@ class MyInvoiceController extends Controller
     /**
      * Tải PDF hóa đơn của tôi (GET /api/my/invoices/{id}/pdf)
      */
-    public function pdf(int $id, Request $request)
+    public function pdf($id, Request $request)
     {
-        $invoice = $this->invoiceService->getInvoiceDetail($id);
+        if (!is_numeric($id) || intval($id) <= 0) {
+            return response()->json([
+                'message' => __('spec_messages.row_3_not_found'),
+            ], 404);
+        }
+
+        $invoice = $this->invoiceService->getInvoiceDetail((int) $id);
         Gate::authorize('downloadPdf', $invoice);
 
         return app(InvoicePdfService::class)->generatePdfResponse($invoice, true);
