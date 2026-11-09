@@ -28,18 +28,18 @@ class PropertyReadController extends Controller
     {
         // A reachable, empty database is an empty catalog, never demo data.
         $ownListings = $request->boolean('all') || $request->boolean('mine');
-        $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
+        $query = Property::with(['propertyType', 'images']);
         if ($ownListings) {
             $user = $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
             abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
             $query->where('user_id', $user->id);
         } else {
-            $query->where('status', 1);
+            $query->where('status', 1)
+                  ->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()));
         }
-        if (!$ownListings && Schema::hasColumn('properties', 'expire_date')) {
-            $query->where(fn ($q) => $q->whereNull('expire_date')->orWhere('expire_date', '>=', now()));
+        if ($request->filled('search')) {
+            \App\Support\PropertySearch::apply($query, $request);
         }
-        \App\Support\PropertySearch::apply($query, $request);
         $properties = $query->orderBy('id')->get()->map(function ($property) {
             if (!$property->street && $property->address) $property->street = $property->address;
             if ($property->expire_date) $property->expire_date = \Illuminate\Support\Carbon::parse($property->expire_date)->toISOString();

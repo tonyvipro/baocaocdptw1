@@ -88,24 +88,41 @@ export function filterCatalog(properties, f = {}) {
 }
 
 let pending;
+let cachedCatalog = null;
+
 export function loadCatalog(client) {
   if (pending) return pending;
   pending = (async () => {
     let lastError;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await client.get(`/api/properties?_t=${Date.now()}`, { timeout: 20000, headers: { Accept: 'application/json' } });
+        const response = await client.get(`/api/properties?_t=${Date.now()}`, { timeout: 35000, headers: { Accept: 'application/json' } });
         const data = Array.isArray(response.data) ? response.data : response.data?.data;
         if (!Array.isArray(data)) throw new Error('Phản hồi danh sách bất động sản không hợp lệ.');
+        cachedCatalog = data;
+        try {
+          localStorage.setItem('3tv_cached_catalog', JSON.stringify(data));
+        } catch (e) {}
         return { data, source: 'backend' };
-      } catch (error) { lastError = error; }
+      } catch (error) {
+        lastError = error;
+        await new Promise(r => setTimeout(r, 600));
+      }
     }
+    // Fallback thông minh: nếu mạng chậm hoặc lỗi tạm thời, dùng dữ liệu đã cache thay vì chặn màn hình
+    try {
+      const fallback = cachedCatalog || JSON.parse(localStorage.getItem('3tv_cached_catalog') || 'null');
+      if (Array.isArray(fallback) && fallback.length > 0) {
+        return { data: fallback, source: 'cached' };
+      }
+    } catch (e) {}
+
     throw new Error('Không tải được dữ liệu bất động sản từ máy chủ. Vui lòng thử lại.', { cause: lastError });
   })().finally(() => { pending = undefined; });
   return pending;
 }
 
-export function watchCatalog(reload, intervalMs = 5000) {
+export function watchCatalog(reload, intervalMs = 30000) {
   const refresh = () => { if (document.visibilityState !== 'hidden') reload({ silent: true }); };
   const originalFetch = window.fetch;
   const observedFetch = async (...args) => {

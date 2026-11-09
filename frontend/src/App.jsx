@@ -616,7 +616,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {propertyError && <div role="alert" className="p-4 bg-red-50 text-red-700">{propertyError} <button onClick={loadData}>Thử lại</button></div>}
+      {propertyError && properties.length === 0 && (
+        <div role="alert" className="p-4 bg-red-50 border-b border-red-200 text-red-700 flex items-center justify-between">
+          <span>{propertyError}</span>
+          <button onClick={() => loadData()} className="ml-3 px-3 py-1 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700">
+            Thử lại
+          </button>
+        </div>
+      )}
       {/* Header / Navbar */}
       <Navbar
         setActiveTab={setActiveTab}
