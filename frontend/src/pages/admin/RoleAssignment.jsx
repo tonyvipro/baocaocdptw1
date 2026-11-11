@@ -418,13 +418,13 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
           {/* BẢNG DANH SÁCH TÀI KHOẢN */}
           <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-xs table-fixed">
                 <thead>
                   <tr className="bg-white border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-3.5 w-16">ID</th>
-                    <th className="py-3 px-3.5">Tài Khoản</th>
-                    <th className="py-3 px-3.5 text-center">Vai Trò Hiện Tại</th>
-                    <th className="py-3 px-3.5 text-center w-24">Thao Tác</th>
+                    <th className="py-3 px-2 w-10 text-center">ID</th>
+                    <th className="py-3 px-3">Tài Khoản</th>
+                    <th className="py-3 px-2 text-center w-28">Vai Trò</th>
+                    <th className="py-3 px-2 text-center w-16">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -432,8 +432,8 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                     // Skeleton rows
                     [...Array(perPage)].map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        <td className="py-3.5 px-3.5"><div className="h-4 bg-slate-50 rounded w-8" /></td>
-                        <td className="py-3.5 px-3.5">
+                        <td className="py-3 px-2 text-center"><div className="h-4 bg-slate-50 rounded w-6 mx-auto" /></td>
+                        <td className="py-3 px-3 min-w-0">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-slate-50" />
                             <div className="space-y-1">
@@ -442,8 +442,8 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-3.5 text-center"><div className="h-5 bg-slate-50 rounded-full w-24 mx-auto" /></td>
-                        <td className="py-3.5 px-3.5 text-center"><div className="h-6 bg-slate-50 rounded w-14 mx-auto" /></td>
+                        <td className="py-3 px-2 text-center"><div className="h-5 bg-slate-50 rounded-full w-20 mx-auto" /></td>
+                        <td className="py-3 px-2 text-center"><div className="h-6 bg-slate-50 rounded w-12 mx-auto" /></td>
                       </tr>
                     ))
                   ) : users.length === 0 ? (
@@ -470,13 +470,13 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                           }`}
                         >
                           {/* ID Tài khoản */}
-                          <td className="py-3 px-3.5 font-mono text-slate-400 font-bold">
+                          <td className="py-3 px-2 font-mono text-slate-400 font-bold text-center truncate">
                             #{u.id}
                           </td>
 
                           {/* Thông tin: Avatar, Tên & Email */}
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center gap-2.5">
+                          <td className="py-3 px-3 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
                               <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-900 font-bold text-xs shrink-0 overflow-hidden">
                                 {u.avatar ? (
                                   <img
@@ -489,7 +489,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                                   u.name?.charAt(0) || 'U'
                                 )}
                               </div>
-                              <div className="overflow-hidden">
+                              <div className="min-w-0 flex-1 overflow-hidden">
                                 <p className={`font-bold truncate ${isSelected ? 'text-red-400' : 'text-slate-700'}`}>
                                   {u.name}
                                 </p>
@@ -501,20 +501,20 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                           </td>
 
                           {/* Vai trò hiện tại */}
-                          <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${badge.bg}`}>
+                          <td className="py-3 px-2 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
                               {u.role?.name || 'Chưa phân quyền'}
                             </span>
                           </td>
 
                           {/* Nút thao tác [Đổi] (Yêu cầu 2: Nút [Đổi] để chọn nhanh tài khoản cần gán quyền mới) */}
-                          <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-3 px-2 text-center whitespace-nowrap">
                             <button
                               onClick={() => handleSelectUserToAssign(u)}
                               disabled={conflictLocked}
                               title={conflictLocked ? 'Thao tác tạm khóa do phát hiện thay đổi ở tab khác' : `Chọn ${u.name} để đổi vai trò`}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
                                 isSelected
                                   ? 'bg-red-600 text-white shadow-red-900/50 ring-2 ring-red-400 cursor-default'
                                   : conflictLocked

@@ -124,7 +124,8 @@ export default function App() {
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
   const [searchKeyword, setSearchKeyword] = useState('');
-  const smartSearch = usePropertySearch(searchKeyword);
+  const [searchMode, setSearchMode] = useState('smart'); // 'normal' | 'smart'
+  const smartSearch = usePropertySearch(searchMode === 'smart' ? searchKeyword : '');
   const [selectedProject, setSelectedProject] = useState('all');
   const [selectedCity, setSelectedCity] = useState('all');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
@@ -570,11 +571,27 @@ export default function App() {
     return Array.from(set);
   }, [properties]);
 
+  const normalMatchedIds = useMemo(() => {
+    if (searchMode !== 'normal' || !searchKeyword.trim()) return [];
+    const term = searchKeyword.toLowerCase().trim();
+    return properties
+      .filter(p => [p.title, p.project, p.address, p.code].some(f => f && f.toLowerCase().includes(term)))
+      .map(p => p.id);
+  }, [properties, searchMode, searchKeyword]);
+
   // Filtered & Sorted Properties
   const filteredProperties = useMemo(() => {
-    const catalog = searchKeyword.trim() ? rankSearchCatalog(properties, smartSearch.ids) : properties;
-    return filterCatalog(catalog, { purpose: activeTab, project: selectedProject, city: selectedCity, district: selectedDistrict, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
-  }, [properties, activeTab, searchKeyword, smartSearch.ids, selectedProject, selectedCity, selectedDistrict, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
+    const kw = searchKeyword.trim();
+    if (kw) {
+      if (searchMode === 'smart') {
+        const catalog = smartSearch.ids.length > 0 ? rankSearchCatalog(properties, smartSearch.ids) : [];
+        return filterCatalog(catalog, { purpose: activeTab, project: selectedProject, city: selectedCity, district: selectedDistrict, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+      } else {
+        return filterCatalog(properties, { search: kw, purpose: activeTab, project: selectedProject, city: selectedCity, district: selectedDistrict, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+      }
+    }
+    return filterCatalog(properties, { purpose: activeTab, project: selectedProject, city: selectedCity, district: selectedDistrict, developer: selectedDeveloper, type: selectedType, bedrooms: selectedBedrooms, price: selectedPriceRange, area: selectedAreaRange, sort: sortBy });
+  }, [properties, activeTab, searchKeyword, searchMode, smartSearch.ids, selectedProject, selectedCity, selectedDistrict, selectedDeveloper, selectedType, selectedBedrooms, selectedPriceRange, selectedAreaRange, sortBy]);
 
   useEffect(() => {
     const code = new URL(window.location.href).searchParams.get('property');
@@ -743,6 +760,8 @@ export default function App() {
       <HeroSection
         searchKeyword={searchKeyword}
         setSearchKeyword={setSearchKeyword}
+        searchMode={searchMode}
+        setSearchMode={setSearchMode}
         selectedProject={selectedProject}
         setSelectedProject={setSelectedProject}
         selectedType={selectedType}
@@ -761,10 +780,10 @@ export default function App() {
         districtsList={districtsList}
         typesList={typesList}
         totalResults={filteredProperties.length}
-        searchLoading={smartSearch.isLoading}
-        searchError={smartSearch.error}
+        searchLoading={searchMode === 'smart' ? smartSearch.isLoading : false}
+        searchError={searchMode === 'smart' ? smartSearch.error : ''}
         onRetrySearch={smartSearch.retry}
-        suggestions={propertySuggestions(properties, smartSearch.ids, searchKeyword)}
+        suggestions={propertySuggestions(properties, searchMode === 'smart' ? smartSearch.ids : normalMatchedIds, searchKeyword)}
         onSelectSuggestion={item => {
           if (item.kind === 'project') { setSelectedProject(item.value); setSearchKeyword(''); }
           else { setSearchKeyword(item.property.title.slice(0, 250)); handleSelectProperty(item.property); }

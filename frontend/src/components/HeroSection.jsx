@@ -25,7 +25,9 @@ export default function HeroSection({
   searchError = '',
   onRetrySearch,
   suggestions = [],
-  onSelectSuggestion
+  onSelectSuggestion,
+  searchMode = 'smart',
+  setSearchMode = () => {}
 }) {
   const trendingTags = [
     'Vinhomes Central Park',
@@ -66,38 +68,74 @@ export default function HeroSection({
 
         {/* Real Estate Search Box (Kính Trong Suốt Nhìn Rõ Video Nền) */}
         <div className="bg-black/15 hover:bg-black/20 backdrop-blur-[2px] rounded-none shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] p-4 sm:p-6 text-white border border-white/30 transition-all">
-          {/* Purpose Tab Bar */}
-          <div className="flex items-center gap-1.5 pb-3 mb-4 border-b border-white/15 overflow-x-auto text-xs font-bold">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 rounded-none transition-all ${
-                activeTab === 'all' 
-                  ? 'bg-white/20 text-white shadow-sm border border-white/40' 
-                  : 'bg-black/20 text-slate-200 hover:text-white hover:bg-black/40 border border-white/10'
-              }`}
-            >
-              Tất Cả
-            </button>
-            <button
-              onClick={() => setActiveTab('sale')}
-              className={`px-4 py-2 rounded-none transition-all ${
-                activeTab === 'sale' 
-                  ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
-                  : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
-              }`}
-            >
-              Nhà Đất Bán
-            </button>
-            <button
-              onClick={() => setActiveTab('rent')}
-              className={`px-4 py-2 rounded-none transition-all ${
-                activeTab === 'rent' 
-                  ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
-                  : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
-              }`}
-            >
-              Nhà Đất Cho Thuê
-            </button>
+          {/* Purpose Tab Bar & Search Mode Radio Group */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-4 border-b border-white/15">
+            <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-4 py-2 rounded-none transition-all ${
+                  activeTab === 'all' 
+                    ? 'bg-white/20 text-white shadow-sm border border-white/40' 
+                    : 'bg-black/20 text-slate-200 hover:text-white hover:bg-black/40 border border-white/10'
+                }`}
+              >
+                Tất Cả
+              </button>
+              <button
+                onClick={() => setActiveTab('sale')}
+                className={`px-4 py-2 rounded-none transition-all ${
+                  activeTab === 'sale' 
+                    ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
+                    : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
+                }`}
+              >
+                Nhà Đất Bán
+              </button>
+              <button
+                onClick={() => setActiveTab('rent')}
+                className={`px-4 py-2 rounded-none transition-all ${
+                  activeTab === 'rent' 
+                    ? 'bg-red-600/90 text-white shadow-md shadow-red-600/40 border border-red-400/40' 
+                    : 'bg-black/20 text-slate-200 hover:text-red-400 hover:bg-black/40 border border-white/10'
+                }`}
+              >
+                Nhà Đất Cho Thuê
+              </button>
+            </div>
+
+            {/* 2 Radio buttons chọn chế độ tìm kiếm: Thường vs Thông minh (Elasticsearch) */}
+            <div className="flex items-center gap-4 bg-black/40 border border-white/20 px-3.5 py-1.5 rounded-none text-xs font-semibold backdrop-blur-sm self-start md:self-auto">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="hero_search_mode"
+                  value="normal"
+                  checked={searchMode === 'normal'}
+                  onChange={() => setSearchMode('normal')}
+                  className="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer accent-red-600"
+                />
+                <span className={searchMode === 'normal' ? 'text-white font-bold' : 'text-slate-300 hover:text-white'}>
+                  Tìm kiếm thường
+                </span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="hero_search_mode"
+                  value="smart"
+                  checked={searchMode === 'smart'}
+                  onChange={() => setSearchMode('smart')}
+                  className="w-4 h-4 text-red-600 focus:ring-red-500 cursor-pointer accent-red-600"
+                />
+                <span className={`flex items-center gap-1.5 ${searchMode === 'smart' ? 'text-white font-bold' : 'text-slate-300 hover:text-white'}`}>
+                  Tìm kiếm thông minh
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-600 text-white tracking-wide">
+                    Elasticsearch
+                  </span>
+                </span>
+              </label>
+            </div>
           </div>
 
           {/* Search Inputs Toolbar */}
@@ -105,7 +143,7 @@ export default function HeroSection({
             
             {/* Input Keyword */}
             <div className="lg:col-span-3">
-              <PropertySearchBar value={searchKeyword} onChange={setSearchKeyword} isLoading={searchLoading} error={searchError} suggestions={suggestions} onSelect={onSelectSuggestion} />
+              <PropertySearchBar value={searchKeyword} onChange={setSearchKeyword} isLoading={searchLoading} error={searchError} suggestions={suggestions} onSelect={onSelectSuggestion} searchMode={searchMode} />
             </div>
 
             <div className="min-w-0 lg:col-span-3">

@@ -245,13 +245,6 @@ export default function UserManagement() {
             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent text-sm"
           />
         </div>
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="w-full md:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
-        >
-          + Thêm người dùng
-        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -287,7 +280,7 @@ export default function UserManagement() {
                             {user.name?.length > 100 ? user.name.substring(0, 100) + '...' : user.name}
                         </div>
                     </td>
-                    <td className="p-4">{roles.find(role => role.id === user.role_id)?.label || user.role?.name || 'Chưa phân quyền'}</td>
+                    <td className="p-4 whitespace-nowrap"><span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">{roles.find(role => role.id === user.role_id)?.name || user.role?.name || 'Chưa phân quyền'}</span></td>
                     <td className="p-4">{user.unit || '---'}</td>
                     <td className="p-4">
                       <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-md text-xs font-medium whitespace-nowrap">
