@@ -52,9 +52,11 @@ class PropertyManagementController extends Controller
             }],
             'deposit' => 'nullable|numeric|min:0',
         ];
-        foreach (['address', 'street', 'district', 'city', 'developer', 'project', 'furniture', 'owner_name', 'owner_phone', 'legal', 'legal_status', 'direction', 'available_date', 'management_fee', 'rent_period_min', 'unit_price'] as $field) {
+        foreach (['address', 'street', 'district', 'city', 'developer', 'project', 'furniture', 'owner_name', 'legal', 'legal_status', 'direction', 'available_date', 'management_fee', 'rent_period_min', 'unit_price'] as $field) {
             $rules[$field] = 'nullable|string|max:250';
         }
+        $rules['owner_phone'] = ['nullable', 'string', 'max:20', 'regex:/^(?:\+84|0)(?:3|5|7|8|9)\d{8}$/'];
+        $rules['contact_phone'] = ['nullable', 'string', 'max:20', 'regex:/^(?:\+84|0)(?:3|5|7|8|9)\d{8}$/'];
         foreach (['price', 'price_sale', 'price_rent', 'area'] as $field) {
             array_unshift($rules[$field], 'bail', function ($attribute, $value, $fail) {
                 if (preg_match_all('/[0-9]/', (string) $value) > 20) {
@@ -77,6 +79,8 @@ class PropertyManagementController extends Controller
             'area.max' => 'Diện tích không được vượt quá 100.000.000 m².',
             'area.gt' => 'Diện tích phải lớn hơn 0.',
             'address.max' => 'Địa chỉ chi tiết không được vượt quá 250 ký tự.',
+            'owner_phone.regex' => 'Số điện thoại chủ nhà không hợp lệ (cần 10 số, bắt đầu bằng 03, 05, 07, 08, 09 hoặc +84).',
+            'contact_phone.regex' => 'Số điện thoại liên hệ không hợp lệ (cần 10 số, bắt đầu bằng 03, 05, 07, 08, 09 hoặc +84).',
         ];
     }
 
