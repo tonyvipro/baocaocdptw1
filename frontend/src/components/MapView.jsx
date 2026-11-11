@@ -19,7 +19,12 @@ const customIcon = new L.Icon({
 function FitResults({ properties }) {
   const map = useMap();
   useEffect(() => {
-    if (properties.length) map.fitBounds(properties.map(p => [Number(p.lat), Number(p.lng)]), { padding: [35, 35], maxZoom: 15 });
+    if (properties.length) {
+      map.fitBounds(
+        properties.map(p => [Number(p.lat ?? p.latitude), Number(p.lng ?? p.longitude)]),
+        { padding: [35, 35], maxZoom: 15 }
+      );
+    }
   }, [map, properties]);
   return null;
 }
@@ -49,7 +54,7 @@ export default function MapView({ properties = [], onSelectProperty }) {
         {validProperties.map((prop) => (
           <Marker
             key={prop.code || prop.id}
-            position={[Number(prop.lat), Number(prop.lng)]}
+            position={[Number(prop.lat ?? prop.latitude), Number(prop.lng ?? prop.longitude)]}
             icon={customIcon}
           >
             <Popup className="custom-leaflet-popup">

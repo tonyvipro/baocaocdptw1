@@ -18,8 +18,14 @@ export function matchesPrice(property, range) {
 }
 
 export function validCoordinates(property) {
-  return [property.lat, property.lng].every(v => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v)))
-    && Math.abs(Number(property.lat)) <= 90 && Math.abs(Number(property.lng)) <= 180;
+  if (!property) return false;
+  const lat = property.lat ?? property.latitude;
+  const lng = property.lng ?? property.longitude;
+  const numLat = Number(lat);
+  const numLng = Number(lng);
+  return [lat, lng].every(v => v !== null && v !== undefined && String(v).trim() !== '' && Number.isFinite(Number(v)))
+    && Math.abs(numLat) <= 90 && Math.abs(numLng) <= 180
+    && !(numLat === 0 && numLng === 0);
 }
 
 export function readPropertyList(key) {

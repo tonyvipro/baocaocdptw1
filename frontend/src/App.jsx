@@ -147,6 +147,20 @@ export default function App() {
     }
   });
 
+  // Tự động mở chi tiết sản phẩm ngay khi danh sách BĐS được tải xong
+  useEffect(() => {
+    if (properties.length > 0) {
+      const match = (window.location.hash || '').match(/#property=([^&]+)/) || (window.location.search || '').match(/[?&]property=([^&]+)/);
+      if (match) {
+        const code = decodeURIComponent(match[1]);
+        const found = properties.find(p => String(p.code).toLowerCase() === code.toLowerCase() || String(p.id) === code);
+        if (found) {
+          setSelectedProperty(found);
+        }
+      }
+    }
+  }, [properties]);
+
   // Filters State
   const [activeTab, setActiveTab] = useState('all'); // all, rent, sale
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -204,7 +218,17 @@ export default function App() {
     try {
       const result = await fetchProperties();
       setProperties(result.data);
-      setSelectedProperty(previous => previous ? result.data.find(p => p.code === previous.code) || null : null);
+      // Tự động mở modal chi tiết sản phẩm nếu trên URL có tham số ?property=MÃ_BĐS
+      let matchedProp = null;
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetCode = urlParams.get('property');
+        if (targetCode && result.data && result.data.length > 0) {
+          matchedProp = result.data.find(p => String(p.code).toLowerCase() === String(targetCode).toLowerCase() || String(p.id) === String(targetCode));
+        }
+      } catch (e) {}
+
+      setSelectedProperty(previous => matchedProp || (previous ? result.data.find(p => p.code === previous.code) || null : null));
       setDataSource(result.source);
       setPropertyError('');
     } catch (error) {
@@ -347,11 +371,21 @@ export default function App() {
     } catch (e) {}
   }, [showProfileModal]);
 
-  // Lắng nghe sự kiện hashchange trên window để chuyển mode mượt mà
+  // Lắng nghe sự kiện hashchange trên window để chuyển mode mượt mà và tự mở BĐS
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash || '';
       setShowNotifications(hash === '#notifications');
+
+      // Tự động mở chi tiết BĐS nếu trên hash có #property=MÃ_BĐS hoặc query ?property=
+      const propMatch = hash.match(/#property=([^&]+)/) || window.location.search.match(/[?&]property=([^&]+)/);
+      if (propMatch && properties.length > 0) {
+        const code = decodeURIComponent(propMatch[1]);
+        const found = properties.find(p => String(p.code).toLowerCase() === code.toLowerCase() || String(p.id) === code);
+        if (found) {
+          setSelectedProperty(found);
+        }
+      }
 
       if (hash.startsWith('#my-contracts')) {
         const match = hash.match(/^#my-contracts\/(\d+)$/);

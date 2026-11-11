@@ -8,6 +8,7 @@ import {
 import ExtendListingModal from './ExtendListingModal';
 import ChangePropertyStatusModal from './ChangePropertyStatusModal';
 import { propertyGallery } from '../utils/propertyImage';
+import SharePopover from './SharePopover';
 
 export default function PropertyModal({
   property,
@@ -47,18 +48,6 @@ export default function PropertyModal({
 
   const galleryImages = propertyGallery(prop);
 
-  const handleShare = async () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('property', property.code);
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      window.prompt('Sao chép liên kết bất động sản:', url.toString());
-    }
-  };
-
   const amenities = [
     'Hồ bơi vô cực tràn bờ', 'Phòng Gym & Yoga cao cấp',
     'Công viên cây xanh 5ha', 'Khu vui chơi trẻ em an toàn',
@@ -86,14 +75,17 @@ export default function PropertyModal({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 transition-colors text-xs font-semibold cursor-pointer relative"
-              title="Chia sẻ liên kết"
-            >
-              {copied ? <CheckCheck className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{copied ? 'Đã sao chép!' : 'Chia sẻ'}</span>
-            </button>
+            <SharePopover
+              property={property}
+              direction="down"
+              triggerClassName="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 transition-colors text-xs font-semibold cursor-pointer relative"
+              buttonContent={
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Chia sẻ</span>
+                </>
+              }
+            />
 
             {onToggleCompare && (
               <button
