@@ -294,17 +294,27 @@ class PaymentService
             }
 
             // 4. Kiểm tra có giao dịch PENDING còn hiệu lực không
-            $hasPending = Transaction::where('invoice_id', $locked->id)
+            $pendingTx = Transaction::where('invoice_id', $locked->id)
                 ->where('status', TransactionStatus::PENDING)
                 ->where('source', TransactionSource::GATEWAY)
                 ->where(function ($q) {
                     $q->whereNull('expires_at')->orWhere('expires_at', '>', Carbon::now());
                 })
-                ->exists();
+                ->first();
 
-            if ($hasPending) {
+            if ($pendingTx) {
                 throw new HttpResponseException(response()->json([
                     'message' => 'Hóa đơn đang có một giao dịch chờ thanh toán. Vui lòng hoàn tất hoặc hủy giao dịch đó.',
+                    'data' => [
+                        'transaction' => new \App\Http\Resources\TransactionResource($pendingTx),
+                        'transaction_code' => $pendingTx->transaction_code,
+                        'gateway_order_id' => $pendingTx->gateway_order_id,
+                        'qr_content' => $pendingTx->qr_content,
+                        'pay_url' => $pendingTx->pay_url,
+                        'amount' => (float) $pendingTx->amount,
+                        'gateway' => $pendingTx->gateway,
+                        'expires_at' => $pendingTx->expires_at?->toISOString(),
+                    ],
                 ], 409));
             }
 

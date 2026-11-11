@@ -64,7 +64,33 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('3tv_user');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (parsed && !Array.isArray(parsed.permissions)) {
+        if (Number(parsed.role_id) === 1) {
+          parsed.permissions = [
+            'account.view', 'profile.update', 'password.update', 'notifications.view',
+            'customers.manage', 'demands.manage', 'properties.menu', 'approvals.menu',
+            'listing-status.menu', 'property-types.menu', 'appointments.menu', 'contracts.menu',
+            'contract-documents.menu', 'invoices.menu', 'rent-management.menu', 'deposits.menu',
+            'payments.menu', 'admin.access', 'dashboard.view', 'categories.manage',
+            'brokers.manage', 'assignments.manage', 'users.manage', 'roles.manage',
+            'reports.view', 'customers.view_all', 'customers.assign', 'logs.view_all',
+            'notifications.view_all', 'settings.menu', 'portal.contracts.menu', 'portal.invoices.menu',
+          ];
+          parsed.role_label = parsed.role_label || 'Admin (Quản trị viên)';
+        } else if (Number(parsed.role_id) === 2) {
+          parsed.permissions = [
+            'account.view', 'profile.update', 'password.update', 'notifications.view',
+            'customers.manage', 'demands.manage', 'properties.menu', 'approvals.menu',
+            'listing-status.menu', 'property-types.menu', 'appointments.menu', 'contracts.menu',
+            'contract-documents.menu', 'invoices.menu', 'rent-management.menu', 'deposits.menu',
+            'payments.menu', 'admin.access',
+          ];
+          parsed.role_label = parsed.role_label || 'Broker (Môi giới)';
+        }
+      }
+      return parsed;
     } catch {
       return null;
     }

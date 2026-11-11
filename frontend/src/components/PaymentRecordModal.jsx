@@ -154,6 +154,12 @@ export default function PaymentRecordModal({
       }
     } catch (err) {
       const resp = err.response?.data;
+      // Nếu hóa đơn đang có sẵn mã QR chờ thanh toán còn hạn, mở luôn mã QR đó cho người dùng quét hoặc hủy
+      if (err.response?.status === 409 && resp?.data?.transaction_code && onOpenQrGenerated) {
+        onClose();
+        onOpenQrGenerated(resp.data, invoice);
+        return;
+      }
       if (resp?.errors) {
         setFieldErrors(resp.errors);
       }
