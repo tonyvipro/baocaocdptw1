@@ -57,15 +57,24 @@ export default function SharePopover({
     setIsOpen(false);
   };
 
-  const handleShareZalo = (e) => {
+  const handleShareZalo = async (e) => {
     e.stopPropagation();
     const shareUrl = getShareUrl();
     const title = getTitle();
     const priceText = property?.purpose === 'rent' ? (property?.price_rent_text || '') : (property?.price_sale_text || '');
-    const desc = `${title}${priceText ? ' - ' + priceText : ''} | 3TV Land`;
-    
-    const zaloUrl = `https://sp.zalo.me/plugins/share?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(title)}&desc=${encodeURIComponent(desc)}`;
-    window.open(zaloUrl, '_blank', 'noopener,noreferrer,width=600,height=550');
+    const fullText = `[3TV LAND] ${title}${priceText ? ' - Giá: ' + priceText : ''}\nXem chi tiết tại: ${shareUrl}`;
+
+    // Tự động sao chép sẵn thông tin và link vào Clipboard để người dùng dán ngay vào Zalo chat
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(fullText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }
+    } catch (err) {}
+
+    // Mở Zalo Web (chat.zalo.me) để người dùng chọn người nhận và nhấn Ctrl+V gửi ngay
+    window.open('https://chat.zalo.me/', '_blank', 'noopener,noreferrer,width=980,height=700');
     setIsOpen(false);
   };
 
