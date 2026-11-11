@@ -22,11 +22,15 @@ export default function CustomerWorkspace({ id, options, onClose, onEdit, onChan
   const [activityPage, setActivityPage] = useState(1);
   const [editingActivity, setEditingActivity] = useState(null);
   const [cancelId, setCancelId] = useState(null);
+  const [completingActivity, setCompletingActivity] = useState(null);
+  const [completeResult, setCompleteResult] = useState('');
   const [interaction, setInteraction] = useState({ type: 'call', summary: '', occurred_at: crmLocalTime() });
-  const [activity, setActivity] = useState({ type: 'call', title: '', scheduled_at: crmLocalTime(new Date(Date.now() + 86400000)) });
+  const [activity, setActivity] = useState({ type: 'call', title: '', scheduled_at: crmLocalTime(new Date(Date.now() + 86400000)), assigned_to: '' });
   const resetActivity = () => {
     setEditingActivity(null);
-    setActivity({ type: 'call', title: '', scheduled_at: crmLocalTime(new Date(Date.now() + 86400000)) });
+    setCompletingActivity(null);
+    setCompleteResult('');
+    setActivity({ type: 'call', title: '', scheduled_at: crmLocalTime(new Date(Date.now() + 86400000)), assigned_to: '' });
   };
 
   useEffect(() => {
@@ -43,8 +47,7 @@ export default function CustomerWorkspace({ id, options, onClose, onEdit, onChan
     try {
       const result = await customerRequest(`/${id}${path}`, { method, data });
       if (key === 'interaction') { setInteraction({ type: interaction.type, summary: '', occurred_at: crmLocalTime() }); setHistoryPage(1); }
-      if (key === 'activity') { resetActivity(); setActivityPage(1); }
-      if (key === `complete-${editingActivity}` || key === `cancel-${editingActivity}`) resetActivity();
+      if (key === 'activity' || key.startsWith('complete-') || key.startsWith('cancel-')) { resetActivity(); setActivityPage(1); }
       setCancelId(null);
       setRevision(value => value + 1);
       onChanged(result.message);
@@ -93,22 +96,153 @@ export default function CustomerWorkspace({ id, options, onClose, onEdit, onChan
         <section className="min-w-0 rounded-xl border border-slate-200">
           <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3"><CalendarClock size={17} className="text-amber-600" /><h3 className="text-sm font-bold text-slate-800">Kế hoạch chăm sóc</h3><span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{detail.activities.total}</span></div>
           <div className="p-4">
-            <form id="crm-activity-form" onSubmit={event => { event.preventDefault(); mutate('activity', editingActivity ? `/activities/${editingActivity}` : '/activities', editingActivity ? 'PATCH' : 'POST', { ...activity, scheduled_at: crmIsoTime(activity.scheduled_at), ...(editingActivity ? { version: customer.version } : {}) }); }} className="mb-5 space-y-3 rounded-xl bg-amber-50/60 p-3">
+            <form id="crm-activity-form" onSubmit={event => {
+              event.preventDefault();
+              const payload = {
+                ...activity,
+                scheduled_at: crmIsoTime(activity.scheduled_at),
+                assigned_to: activity.assigned_to ? Number(activity.assigned_to) : null,
+                ...(editingActivity ? { version: customer.version } : {}),
+              };
+              mutate('activity', editingActivity ? `/activities/${editingActivity}` : '/activities', editingActivity ? 'PATCH' : 'POST', payload);
+            }} className="mb-5 space-y-3 rounded-xl bg-amber-50/60 p-3">
               <p className="text-xs font-bold text-slate-700">{editingActivity ? 'Chỉnh sửa lịch chăm sóc' : 'Lên lịch hoạt động tiếp theo'}</p>
               <fieldset disabled={Boolean(busy) || loading} className="space-y-3">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="space-y-1 text-xs text-slate-500"><span>Hoạt động</span><select className={crmInput} value={activity.type} onChange={event => setActivity({ ...activity, type: event.target.value })}><CrmSelectOptions values={options.types} /></select></label><label className="space-y-1 text-xs text-slate-500"><span>Thời gian dự kiến</span><input type="datetime-local" required min={crmLocalTime()} value={activity.scheduled_at} onChange={event => setActivity({ ...activity, scheduled_at: event.target.value })} className={crmInput} /></label></div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label className="space-y-1 text-xs text-slate-500">
+                    <span>Hoạt động</span>
+                    <select className={crmInput} value={activity.type} onChange={event => setActivity({ ...activity, type: event.target.value })}>
+                      <CrmSelectOptions values={options.types} />
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-500">
+                    <span>Thời gian dự kiến</span>
+                    <input type="datetime-local" required min={crmLocalTime()} value={activity.scheduled_at} onChange={event => setActivity({ ...activity, scheduled_at: event.target.value })} className={crmInput} />
+                  </label>
+                  <label className="space-y-1 text-xs text-slate-500">
+                    <span>Người phụ trách</span>
+                    <select className={crmInput} value={activity.assigned_to || ''} onChange={event => setActivity({ ...activity, assigned_to: event.target.value })}>
+                      <option value="">-- Mặc định ({customer.assigned_to?.name || 'Môi giới phụ trách'}) --</option>
+                      {(options.assignees || []).map(u => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <label className="block space-y-1 text-xs text-slate-500"><span>Kế hoạch chăm sóc</span><textarea required maxLength={250} rows={2} value={activity.title} onChange={event => setActivity({ ...activity, title: event.target.value.slice(0, 250) })} placeholder="Ví dụ: Gửi 3 căn hộ phù hợp với ngân sách..." className={crmInput} /></label>
                 <div className="flex flex-wrap items-center gap-3"><button type="submit" className={crmButton}><Plus size={14} />{busy === 'activity' ? 'Đang lưu...' : editingActivity ? 'Lưu lịch chăm sóc' : 'Thêm lịch chăm sóc'}</button>{editingActivity && <button type="button" onClick={resetActivity} className="text-xs font-semibold text-slate-500">Bỏ chỉnh sửa</button>}</div>
               </fieldset>
             </form>
             <div className="space-y-3">{detail.activities.data.length === 0 && <p className="py-5 text-center text-sm text-slate-400">Chưa có kế hoạch chăm sóc tiếp theo.</p>}{detail.activities.data.map(item => <div key={item.id} className={`rounded-lg border p-3 ${isOverdue(item) ? 'border-rose-200 bg-rose-50/50' : 'border-slate-200'}`}>
               <div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-slate-600">{options.types[item.type]}</span><span className={`text-[11px] font-semibold ${item.status === 'completed' ? 'text-emerald-600' : item.status === 'cancelled' ? 'text-slate-400' : isOverdue(item) ? 'text-rose-600' : 'text-amber-600'}`}>{item.status === 'completed' ? 'Đã hoàn thành' : item.status === 'cancelled' ? 'Đã hủy' : isOverdue(item) ? 'Quá hạn' : 'Đang chờ'}</span></div>
-              <p className="my-2 break-words whitespace-pre-wrap text-sm text-slate-700">{item.title}</p><p className="flex items-center gap-1 text-xs text-slate-400"><Clock size={12} />{crmDate(item.scheduled_at)}</p>
-              {item.status === 'pending' ? <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button type="button" disabled={Boolean(busy) || loading} onClick={() => mutate(`complete-${item.id}`, `/activities/${item.id}/complete`, 'PATCH', { version: customer.version })} className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"><Check size={13} />{busy === `complete-${item.id}` ? 'Đang lưu...' : 'Hoàn thành'}</button>
-                <button type="button" disabled={Boolean(busy) || loading} onClick={() => { setEditingActivity(item.id); setActivity({ type: item.type, title: item.title, scheduled_at: crmLocalTime(new Date(item.scheduled_at)) }); document.getElementById('crm-activity-form')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }} className="rounded-md px-2 py-1.5 text-xs font-semibold text-blue-600">Sửa lịch</button>
-                {cancelId === item.id ? <><button type="button" disabled={Boolean(busy) || loading} onClick={() => mutate(`cancel-${item.id}`, `/activities/${item.id}/cancel`, 'PATCH', { version: customer.version })} className="rounded-md bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-600">Xác nhận hủy lịch</button><button type="button" disabled={Boolean(busy)} onClick={() => setCancelId(null)} className="text-xs text-slate-500">Giữ lịch</button></> : <button type="button" disabled={Boolean(busy) || loading} onClick={() => setCancelId(item.id)} className="rounded-md px-2 py-1.5 text-xs font-semibold text-slate-400">Hủy lịch</button>}
-              </div> : item.status === 'completed' && <p className="mt-2 text-[11px] text-emerald-600">Hoàn thành {crmDate(item.completed_at)}</p>}
+              <p className="my-2 break-words whitespace-pre-wrap text-sm text-slate-700">{item.title}</p>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                <span className="flex items-center gap-1"><Clock size={12} />{crmDate(item.scheduled_at)}</span>
+                {(item.assignedTo?.name || item.assigned_to?.name) && (
+                  <span className="flex items-center gap-1 text-slate-500"><UserRound size={12} />Phụ trách: {item.assignedTo?.name || item.assigned_to?.name}</span>
+                )}
+              </div>
+              {item.status === 'pending' ? (
+                completingActivity === item.id ? (
+                  <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 space-y-2">
+                    <p className="text-xs font-semibold text-emerald-800">Ghi nhận kết quả chăm sóc (tự động lưu vào lịch sử tương tác):</p>
+                    <input
+                      type="text"
+                      maxLength={250}
+                      value={completeResult}
+                      onChange={e => setCompleteResult(e.target.value.slice(0, 250))}
+                      placeholder="Nhập kết quả/ghi chú trao đổi với khách hàng (tùy chọn)..."
+                      className={crmInput + ' bg-white text-xs'}
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={Boolean(busy) || loading}
+                        onClick={() => {
+                          mutate(`complete-${item.id}`, `/activities/${item.id}/complete`, 'PATCH', {
+                            version: customer.version,
+                            result: completeResult.trim() || null,
+                          });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+                      >
+                        <Check size={13} />
+                        {busy === `complete-${item.id}` ? 'Đang lưu...' : 'Xác nhận hoàn thành'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCompletingActivity(null); setCompleteResult(''); }}
+                        className="text-xs text-slate-500 hover:text-slate-700"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={Boolean(busy) || loading}
+                      onClick={() => { setCompletingActivity(item.id); setCompleteResult(''); setCancelId(null); }}
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-40"
+                    >
+                      <Check size={13} /> Hoàn thành
+                    </button>
+                    <button
+                      type="button"
+                      disabled={Boolean(busy) || loading}
+                      onClick={() => {
+                        setEditingActivity(item.id);
+                        setActivity({
+                          type: item.type,
+                          title: item.title,
+                          scheduled_at: crmLocalTime(new Date(item.scheduled_at)),
+                          assigned_to: item.assigned_to || item.assignedTo?.id || '',
+                        });
+                        setCompletingActivity(null);
+                        document.getElementById('crm-activity-form')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                      }}
+                      className="rounded-md px-2 py-1.5 text-xs font-semibold text-blue-600"
+                    >
+                      Sửa lịch
+                    </button>
+                    {cancelId === item.id ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={Boolean(busy) || loading}
+                          onClick={() => mutate(`cancel-${item.id}`, `/activities/${item.id}/cancel`, 'PATCH', { version: customer.version })}
+                          className="rounded-md bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-600"
+                        >
+                          Xác nhận hủy lịch
+                        </button>
+                        <button
+                          type="button"
+                          disabled={Boolean(busy)}
+                          onClick={() => setCancelId(null)}
+                          className="text-xs text-slate-500"
+                        >
+                          Giữ lịch
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={Boolean(busy) || loading}
+                        onClick={() => { setCancelId(item.id); setCompletingActivity(null); }}
+                        className="rounded-md px-2 py-1.5 text-xs font-semibold text-slate-400"
+                      >
+                        Hủy lịch
+                      </button>
+                    )}
+                  </div>
+                )
+              ) : item.status === 'completed' && (
+                <div className="mt-2 text-[11px] text-emerald-600">
+                  <span>Hoàn thành {crmDate(item.completed_at)}</span>
+                  {item.result && <span className="ml-1 text-slate-600 font-medium">· Kết quả: {item.result}</span>}
+                </div>
+              )}
             </div>)}</div>
             <SmallPager data={detail.activities} onPage={setActivityPage} />
           </div>

@@ -5,11 +5,24 @@ import { demandBudget, demandDigits, demandRequest } from '../../services/demand
 import { customerRequest } from '../../services/customers';
 import { crmInput, crmButton, CrmError, CrmSelectOptions } from '../customers/CrmDialog';
 
-export default function DemandForm({ demand, options, busy, onBusy, onClose, onSaved }) {
+export default function DemandForm({ demand, options = {}, busy, onBusy, onClose, onSaved }) {
   const confirm = useConfirm();
   const id = useId();
-  const [form, setForm] = useState(() => ({ customer_id: demand?.customer_id || '', property_type_id: demand?.property_type_id || '',
-    budget_min: demand?.budget_min ?? '', budget_max: demand?.budget_max ?? '', area: demand?.area || '', status: demand?.status || 'processing', notes: demand?.notes || '' }));
+  const [form, setForm] = useState(() => ({
+    customer_id: demand?.customer_id || '',
+    property_type_id: demand?.property_type_id || '',
+    category_id: demand?.category_id || '',
+    province_id: demand?.province_id || '',
+    district_id: demand?.district_id || '',
+    ward_id: demand?.ward_id || '',
+    bedrooms: demand?.bedrooms ?? '',
+    bathrooms: demand?.bathrooms ?? '',
+    budget_min: demand?.budget_min ?? '',
+    budget_max: demand?.budget_max ?? '',
+    area: demand?.area || '',
+    status: demand?.status || 'processing',
+    notes: demand?.notes || ''
+  }));
   const [customerSearch, setCustomerSearch] = useState('');
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(demand?.customer || null);
@@ -42,16 +55,27 @@ export default function DemandForm({ demand, options, busy, onBusy, onClose, onS
     if (Boolean(demand) && !(await confirm({ title: 'Xác nhận cập nhật', message: "Lưu các thay đổi của nhu cầu này?" }))) return;
     onBusy(true);
     try {
-      const result = await demandRequest(demand ? '/' + demand.id : '', { method: demand ? 'PUT' : 'POST',
-        data: { ...form, customer_id: Number(form.customer_id), property_type_id: Number(form.property_type_id), ...(demand ? { version: demand.version } : {}) } });
+      const payload = {
+        ...form,
+        customer_id: Number(form.customer_id),
+        property_type_id: form.property_type_id ? Number(form.property_type_id) : null,
+        category_id: form.category_id ? Number(form.category_id) : null,
+        province_id: form.province_id ? Number(form.province_id) : null,
+        district_id: form.district_id ? Number(form.district_id) : null,
+        ward_id: form.ward_id ? Number(form.ward_id) : null,
+        bedrooms: form.bedrooms !== '' ? Number(form.bedrooms) : null,
+        bathrooms: form.bathrooms !== '' ? Number(form.bathrooms) : null,
+        ...(demand ? { version: demand.version } : {})
+      };
+      const result = await demandRequest(demand ? '/' + demand.id : '', { method: demand ? 'PUT' : 'POST', data: payload });
       onSaved(result.message);
     } catch (err) { setError(err.message); setErrors(err.fields || {}); }
     finally { onBusy(false); }
   };
   const fieldError = name => errors[name] && <span id={id + name + '-error'} className="block text-xs text-rose-600">{errors[name][0]}</span>;
-  const textField = (name, label, money = false) => <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
-    <span>{label} <span className="text-rose-500">*</span></span>
-    <input name={name} type="text" required maxLength={money ? 15 : 250} {...(money ? { inputMode: 'numeric', pattern: '[0-9]{1,15}', title: 'Chỉ nhập số tiền VNĐ, tối đa 15 chữ số' } : {})}
+  const textField = (name, label, money = false, required = true) => <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+    <span>{label} {required && <span className="text-rose-500">*</span>}</span>
+    <input name={name} type="text" required={required} maxLength={money ? 15 : 250} {...(money ? { inputMode: 'numeric', pattern: '[0-9]{1,15}', title: 'Chỉ nhập số tiền VNĐ, tối đa 15 chữ số' } : {})}
       value={form[name]} onChange={change} className={crmInput} aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? id + name + '-error' : undefined} />
     {fieldError(name)}
   </label>;
@@ -78,16 +102,65 @@ export default function DemandForm({ demand, options, busy, onBusy, onClose, onS
       <label className="space-y-1.5 text-xs font-semibold text-slate-600"><span>Loại BĐS <span className="text-rose-500">*</span></span>
         <select required name="property_type_id" value={form.property_type_id} onChange={change} className={crmInput} aria-invalid={Boolean(errors.property_type_id)}>
           <option value="">Chọn loại bất động sản</option>
-          {options.property_types.filter(type => Number(type.status) === 1 || type.id === demand?.property_type_id).map(type => <option key={type.id} value={type.id}>{type.name}{Number(type.status) !== 1 ? ' (Ngừng hoạt động)' : ''}</option>)}
+          {options.property_types?.filter(type => Number(type.status) === 1 || type.id === demand?.property_type_id).map(type => <option key={type.id} value={type.id}>{type.name}{Number(type.status) !== 1 ? ' (Ngừng hoạt động)' : ''}</option>)}
         </select>{fieldError('property_type_id')}
       </label>
+      {options.categories?.length > 0 && <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+        <span>Danh mục BĐS (ghép tự động)</span>
+        <select name="category_id" value={form.category_id} onChange={change} className={crmInput}>
+          <option value="">Tất cả danh mục BĐS</option>
+          {options.categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+        </select>{fieldError('category_id')}
+      </label>}
       <label className="space-y-1.5 text-xs font-semibold text-slate-600"><span>Trạng thái <span className="text-rose-500">*</span></span>
         <select required name="status" value={form.status} onChange={change} className={crmInput} aria-invalid={Boolean(errors.status)}><CrmSelectOptions values={options.statuses} /></select>{fieldError('status')}
       </label>
       {textField('budget_min', 'Ngân sách từ (VNĐ)', true)}{textField('budget_max', 'Ngân sách đến (VNĐ)', true)}
       {form.budget_min !== '' && form.budget_max !== '' && <p className="text-xs text-slate-500 sm:col-span-2">{demandBudget(form.budget_min, form.budget_max)}</p>}
-      <div className="sm:col-span-2">{textField('area', 'Khu vực cần tìm')}</div>
-      <label className="space-y-1.5 text-xs font-semibold text-slate-600 sm:col-span-2"><span>Ghi chú / Yêu cầu chi tiết</span>
+
+      {/* Khu vực có cấu trúc (bảng tham chiếu để ghép tự động) */}
+      {options.provinces?.length > 0 && <div className="space-y-3 sm:col-span-2 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+        <p className="text-xs font-bold text-slate-700">Khu vực tìm kiếm (ghép tự động theo địa giới)</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="space-y-1 text-xs font-semibold text-slate-600">
+            <span>Tỉnh / Thành phố</span>
+            <select name="province_id" value={form.province_id} onChange={change} className={crmInput}>
+              <option value="">Tất cả tỉnh / thành</option>
+              {options.provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>{fieldError('province_id')}
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-600">
+            <span>Quận / Huyện</span>
+            <select name="district_id" value={form.district_id} onChange={change} className={crmInput}>
+              <option value="">Tất cả quận / huyện</option>
+              {options.districts?.filter(d => !form.province_id || Number(d.province_id) === Number(form.province_id)).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>{fieldError('district_id')}
+          </label>
+          <label className="space-y-1 text-xs font-semibold text-slate-600">
+            <span>Phường / Xã</span>
+            <select name="ward_id" value={form.ward_id} onChange={change} className={crmInput}>
+              <option value="">Tất cả phường / xã</option>
+              {options.wards?.filter(w => !form.district_id || Number(w.district_id) === Number(form.district_id)).map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>{fieldError('ward_id')}
+          </label>
+        </div>
+      </div>}
+
+      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+        <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+          <span>Số phòng ngủ (tối thiểu)</span>
+          <input name="bedrooms" type="number" min="0" max="100" placeholder="VD: 2" value={form.bedrooms} onChange={change} className={crmInput} />
+          {fieldError('bedrooms')}
+        </label>
+        <label className="space-y-1.5 text-xs font-semibold text-slate-600">
+          <span>Số phòng tắm (tối thiểu)</span>
+          <input name="bathrooms" type="number" min="0" max="100" placeholder="VD: 1" value={form.bathrooms} onChange={change} className={crmInput} />
+          {fieldError('bathrooms')}
+        </label>
+      </div>
+
+      <div className="sm:col-span-2">{textField('area', 'Khu vực cần tìm (tùy chọn / chuỗi nhập nhanh)', false, false)}</div>
+      <label className="space-y-1.5 text-xs font-semibold text-slate-600 sm:col-span-2"><span>Ghi chú / Yêu cầu chi tiết (tùy chọn)</span>
         <textarea name="notes" rows={3} maxLength={250} value={form.notes} onChange={change} className={crmInput} aria-invalid={Boolean(errors.notes)} />
         <span className="block text-right text-[11px] font-normal text-slate-400">{form.notes.length}/250</span>{fieldError('notes')}
       </label>

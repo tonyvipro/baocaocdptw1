@@ -879,17 +879,25 @@ class DepositService
     {
         try {
             if (Schema::hasTable('activity_logs')) {
-                DB::table('activity_logs')->insert([
+                $actor = $userId ? \App\Models\User::find($userId) : null;
+                $snapshot = \App\Models\ActivityLog::extractActorSnapshot($actor);
+                DB::table('activity_logs')->insert(array_merge([
                     'user_id' => $userId,
                     'action' => $action,
                     'table_name' => 'contract_deposits',
                     'record_id' => $recordId,
                     'old_data' => $oldData ? json_encode($oldData, JSON_UNESCAPED_UNICODE) : null,
                     'new_data' => $newData ? json_encode($newData, JSON_UNESCAPED_UNICODE) : null,
+                    'subject_snapshot' => json_encode(['table' => 'contract_deposits', 'id' => $recordId]),
                     'ip_address' => request()?->ip(),
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ], [
+                    'actor_id' => $snapshot['actor_id'],
+                    'actor_name' => $snapshot['actor_name'],
+                    'actor_role' => $snapshot['actor_role'],
+                    'actor_snapshot' => $snapshot['actor_snapshot'] ? json_encode($snapshot['actor_snapshot'], JSON_UNESCAPED_UNICODE) : null,
+                ]));
             }
         } catch (\Throwable $e) {
             Log::warning("Không thể ghi activity_logs cho action {$action}: " . $e->getMessage());

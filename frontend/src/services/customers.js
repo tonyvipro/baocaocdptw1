@@ -26,3 +26,22 @@ export const crmDate = (value, withTime = true) => value
 export const crmLocalTime = (date = new Date()) => date.toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).replace(' ', 'T').slice(0, 16);
 export const crmIsoTime = value => new Date(`${value}:00+07:00`).toISOString();
 export const isOverdue = activity => activity?.status === 'pending' && new Date(activity.scheduled_at).getTime() < Date.now();
+
+export function normalizeCrmPhone(phone) {
+  if (!phone) return '';
+  let cleaned = phone.replace(/[\s\.\-\(\)]+/g, '').trim();
+  if (cleaned.startsWith('+84')) cleaned = '0' + cleaned.slice(3);
+  else if (/^84([35789]\d{8})$/.test(cleaned)) cleaned = '0' + cleaned.slice(2);
+  return cleaned.replace(/\D/g, '').slice(0, 11);
+}
+
+export async function checkCustomerDuplicates(data) {
+  return customerRequest('/check-duplicates', { method: 'POST', data });
+}
+
+export async function mergeCustomers(primaryId, secondaryId, reason = '') {
+  return customerRequest('/merge', {
+    method: 'POST',
+    data: { primary_id: Number(primaryId), secondary_id: Number(secondaryId), reason },
+  });
+}

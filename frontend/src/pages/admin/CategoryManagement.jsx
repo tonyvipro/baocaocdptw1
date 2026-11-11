@@ -58,6 +58,7 @@ export default function CategoryManagement() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [reassignCategoryId, setReassignCategoryId] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -225,6 +226,7 @@ export default function CategoryManagement() {
       return;
     }
     setCategoryToDelete(cat);
+    setReassignCategoryId('');
     setShowAddEditModal(false); setShowDetailModal(false);
     setShowDeleteModal(true);
   };
@@ -304,12 +306,21 @@ export default function CategoryManagement() {
       return;
     }
 
+    if (Number(categoryToDelete.properties_count) > 0 && !reassignCategoryId) {
+      showToast(`Danh mục này đang có ${categoryToDelete.properties_count} BĐS. Vui lòng chọn danh mục chuyển tiếp trước khi xóa.`, 'error');
+      return;
+    }
+
     setActionLoading(true);
     try {
       const token = localStorage.getItem('3tv_token') || '';
+      const bodyPayload = {
+        version: categoryToDelete.version,
+        ...(reassignCategoryId ? { reassign_to_category_id: Number(reassignCategoryId) } : {})
+      };
       const res = await fetch(`/api/categories/${categoryToDelete.id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ version: categoryToDelete.version }),
+        body: JSON.stringify(bodyPayload),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -322,8 +333,10 @@ export default function CategoryManagement() {
         throw new Error(resData.message || 'Lỗi khi xóa danh mục');
       }
 
-      showToast(`Đã xóa danh mục "${categoryToDelete.name}" thành công!`, 'success');
+      showToast(resData.message || `Đã xóa danh mục "${categoryToDelete.name}" thành công!`, 'success');
       setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      setReassignCategoryId('');
 
       // Phát tín hiệu đồng bộ đa tab
       broadcastDataChange({
@@ -333,7 +346,6 @@ export default function CategoryManagement() {
         name: categoryToDelete.name,
       });
 
-      setCategoryToDelete(null);
       if (categories.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
@@ -426,10 +438,10 @@ export default function CategoryManagement() {
           </span>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Quản Lý Danh Mục
+              Quản Lý Danh Mục Bất Động Sản
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Quản lý các loại hình bất động sản, phân loại dữ liệu và cấu hình hiển thị toàn hệ thống
+            <p className="text-xs text-slate-500 mt-0.5">
+              Mục đích: Danh mục loại hình BĐS dùng để phân nhóm tài sản trên sàn, liên kết trực tiếp với tin đăng BĐS và thống kê tỷ trọng báo cáo
             </p>
           </div>
         </div>
@@ -983,24 +995,54 @@ export default function CategoryManagement() {
             <h3 className="text-base font-bold text-slate-900 mb-2">
               Xác Nhận Xóa Danh Mục?
             </h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Bạn có chắc chắn muốn xóa danh mục <span className="font-bold text-slate-900">"{categoryToDelete.name}"</span> ({categoryToDelete.code || categoryToDelete.id})? Bản ghi sẽ được xóa khỏi cơ sở dữ liệu.
-            </p>
+            {Number(categoryToDelete.properties_count) > 0 ? (
+              <div className="text-left my-4">
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl mb-3">
+                  <div className="flex items-center gap-2 text-amber-800 text-xs font-bold mb-1">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Có {categoryToDelete.properties_count} BĐS đang thuộc danh mục này</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    Hệ thống chặn xóa danh mục có BĐS trực thuộc. Vui lòng chọn danh mục thay thế để chuyển toàn bộ các BĐS này trước khi xóa:
+                  </p>
+                </div>
+
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Chuyển sang danh mục mới: <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reassignCategoryId}
+                  onChange={(e) => setReassignCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-red-500 font-medium"
+                >
+                  <option value="">-- Chọn danh mục nhận BĐS (Bắt buộc) --</option>
+                  {categories.filter(c => c.id !== categoryToDelete.id).map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code || 'CAT-' + c.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 mb-6">
+                Bạn có chắc chắn muốn xóa danh mục <span className="font-bold text-slate-900">"{categoryToDelete.name}"</span> ({categoryToDelete.code || categoryToDelete.id})? Bản ghi sẽ được xóa khỏi cơ sở dữ liệu.
+              </p>
+            )}
 
             <div className="flex items-center justify-center gap-3">
               <button
-                onClick={() => { setShowDeleteModal(false); setCategoryToDelete(null); }}
-                className="px-4 py-2 bg-slate-50 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                onClick={() => { setShowDeleteModal(false); setCategoryToDelete(null); setReassignCategoryId(''); }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 onClick={handleConfirmDelete}
-                disabled={actionLoading || conflictLocked}
+                disabled={actionLoading || conflictLocked || (Number(categoryToDelete.properties_count) > 0 && !reassignCategoryId)}
                 className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-rose-900/40 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {actionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>Đồng ý xóa</span>
+                <span>{Number(categoryToDelete.properties_count) > 0 ? 'Chuyển BĐS & Xóa' : 'Đồng ý xóa'}</span>
               </button>
             </div>
           </div>

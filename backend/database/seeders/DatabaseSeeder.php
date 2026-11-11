@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Enums\Role as RoleEnum;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -17,13 +18,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Roles (Spec 4.2.1.2)
-        $roles = [
-            ['id' => 1, 'name' => 'Admin', 'description' => 'Quản trị viên toàn quyền hệ thống'],
-            ['id' => 2, 'name' => 'BĐS', 'description' => 'Môi giới BĐS - Quyền đăng và quản lý tin'],
-            ['id' => 3, 'name' => 'Owner', 'description' => 'Chủ sở hữu - Quyền sở hữu và xem báo cáo'],
-            ['id' => 4, 'name' => 'Staff', 'description' => 'Nhân viên - Quyền quản lý hệ thống hạn chế'],
-            ['id' => 5, 'name' => 'Customer', 'description' => 'Khách hàng - Xem, tìm kiếm, lưu tin, đặt lịch hẹn'],
-        ];
+        $roles = array_map(fn (RoleEnum $role) => [
+            'id' => $role->value, 'name' => $role->databaseName(), 'description' => $role->description(),
+        ], RoleEnum::cases());
 
         foreach ($roles as $role) {
             DB::table('roles')->updateOrInsert(['id' => $role['id']], array_merge($role, [

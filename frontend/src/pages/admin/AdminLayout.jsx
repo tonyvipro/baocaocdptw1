@@ -28,6 +28,7 @@ import { ClipboardList } from 'lucide-react';
 import NotificationBell from '../../components/NotificationBell';
 import NotificationsPage from '../NotificationsPage';
 import { Bell } from 'lucide-react';
+import { hasPermission, canOpenAdminMenu, firstAdminMenu } from '../../utils/permissions';
 
 // Giang's nine admin screens cover management, reporting and CRM features.
 const GIANG_MENUS = new Set(['dashboard', 'categories', 'brokers', 'customers', 'demands', 'notifications', 'users', 'roles', 'reports']);
@@ -96,6 +97,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
 
   // Tải số lượng tin chờ duyệt cho badge sidebar
   useEffect(() => {
+    if (!hasPermission(currentUser, 'approvals.menu') || !hasPermission(currentUser, 'admin.access')) return;
     const fetchPendingCount = async () => {
       try {
         const token = localStorage.getItem('3tv_token') || '';
@@ -114,38 +116,39 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
     fetchPendingCount();
     const interval = setInterval(fetchPendingCount, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser]);
 
   // 1. Phân quyền hiển thị Menu bên trái
   const getMenuItems = () => {
     const items = [
-      { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: [1, 2] },
-      { id: 'categories', label: 'Quản lý Danh mục', icon: Layers, roles: [1, 2] },
-      { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck, roles: [1, 2] },
-      { id: 'customers', label: 'Quản lý khách hàng', icon: Users, roles: [1, 2] },
-      { id: 'demands', label: 'Quản lý nhu cầu', icon: ClipboardList, roles: [1, 2] },
-      { id: 'notifications', label: 'Thông báo & Nhật ký', icon: Bell, roles: [1, 2] },
-      { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount, roles: [1, 2] },
-      { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal, roles: [1, 2] },
-      { id: 'property-types', label: 'Phân loại Bất Động Sản', icon: Layers, roles: [1, 2] },
-      { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2, roles: [1, 2] },
-      { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar, roles: [1, 2] },
-      { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText, roles: [1, 2] },
-      { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen, roles: [1, 2] },
-      { id: 'invoices', label: 'Quản lý Hóa đơn', icon: Receipt, roles: [1, 2] },
-      { id: 'rent-management', label: 'Quản lý tiền thuê', icon: DollarSign, roles: [1, 2] },
-      { id: 'deposits', label: 'Quản lý tiền cọc', icon: Wallet, roles: [1, 2] },
-      { id: 'payments', label: 'Quản lý thanh toán', icon: CreditCard, roles: [1, 2] },
-      { id: 'users', label: 'Quản lý Người Dùng', icon: Users, roles: [1] }, // Chỉ admin
-      { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound, roles: [1] }, // Chuẩn Hình 11
-      { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings, roles: [1] }, // Chỉ admin
-      { id: 'reports', label: 'Báo cáo thống kê', icon: BarChart3, roles: [1] }, // Chỉ admin
+      { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+      { id: 'categories', label: 'Quản lý Danh mục', icon: Layers },
+      { id: 'brokers', label: 'Quản lý Môi giới & Phân công', icon: UserCheck },
+      { id: 'customers', label: 'Quản lý khách hàng', icon: Users },
+      { id: 'demands', label: 'Quản lý nhu cầu', icon: ClipboardList },
+      { id: 'notifications', label: 'Thông báo & Nhật ký', icon: Bell },
+      { id: 'approvals', label: 'Duyệt Tin Đăng', icon: ShieldCheck, badgeCount: pendingCount },
+      { id: 'listing-status', label: 'Quản Lý Trạng Thái Tin', icon: SlidersHorizontal },
+      { id: 'property-types', label: 'Phân loại Bất Động Sản', icon: Layers },
+      { id: 'properties', label: 'Quản lý Bất Động Sản', icon: Building2 },
+      { id: 'appointments', label: 'Quản lý Lịch Hẹn', icon: Calendar },
+      { id: 'contracts', label: 'Quản lý Hợp Đồng', icon: FileText },
+      { id: 'contract-documents', label: 'Quản lý Tài liệu Hợp đồng', icon: FolderOpen },
+      { id: 'invoices', label: 'Quản lý Hóa đơn', icon: Receipt },
+      { id: 'rent-management', label: 'Quản lý tiền thuê', icon: DollarSign },
+      { id: 'deposits', label: 'Quản lý tiền cọc', icon: Wallet },
+      { id: 'payments', label: 'Quản lý thanh toán', icon: CreditCard },
+      { id: 'users', label: 'Quản lý Người Dùng', icon: Users }, // Chỉ admin
+      { id: 'roles', label: 'Gán vai trò (Phân quyền)', icon: KeyRound }, // Chuẩn Hình 11
+      { id: 'settings', label: 'Cài đặt hệ thống', icon: Settings }, // Chỉ admin
+      { id: 'reports', label: 'Báo cáo thống kê', icon: BarChart3 }, // Chỉ admin
     ];
 
-    return items.filter(item => item.roles.includes(currentUser?.role_id));
+    return items.filter(item => canOpenAdminMenu(currentUser, item.id));
   };
 
   const menuItems = getMenuItems();
+  const menuAllowed = canOpenAdminMenu(currentUser, activeMenu);
 
   return (
     <div className="admin-shell flex h-dvh w-full bg-slate-50 overflow-hidden font-sans">
@@ -198,7 +201,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
           <div className="flex-1 overflow-hidden">
             <p className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">{currentUser?.name}</p>
             <p className="text-[11px] text-emerald-400 font-semibold truncate">
-              {currentUser?.role_id === 1 ? 'Quản Trị Viên (Admin)' : 'Môi Giới (Broker)'}
+              {currentUser?.role_label || 'Chưa phân quyền'}
             </p>
           </div>
         </div>
@@ -292,12 +295,22 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
 
         {/* Dynamic Page Content */}
         <div className={`admin-page-content min-w-0 flex-1 overflow-auto p-3 sm:p-5 lg:p-6 ${GIANG_MENUS.has(activeMenu) ? 'giang-workspace' : ''}`}>
+          {!menuAllowed ? (
+            <div role="alert" className="border border-slate-200 bg-white p-6 text-sm text-slate-700">
+              <p>Bạn không có quyền truy cập chức năng này.</p>
+              {firstAdminMenu(currentUser) && (
+                <button type="button" className="mt-3 font-semibold underline" onClick={() => handleSelectMenu(firstAdminMenu(currentUser))}>
+                  Mở chức năng được phép
+                </button>
+              )}
+            </div>
+          ) : <>
           {activeMenu === 'dashboard' && <DashboardOverview />}
           {activeMenu === 'demands' && <DemandManagement key={currentUser?.id || 'guest'} currentUser={currentUser} />}
           {activeMenu === 'notifications' && <NotificationsPage key={currentUser?.id || 'guest'} currentUser={currentUser} embedded />}
           {activeMenu === 'categories' && <CategoryManagement />}
           {activeMenu === 'brokers' && <BrokerManagement />}
-          {activeMenu === 'customers' && (currentUser && [1, 2].includes(Number(currentUser.role_id)) ? <CustomerManagement currentUser={currentUser} /> : <p className="text-sm text-slate-500">Vui lòng đăng nhập bằng tài khoản Admin hoặc Môi giới để quản lý khách hàng.</p>)}
+          {activeMenu === 'customers' && <CustomerManagement currentUser={currentUser} />}
           {activeMenu === 'approvals' && <ListingApprovalsManager />}
           {activeMenu === 'listing-status' && <ListingStatusManager />}
           {activeMenu === 'property-types' && <PropertyTypesManager />}
@@ -355,6 +368,7 @@ export default function AdminLayout({ currentUser, onLogout, onExitAdmin, onOpen
               <p className="text-sm">Chức năng {menuItems.find(i => i.id === activeMenu)?.label} sẽ được cập nhật trong phiên bản tới.</p>
             </div>
           )}
+          </>}
         </div>
       </main>
     </div>

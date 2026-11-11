@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
+use App\Services\RevenueStatsService;
 
 class DashboardController extends Controller
 {
+    protected RevenueStatsService $revenueService;
+
+    public function __construct(RevenueStatsService $revenueService)
+    {
+        $this->revenueService = $revenueService;
+    }
+
     /**
      * API Tổng quan Dashboard (Real-time tracking từ Database)
      */
@@ -16,12 +24,7 @@ class DashboardController extends Controller
     {
         // Cache nhẹ 10 giây để tăng tốc độ phản hồi tối đa mà vẫn cập nhật tức thì khi có biến động
         $data = Cache::remember('dashboard_overview_data', 10, function () {
-            $now = Carbon::now();
-            $startOfMonth = $now->copy()->startOfMonth();
-            $endOfMonth = $now->copy()->endOfMonth();
-
-            $startOfPrevMonth = $now->copy()->subMonth()->startOfMonth();
-            $endOfPrevMonth = $now->copy()->subMonth()->endOfMonth();
+            $now = $this->revenueService->now();
 
             // 1. Thẻ 1: Căn hộ đang thuê & Tổng số căn
             $totalProperties = DB::table('properties')->whereNull('deleted_at')->count();
@@ -46,37 +49,14 @@ class DashboardController extends Controller
                 ->limit(5)
                 ->get();
 
-            // 3. Thẻ 3: Tổng thu tháng này (Invoices đã thanh toán trong tháng hiện tại)
-            $currentMonthRevenue = (float) DB::table('invoices')
-                ->where('status', 1)
-                ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-                ->sum('amount');
+            // 3. Thẻ 3: Tổng thu tháng này (Thực thu trong tháng theo ngày paid_at, timezone Asia/Ho_Chi_Minh [startOfMonth, startOfNextMonth))
+            $currentMonthRevenue = $this->revenueService->getCurrentMonthRevenue($now);
 
             // 4. Thẻ 4: Doanh thu so với tháng trước (% tăng trưởng và chuỗi mini line sparkline)
-            $prevMonthRevenue = (float) DB::table('invoices')
-                ->where('status', 1)
-                ->whereBetween('created_at', [$startOfPrevMonth, $endOfPrevMonth])
-                ->sum('amount');
-
-            if ($prevMonthRevenue > 0) {
-                $growthRate = round((($currentMonthRevenue - $prevMonthRevenue) / $prevMonthRevenue) * 100, 1);
-            } else {
-                $growthRate = $currentMonthRevenue > 0 ? 100.0 : 0.0;
-            }
-
-            // Chuỗi dữ liệu 6 tháng gần nhất để vẽ biểu đồ đường xu hướng mini (Sparkline)
-            $sparklineData = [];
-            $sparklineLabels = [];
-            for ($i = 5; $i >= 0; $i--) {
-                $m = $now->copy()->subMonths($i);
-                $sparklineLabels[] = 'T' . $m->format('m');
-                $mRev = (float) DB::table('invoices')
-                    ->where('status', 1)
-                    ->whereYear('created_at', $m->year)
-                    ->whereMonth('created_at', $m->month)
-                    ->sum('amount');
-                $sparklineData[] = $mRev;
-            }
+            $growthRate = $this->revenueService->getMonthGrowthRate($now);
+            $sparkline = $this->revenueService->getMonthlySparkline(6, $now);
+            $sparklineLabels = $sparkline['labels'];
+            $sparklineData = $sparkline['data'];
 
             // 5. Thẻ 5: Hợp đồng sắp hết hạn (trong vòng 30 ngày tới)
             $expiringContracts = DB::table('contracts')
@@ -180,34 +160,10 @@ class DashboardController extends Controller
             ]);
         }
 
-        // 2. Thanh toán / Hóa đơn đã thanh toán gần đây
-        $recentInvoices = DB::table('invoices')
-            ->leftJoin('contracts', 'invoices.contract_id', '=', 'contracts.id')
-            ->leftJoin('users', 'contracts.customer_id', '=', 'users.id')
-            ->select(
-                'invoices.id',
-                'invoices.title',
-                'invoices.amount',
-                'invoices.status',
-                'invoices.created_at',
-                'users.name as customer_name'
-            )
-            ->where('invoices.status', 1)
-            ->orderBy('invoices.created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        foreach ($recentInvoices as $inv) {
-            $payer = $inv->customer_name ? $inv->customer_name : 'Khách hàng';
-            $activities->push([
-                'type' => 'PAYMENT',
-                'badge' => 'Thanh toán nhận',
-                'badge_color' => 'emerald',
-                'content' => 'Thanh toán nhận: ' . $payer . ' - ' . $inv->title,
-                'detail' => number_format($inv->amount, 0, ',', '.') . ' VNĐ',
-                'created_at' => $inv->created_at,
-                'time_formatted' => Carbon::parse($inv->created_at)->format('d/m/Y H:i'),
-            ]);
+        // 2. Thanh toán / Hóa đơn đã thanh toán gần đây (Dựa theo ngày thu tiền thực tế paid_at)
+        $paymentActivities = $this->revenueService->getRecentPayments(5);
+        foreach ($paymentActivities as $payment) {
+            $activities->push($payment);
         }
 
         // 3. Yêu cầu bảo trì / sửa chữa gần đây

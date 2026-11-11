@@ -7,6 +7,14 @@ use App\Http\Controllers\ContractDocumentController;
 use App\Http\Controllers\CustomerContractController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyInvoiceController;
+use App\Http\Controllers\{AuthController, UserController, CategoryController, BrokerController,
+    CustomerController, CustomerDemandController, NotificationController, DashboardController, ReportController};
+use App\Http\Middleware\{ManagementAccess, RequireRecordVersion};
+
+// Registration also starts a web session for the existing SPA login flow.
+Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register'])
+    ->middleware('web');
+Route::post('/login', [AuthController::class, 'login'])->middleware('web');
 
 Route::get('/search/properties', \App\Http\Controllers\PropertySearchController::class)
     ->middleware('throttle:120,1');
@@ -17,10 +25,101 @@ use App\Http\Controllers\Api\MetaController;
 
 // Public Metadata API
 Route::get('/meta/field-limits', [MetaController::class, 'fieldLimits']);
+Route::get('/categories/options', [CategoryController::class, 'options']);
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Giang's protected APIs. Web middleware preserves the existing SPA session/audit flow.
+Route::middleware(['web', 'auth:sanctum'])->group(function () {
+    Route::middleware(ManagementAccess::class.':account.view')->group(function () {
+        Route::get('/user', function (Request $request) {
+            $user = $request->user();
+            return response()->json([...$user->toArray(), ...$user->accessData()]);
+        });
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    });
+    Route::post('/profile', [AuthController::class, 'updateProfile'])
+        ->middleware([ManagementAccess::class.':profile.update', RequireRecordVersion::class.':users']);
+    Route::post('/change-password', [AuthController::class, 'changePassword'])
+        ->middleware([ManagementAccess::class.':password.update', RequireRecordVersion::class.':users']);
+
+    Route::middleware(ManagementAccess::class.':users.manage')->group(function () {
+        Route::get('/unit-options', [UserController::class, 'unitOptions']);
+        Route::get('/users/unit-options', [UserController::class, 'unitOptions']);
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{id}', [UserController::class, 'show'])->whereNumber('id');
+        Route::post('/users', [UserController::class, 'store']);
+        Route::put('/users/{id}', [UserController::class, 'update'])->whereNumber('id')->middleware(RequireRecordVersion::class.':users');
+        Route::delete('/users/{id}', [UserController::class, 'destroy'])->whereNumber('id')->middleware(RequireRecordVersion::class.':users');
+    });
+    Route::middleware(ManagementAccess::class.':roles.manage')->group(function () {
+        Route::get('/roles', [UserController::class, 'getRoles']);
+        Route::put('/users/{id}/assign-role', [UserController::class, 'assignRole'])
+            ->whereNumber('id')->middleware(RequireRecordVersion::class.':users');
+    });
+    Route::get('/dashboard/overview', [DashboardController::class, 'getOverview'])->middleware(ManagementAccess::class.':dashboard.view');
+    Route::get('/reports/statistics/pdf', [ReportController::class, 'exportPdf'])->middleware(ManagementAccess::class.':reports.view');
+    Route::get('/reports/statistics', [ReportController::class, 'getStatistics'])->middleware(ManagementAccess::class.':reports.view');
+
+    Route::middleware(ManagementAccess::class.':categories.manage')->prefix('categories')->group(function () {
+        Route::get('/', [CategoryController::class, 'index']);
+        Route::get('/{id}', [CategoryController::class, 'show'])->whereNumber('id');
+        Route::post('/', [CategoryController::class, 'store']);
+        Route::put('/{id}', [CategoryController::class, 'update'])->whereNumber('id')->middleware(RequireRecordVersion::class.':categories');
+        Route::patch('/{id}/status', [CategoryController::class, 'toggleStatus'])->whereNumber('id')->middleware(RequireRecordVersion::class.':categories');
+        Route::delete('/{id}', [CategoryController::class, 'destroy'])->whereNumber('id')->middleware(RequireRecordVersion::class.':categories');
+    });
+    Route::middleware(ManagementAccess::class.':brokers.manage')->prefix('brokers')->group(function () {
+        Route::get('/', [BrokerController::class, 'indexBrokers']);
+        Route::post('/', [BrokerController::class, 'storeBroker']);
+        Route::get('/{id}', [BrokerController::class, 'showBroker'])->whereNumber('id');
+        Route::get('/{id}/active-work', [BrokerController::class, 'checkActiveWork'])->whereNumber('id');
+        Route::post('/{id}/link-user', [BrokerController::class, 'linkUser'])->whereNumber('id')->middleware(RequireRecordVersion::class.':brokers');
+        Route::post('/{id}/unlink-user', [BrokerController::class, 'unlinkUser'])->whereNumber('id')->middleware(RequireRecordVersion::class.':brokers');
+        Route::put('/{id}', [BrokerController::class, 'updateBroker'])->whereNumber('id')->middleware(RequireRecordVersion::class.':brokers');
+        Route::delete('/{id}', [BrokerController::class, 'destroyBroker'])->whereNumber('id')->middleware(RequireRecordVersion::class.':brokers');
+    });
+    Route::middleware(ManagementAccess::class.':assignments.manage')->prefix('broker-assignments')->group(function () {
+        Route::get('/', [BrokerController::class, 'indexAssignments']);
+        Route::post('/', [BrokerController::class, 'storeAssignment']);
+        Route::get('/{id}', [BrokerController::class, 'showAssignment'])->whereNumber('id');
+        Route::put('/{id}', [BrokerController::class, 'updateAssignment'])->whereNumber('id')->middleware(RequireRecordVersion::class.':broker_assignments');
+        Route::post('/{id}/transfer', [BrokerController::class, 'transferAssignment'])->whereNumber('id')->middleware(RequireRecordVersion::class.':broker_assignments');
+        Route::patch('/{id}/cancel', [BrokerController::class, 'cancelAssignment'])->whereNumber('id')->middleware(RequireRecordVersion::class.':broker_assignments');
+    });
+    Route::middleware(ManagementAccess::class.':customers.manage')->prefix('customers')->group(function () {
+        Route::get('/options', [CustomerController::class, 'options']);
+        Route::get('/', [CustomerController::class, 'index']);
+        Route::post('/', [CustomerController::class, 'store']);
+        Route::post('/check-duplicates', [CustomerController::class, 'checkDuplicates']);
+        Route::post('/merge', [CustomerController::class, 'merge']);
+        Route::post('/{id}/transfer-broker', [CustomerController::class, 'transferPrimaryBroker'])->whereNumber('id');
+        Route::get('/{id}', [CustomerController::class, 'show'])->whereNumber('id');
+        Route::put('/{id}', [CustomerController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [CustomerController::class, 'destroy'])->whereNumber('id');
+        Route::delete('/{id}/tracking', [CustomerController::class, 'removeTracking'])->whereNumber('id');
+        Route::post('/{id}/interactions', [CustomerController::class, 'addInteraction'])->whereNumber('id');
+        Route::post('/{id}/activities', [CustomerController::class, 'addActivity'])->whereNumber('id');
+        Route::patch('/{id}/activities/{activityId}', [CustomerController::class, 'updateActivity'])->whereNumber(['id', 'activityId']);
+        Route::patch('/{id}/activities/{activityId}/cancel', [CustomerController::class, 'cancelActivity'])->whereNumber(['id', 'activityId']);
+        Route::patch('/{id}/activities/{activityId}/complete', [CustomerController::class, 'completeActivity'])->whereNumber(['id', 'activityId']);
+    });
+    Route::middleware(ManagementAccess::class.':demands.manage')->prefix('demands')->group(function () {
+        Route::get('/options', [CustomerDemandController::class, 'options']);
+        Route::get('/', [CustomerDemandController::class, 'index']);
+        Route::post('/', [CustomerDemandController::class, 'store']);
+        Route::get('/{id}', [CustomerDemandController::class, 'show'])->whereNumber('id');
+        Route::get('/{id}/matching-properties', [CustomerDemandController::class, 'matchingProperties'])->whereNumber('id');
+        Route::put('/{id}', [CustomerDemandController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [CustomerDemandController::class, 'destroy'])->whereNumber('id');
+    });
+    Route::middleware(ManagementAccess::class.':notifications.view')->prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/logs', [NotificationController::class, 'activityLogs']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::patch('/read-all', [NotificationController::class, 'markAllRead']);
+        Route::get('/logs/download', [NotificationController::class, 'downloadLogs']);
+    });
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     // Contract Extensions API

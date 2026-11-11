@@ -188,6 +188,10 @@ export default function BrokerManagement() {
   const [showDeleteBrokerModal, setShowDeleteBrokerModal] = useState(false);
   const [selectedBroker, setSelectedBroker] = useState(null);
   const [brokerFormActionLoading, setBrokerFormActionLoading] = useState(false);
+  const [deleteWorkInfo, setDeleteWorkInfo] = useState(null);
+  const [deleteCheckingWork, setDeleteCheckingWork] = useState(false);
+  const [handoverBrokerId, setHandoverBrokerId] = useState('');
+  const [handoverError, setHandoverError] = useState('');
 
   // Form State Môi giới (Maxlength 250)
   const initialBrokerFormData = {
@@ -240,10 +244,31 @@ export default function BrokerManagement() {
     } catch {}
   };
 
-  const handleOpenDeleteBroker = (broker) => {
+  const handleOpenDeleteBroker = async (broker) => {
     setSelectedBroker(broker);
+    setHandoverBrokerId('');
+    setHandoverError('');
+    setDeleteWorkInfo(null);
     setShowAddBrokerModal(false); setShowEditBrokerModal(false); setShowViewBrokerModal(false);
     setShowDeleteBrokerModal(true);
+    setDeleteCheckingWork(true);
+    try {
+      const token = localStorage.getItem('3tv_token') || '';
+      const res = await fetch(`/api/brokers/${broker.id}/active-work`, {
+        headers: {
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setDeleteWorkInfo(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleteCheckingWork(false);
+    }
   };
 
   const handleSaveBroker = async (isEdit = false) => {
@@ -315,13 +340,25 @@ export default function BrokerManagement() {
 
   const handleDeleteBroker = async () => {
     if (!selectedBroker) return;
+    if (deleteWorkInfo?.has_active_work && !handoverBrokerId) {
+      setHandoverError('Vui lòng chọn môi giới nhận bàn giao trước khi xác nhận xóa.');
+      return;
+    }
     setBrokerFormActionLoading(true);
+    setHandoverError('');
     try {
       const token = localStorage.getItem('3tv_token') || '';
+      const payload = {
+        version: selectedBroker.version,
+      };
+      if (handoverBrokerId) {
+        payload.handover_broker_id = Number(handoverBrokerId);
+      }
       const res = await fetch(`/api/brokers/${selectedBroker.id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ version: selectedBroker.version }),
+        body: JSON.stringify(payload),
         headers: {
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
@@ -338,7 +375,18 @@ export default function BrokerManagement() {
           message: resData.message
         });
       } else {
-        showToast(resData.message || 'Không thể xóa môi giới này', 'error');
+        if (resData.requires_handover) {
+          setDeleteWorkInfo(prev => ({
+            ...prev,
+            has_active_work: true,
+            total_active: resData.total_active,
+            active_assignments_count: resData.active_assignments_count,
+            active_customers_count: resData.active_customers_count,
+          }));
+          setHandoverError(resData.message);
+        } else {
+          showToast(resData.message || 'Không thể xóa môi giới này', 'error');
+        }
       }
     } catch (err) {
       showToast('Lỗi xóa môi giới: ' + err.message, 'error');
@@ -905,8 +953,17 @@ export default function BrokerManagement() {
                             {broker.name ? broker.name.charAt(0) : 'M'}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                              {broker.name}
+                            <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                              <span>{broker.name}</span>
+                              {broker.user_id ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  ✓ Đã liên kết TK
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200" title="Chưa liên kết tài khoản đăng nhập (cần liên kết để nhận phân công)">
+                                  Chưa liên kết TK
+                                </span>
+                              )}
                             </div>
                             <div className="text-[11px] text-slate-500 flex items-center gap-3 mt-0.5">
                               {broker.phone && (
@@ -1602,16 +1659,63 @@ export default function BrokerManagement() {
       {/* Modal Xóa Môi giới */}
       {showDeleteBrokerModal && selectedBroker && (
         <div className="app-dialog-layer fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <Trash2 className="w-6 h-6" />
+          <div className="form-surface bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden p-6 text-center space-y-4">
+            <div className={`w-12 h-12 rounded-2xl ${deleteWorkInfo?.has_active_work ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center mx-auto`}>
+              {deleteWorkInfo?.has_active_work ? <AlertTriangle className="w-6 h-6" /> : <Trash2 className="w-6 h-6" />}
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-slate-900">Xác nhận xóa môi giới?</h3>
+              <h3 className="text-base font-extrabold text-slate-900">
+                {deleteWorkInfo?.has_active_work ? 'Yêu cầu bàn giao trước khi xóa môi giới' : 'Xác nhận xóa môi giới?'}
+              </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Bạn có chắc chắn muốn xóa hồ sơ của môi giới <strong className="text-slate-800">{selectedBroker.name}</strong> ({selectedBroker.code}) khỏi hệ thống? Thao tác này sẽ lưu trực tiếp vào cơ sở dữ liệu.
+                {deleteWorkInfo?.has_active_work
+                  ? <>Môi giới <strong className="text-slate-800">{selectedBroker.name}</strong> ({selectedBroker.code}) hiện còn công việc đang phụ trách. Cần bàn giao công việc trước khi chuyển vào danh sách đã xóa (Soft Delete).</>
+                  : <>Bạn có chắc chắn muốn xóa hồ sơ của môi giới <strong className="text-slate-800">{selectedBroker.name}</strong> ({selectedBroker.code}) khỏi hệ thống? Thao tác này sẽ lưu trực tiếp vào cơ sở dữ liệu.</>}
               </p>
             </div>
+
+            {deleteCheckingWork ? (
+              <div className="py-3 flex items-center justify-center gap-2 text-xs text-slate-500">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                <span>Đang kiểm tra công việc và khách hàng phụ trách...</span>
+              </div>
+            ) : deleteWorkInfo?.has_active_work ? (
+              <div className="text-left space-y-3 bg-amber-50/80 border border-amber-200/80 rounded-xl p-4 text-xs">
+                <div className="flex items-center gap-2 text-amber-800 font-bold">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>Còn {deleteWorkInfo.total_active} việc/khách hàng đang phụ trách:</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-slate-700 pl-6">
+                  <div>• {deleteWorkInfo.active_assignments_count} yêu cầu phân công</div>
+                  <div>• {deleteWorkInfo.active_customers_count} khách hàng CRM</div>
+                </div>
+
+                <div className="pt-2 border-t border-amber-200/60">
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Chọn môi giới nhận bàn giao: <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={handoverBrokerId}
+                    onChange={(e) => { setHandoverBrokerId(e.target.value); setHandoverError(''); }}
+                    className="w-full px-3 py-2 text-xs border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">-- Chọn môi giới nhận bàn giao --</option>
+                    {(deleteWorkInfo.eligible_brokers || []).map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code}) - {b.level}
+                      </option>
+                    ))}
+                  </select>
+                  {handoverError && (
+                    <p className="text-[11px] text-rose-600 font-semibold mt-1">{handoverError}</p>
+                  )}
+                  <p className="text-[11px] text-slate-500 mt-1.5 italic">
+                    * Lịch sử các phân công đã hoàn thành sẽ được giữ nguyên tên môi giới ban đầu.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => setShowDeleteBrokerModal(false)}
@@ -1621,11 +1725,11 @@ export default function BrokerManagement() {
               </button>
               <button
                 onClick={handleDeleteBroker}
-                disabled={brokerFormActionLoading}
+                disabled={brokerFormActionLoading || deleteCheckingWork}
                 className="flex items-center gap-2 px-5 py-2 text-xs font-black text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md transition disabled:opacity-50"
               >
                 {brokerFormActionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>Xác nhận xóa</span>
+                <span>{deleteWorkInfo?.has_active_work ? 'Bàn giao & Xóa môi giới' : 'Xác nhận xóa'}</span>
               </button>
             </div>
           </div>
@@ -1769,13 +1873,24 @@ export default function BrokerManagement() {
                     <option value="">-- Chọn môi giới phụ trách --</option>
                     {brokers.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.code} - {b.name} ({b.level}) {b.status === 'busy' ? '[Đang bận]' : ''}
+                        {b.code} - {b.name} ({b.level}) {b.status === 'busy' ? '[Đang bận]' : ''} {!b.user_id ? '⚠️ (Chưa liên kết TK)' : ''}
                       </option>
                     ))}
                   </select>
                   {assignmentFormErrors.broker_id && (
                     <p className="text-[11px] text-rose-500 mt-1">{assignmentFormErrors.broker_id}</p>
                   )}
+                  {(() => {
+                    const sel = brokers.find(b => String(b.id) === String(assignmentFormData.broker_id));
+                    if (sel && !sel.user_id) {
+                      return (
+                        <p className="text-[11px] text-amber-700 font-semibold mt-1.5 p-2 rounded-lg bg-amber-50 border border-amber-200">
+                          ⚠️ Môi giới này chưa liên kết tài khoản người dùng nên không thể nhận việc. Vui lòng liên kết tài khoản trước.
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 <div>

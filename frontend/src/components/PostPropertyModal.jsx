@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, AlertTriangle, Building2, Save, CheckCircle2, Clock } from 'lucide-react';
+import { fetchCategoryOptions } from '../services/categories';
 
 export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     purpose: 'sale',
-    type: 'Căn hộ cao cấp',
+    type: 'Căn hộ chung cư',
+    category_id: '',
     price: '',
     area: '',
     bedrooms: '2',
@@ -24,6 +27,19 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
     description: '',
     amenities: ['Hồ bơi', 'Phòng gym', 'Bảo vệ 24/7', 'Thang máy']
   });
+
+  useEffect(() => {
+    fetchCategoryOptions().then(cats => {
+      setCategories(cats);
+      if (cats.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          category_id: prev.category_id || cats[0].id,
+          type: prev.type || cats[0].name
+        }));
+      }
+    });
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +102,7 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
 
       const payload = {
         ...formData,
+        category_id: formData.category_id ? Number(formData.category_id) : null,
         user_id: activeUser?.id,
         owner_name: formData.owner_name || activeUser?.name || 'Chủ nhà',
         owner_phone: formData.owner_phone || activeUser?.phone || '0901234567',
@@ -205,18 +222,25 @@ export default function PostPropertyModal({ isOpen, onClose, currentUser }) {
               {/* Hàng 2 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
-                  <label className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">Loại bất động sản (*):</label>
+                  <label className="font-bold text-slate-700 text-[11px] uppercase tracking-wider">Danh mục BĐS (*):</label>
                   <select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
+                    name="category_id"
+                    value={formData.category_id || ''}
+                    onChange={(e) => {
+                      const catId = Number(e.target.value);
+                      const selectedCat = categories.find(c => c.id === catId);
+                      setFormData(prev => ({
+                        ...prev,
+                        category_id: catId || '',
+                        type: selectedCat?.name || prev.type
+                      }));
+                    }}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 font-medium transition-all shadow-sm"
                   >
-                    <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-                    <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-                    <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-                    <option value="Shophouse thương mại">Shophouse thương mại</option>
-                    <option value="Đất nền dự án">Đất nền dự án</option>
+                    <option value="">-- Chọn danh mục BĐS --</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
 

@@ -18,6 +18,7 @@ class Property extends Model
     protected function casts(): array
     {
         return [
+            'category_id' => 'integer',
             'status' => 'integer',
             'bedrooms' => 'integer',
             'bathrooms' => 'integer',
@@ -38,6 +39,7 @@ class Property extends Model
         return [
             'id' => (int) $this->getKey(),
             'code' => (string) $this->code,
+            'category_id' => $this->category_id ? (int) $this->category_id : null,
             'title' => (string) $this->title,
             'project' => (string) $this->project,
             'address' => (string) $this->address,
@@ -71,6 +73,11 @@ class Property extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function propertyType()

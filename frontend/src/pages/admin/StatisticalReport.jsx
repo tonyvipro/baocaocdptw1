@@ -217,7 +217,7 @@ export default function StatisticalReport() {
   };
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('vi-VN').format(value || 0) + ' VNĐ';
+    return new Intl.NumberFormat('vi-VN').format(Number(value) || 0) + ' VNĐ';
   };
 
   // 5. CHỨC NĂNG XUẤT BÁO CÁO (PDF)
@@ -322,6 +322,10 @@ export default function StatisticalReport() {
       }
     ]
   };
+
+  const hasBarData = (reportData.charts?.timeline?.revenue || []).some(v => Number(v) > 0);
+  const hasLineData = (reportData.charts?.timeline?.contracts || []).some(v => Number(v) > 0);
+  const hasDoughnutData = (reportData.charts?.maintenance_status?.data || []).some(v => Number(v) > 0);
 
   return (
     <div className="space-y-4">
@@ -617,72 +621,102 @@ export default function StatisticalReport() {
               {/* Render Chart tương ứng */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 min-h-[300px] flex items-center justify-center">
                 {chartSubtype === 'bar' && (
-                  <div className="w-full h-72">
-                    <Bar 
-                      data={barChartData} 
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { position: 'top' },
-                          tooltip: {
-                            callbacks: {
-                              label: function(context) {
-                                return `Doanh thu: ${new Intl.NumberFormat('vi-VN').format(context.raw)} VNĐ`;
-                              }
-                            }
-                          }
-                        },
-                        scales: {
-                          y: {
-                            ticks: {
-                              callback: function(value) {
-                                return (value / 1000000) + ' Tr';
-                              }
-                            }
-                          }
-                        }
-                      }} 
-                    />
-                  </div>
-                )}
-
-                {chartSubtype === 'line' && (
-                  <div className="w-full h-72">
-                    <Line 
-                      data={lineChartData} 
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { position: 'top' },
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                          }
-                        }
-                      }} 
-                    />
-                  </div>
-                )}
-
-                {chartSubtype === 'doughnut' && (
-                  <div className="w-full h-72 flex items-center justify-center">
-                    <div className="w-64 h-64">
-                      <Doughnut 
-                        data={doughnutChartData} 
+                  hasBarData ? (
+                    <div className="w-full h-72">
+                      <Bar 
+                        data={barChartData} 
                         options={{
                           responsive: true,
                           maintainAspectRatio: false,
                           plugins: {
-                            legend: { position: 'bottom' }
+                            legend: { position: 'top' },
+                            tooltip: {
+                              callbacks: {
+                                label: function(context) {
+                                  return `Doanh thu: ${new Intl.NumberFormat('vi-VN').format(context.raw)} VNĐ`;
+                                }
+                              }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              ticks: {
+                                callback: function(value) {
+                                  return (value / 1000000) + ' Tr';
+                                }
+                              }
+                            }
                           }
                         }} 
                       />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="w-full h-72 flex flex-col items-center justify-center text-center p-6 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                      <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                        <BarChart2 className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">Kỳ báo cáo chưa phát sinh doanh thu</p>
+                      <p className="text-xs text-slate-400 mt-1">Tất cả các mốc thời gian trong khoảng này ghi nhận 0 VNĐ</p>
+                    </div>
+                  )
+                )}
+
+                {chartSubtype === 'line' && (
+                  hasLineData ? (
+                    <div className="w-full h-72">
+                      <Line 
+                        data={lineChartData} 
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: { position: 'top' },
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: { stepSize: 1 }
+                            }
+                          }
+                        }} 
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-72 flex flex-col items-center justify-center text-center p-6 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                      <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                        <TrendingUp className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">Chưa phát sinh hợp đồng mới trong kỳ</p>
+                      <p className="text-xs text-slate-400 mt-1">Số lượng hợp đồng mới ghi nhận trong khoảng này là 0</p>
+                    </div>
+                  )
+                )}
+
+                {chartSubtype === 'doughnut' && (
+                  hasDoughnutData ? (
+                    <div className="w-full h-72 flex items-center justify-center">
+                      <div className="w-64 h-64">
+                        <Doughnut 
+                          data={doughnutChartData} 
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { position: 'bottom' }
+                            }
+                          }} 
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-72 flex flex-col items-center justify-center text-center p-6 bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+                      <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+                        <PieChart className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700">Chưa có yêu cầu bảo trì trong kỳ này</p>
+                      <p className="text-xs text-slate-400 mt-1">Cơ cấu trạng thái bảo trì đang ở mức 0</p>
+                    </div>
+                  )
                 )}
               </div>
             </div>

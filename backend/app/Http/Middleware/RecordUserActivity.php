@@ -24,7 +24,7 @@ class RecordUserActivity
         finally { $request->attributes->set('audit.enabled', false); }
         if (!in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE']) || $response->getStatusCode() < 200 || $response->getStatusCode() >= 300) return $response;
         try {
-            if (in_array($path, ['api/login', 'api/register'])) $actor = auth()->user();
+            if (in_array($path, ['api/login', 'api/register'])) $actor = auth('web')->user();
             if (!$actor || !$actor->is_active) return $response;
             $action = $table = $details = null;
             $recordId = $actor->id;
@@ -61,15 +61,44 @@ class RecordUserActivity
             $changes = $table === 'contracts' && $oldContract && $contract
                 ? app(\App\Services\AuditChanges::class)->changes($table, $oldContract, $contract->getAttributes()) : [];
             if ($changes) $details .= ': '.app(\App\Services\AuditChanges::class)->describe($changes);
-            $log = $observedId ? ActivityLog::findOrFail($observedId) : ActivityLog::create([
-                'user_id' => $actor->id, 'action' => $action, 'table_name' => $table, 'record_id' => $recordId,
-                'new_data' => ['description' => $details, 'changes' => $changes], 'ip_address' => $request->ip()]);
-            $inbox = app(NotificationInbox::class);
-            if ($action === 'PROFILE_UPDATE') $inbox->publish($actor, 'profile', 'Thông tin hồ sơ của bạn đã được cập nhật.', 'profile:'.$log->id, target: ['table' => 'users', 'id' => $actor->id]);
-            if ($action === 'CONTRACT_SIGN' && $contract) {
-                foreach (User::whereIn('id', array_filter([$actor->id, $contract->customer_id, $contract->broker_id]))->where('is_active', true)->get() as $recipient) {
-                    $inbox->publish($recipient, 'contract', 'Hợp đồng '.$contract->contract_code.' đã được ký và chuyển sang hiệu lực.', 'contract-sign:'.$log->id, target: ['table' => 'contracts', 'id' => $contract->id]);
+            $logWriter = function () use ($observedId, $actor, $action, $table, $recordId, $details, $changes, $request, $contract) {
+                $snapshot = ActivityLog::extractActorSnapshot($actor);
+                if ($observedId) {
+                    $log = ActivityLog::find($observedId);
+                    if ($log) {
+                        $log->update(array_merge([
+                            'actor_id' => $snapshot['actor_id'],
+                            'actor_name' => $snapshot['actor_name'],
+                            'actor_role' => $snapshot['actor_role'],
+                            'actor_snapshot' => $snapshot['actor_snapshot'],
+                        ]));
+                    }
+                } else {
+                    $log = ActivityLog::create(array_merge([
+                        'user_id' => $actor->id,
+                        'action' => $action,
+                        'table_name' => $table,
+                        'record_id' => $recordId,
+                        'new_data' => ['description' => $details, 'changes' => $changes],
+                        'ip_address' => $request->ip(),
+                    ], $snapshot));
                 }
+
+                if ($log) {
+                    $inbox = app(NotificationInbox::class);
+                    if ($action === 'PROFILE_UPDATE') $inbox->publish($actor, 'profile', 'Thông tin hồ sơ của bạn đã được cập nhật.', 'profile:'.$log->id, target: ['table' => 'users', 'id' => $actor->id]);
+                    if ($action === 'CONTRACT_SIGN' && $contract) {
+                        foreach (User::whereIn('id', array_filter([$actor->id, $contract->customer_id, $contract->broker_id]))->where('is_active', true)->get() as $recipient) {
+                            $inbox->publish($recipient, 'contract', 'Hợp đồng '.$contract->contract_code.' đã được ký và chuyển sang hiệu lực.', 'contract-sign:'.$log->id, target: ['table' => 'contracts', 'id' => $contract->id]);
+                        }
+                    }
+                }
+            };
+
+            if (\Illuminate\Support\Facades\DB::transactionLevel() > 0) {
+                \Illuminate\Support\Facades\DB::afterCommit($logWriter);
+            } else {
+                $logWriter();
             }
         } catch (\Throwable $error) { report($error); }
         return $response;

@@ -19,7 +19,7 @@ class CategoryController extends Controller
         // 1. Tự động khởi tạo dữ liệu mẫu nếu bảng categories trống
         $this->ensureDefaultCategories();
 
-        $query = Category::query();
+        $query = Category::query()->withCount('properties');
 
         // 2. Tìm kiếm theo ID hoặc Tên danh mục hoặc Mô tả (Giới hạn tối đa 250 ký tự)
         if ($request->filled('search')) {
@@ -65,15 +65,10 @@ class CategoryController extends Controller
 
         $paginator = $query->paginate($perPage);
 
-        // Đếm số lượng BĐS liên quan cho từng danh mục
+        // Thống kê số lượng BĐS liên quan cho từng danh mục qua quan hệ khóa ngoại
         $items = $paginator->getCollection()->map(function ($cat) {
-            $propCount = Property::where(function($q) use ($cat) {
-                $q->where('type', 'like', "%{$cat->name}%")
-                  ->orWhere('description', 'like', "%{$cat->name}%");
-            })->count();
-
             $catArray = $cat->toArray();
-            $catArray['properties_count'] = $propCount;
+            $catArray['properties_count'] = (int) ($cat->properties_count ?? 0);
             $catArray['code'] = 'CAT-' . str_pad($cat->id, 3, '0', STR_PAD_LEFT);
             return $catArray;
         });
@@ -102,7 +97,7 @@ class CategoryController extends Controller
      */
     public function show($id)
     {
-        $category = Category::find($id);
+        $category = Category::withCount('properties')->find($id);
         if (!$category) {
             return response()->json([
                 'status' => 'error',
@@ -110,13 +105,8 @@ class CategoryController extends Controller
             ], 404);
         }
 
-        $propCount = Property::where(function($q) use ($category) {
-            $q->where('type', 'like', "%{$category->name}%")
-              ->orWhere('description', 'like', "%{$category->name}%");
-        })->count();
-
         $catData = $category->toArray();
-        $catData['properties_count'] = $propCount;
+        $catData['properties_count'] = (int) ($category->properties_count ?? 0);
         $catData['code'] = 'CAT-' . str_pad($category->id, 3, '0', STR_PAD_LEFT);
 
         return response()->json([
@@ -255,14 +245,10 @@ class CategoryController extends Controller
         }
 
         $category->save();
-
-        $propCount = Property::where(function($q) use ($category) {
-            $q->where('type', 'like', "%{$category->name}%")
-              ->orWhere('description', 'like', "%{$category->name}%");
-        })->count();
+        $category->loadCount('properties');
 
         $catData = $category->toArray();
-        $catData['properties_count'] = $propCount;
+        $catData['properties_count'] = (int) ($category->properties_count ?? 0);
         $catData['code'] = 'CAT-' . str_pad($category->id, 3, '0', STR_PAD_LEFT);
 
         return response()->json([
@@ -299,9 +285,27 @@ class CategoryController extends Controller
     }
 
     /**
-     * Xóa danh mục
+     * Danh sách gọn các danh mục để dùng trong dropdown / bộ lọc BĐS
      */
-    public function destroy($id)
+    public function options()
+    {
+        $this->ensureDefaultCategories();
+        $categories = Category::where('status', 'active')
+            ->orderBy('display_order', 'asc')
+            ->orderBy('name', 'asc')
+            ->withCount('properties')
+            ->get(['id', 'name', 'slug', 'icon', 'status', 'description']);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories
+        ]);
+    }
+
+    /**
+     * Xóa danh mục (Chặn xóa nếu đang có BĐS, hoặc hỗ trợ chuyển BĐS sang danh mục khác)
+     */
+    public function destroy(Request $request, $id)
     {
         $category = Category::find($id);
         if (!$category) {
@@ -309,6 +313,52 @@ class CategoryController extends Controller
                 'status' => 'error',
                 'message' => 'Không tìm thấy danh mục cần xóa'
             ], 404);
+        }
+
+        $propertiesCount = Property::where('category_id', $category->id)->count();
+
+        if ($propertiesCount > 0) {
+            $reassignToId = $request->input('reassign_to_category_id');
+
+            if ($reassignToId) {
+                if ((int) $reassignToId === (int) $category->id) {
+                    return response()->json([
+                        'status' => 'error',
+                        'error_code' => 'INVALID_REASSIGN_CATEGORY',
+                        'message' => 'Danh mục chuyển tiếp phải khác danh mục đang xóa.'
+                    ], 422);
+                }
+
+                $targetCategory = Category::find($reassignToId);
+                if (!$targetCategory) {
+                    return response()->json([
+                        'status' => 'error',
+                        'error_code' => 'TARGET_CATEGORY_NOT_FOUND',
+                        'message' => 'Danh mục chuyển tiếp không tồn tại.'
+                    ], 404);
+                }
+
+                DB::transaction(function () use ($category, $targetCategory) {
+                    Property::where('category_id', $category->id)
+                        ->update(['category_id' => $targetCategory->id]);
+                    $category->delete();
+                });
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Đã chuyển {$propertiesCount} bất động sản sang danh mục '{$targetCategory->name}' và xóa danh mục '{$category->name}' thành công!",
+                    'reassigned_count' => $propertiesCount,
+                    'target_category' => $targetCategory->name
+                ]);
+            }
+
+            // Chặn xóa kèm thông báo lỗi rõ ràng nếu chưa chọn danh mục chuyển tiếp
+            return response()->json([
+                'status' => 'error',
+                'error_code' => 'CATEGORY_HAS_PROPERTIES',
+                'properties_count' => $propertiesCount,
+                'message' => "Không thể xóa danh mục '{$category->name}' vì đang có {$propertiesCount} bất động sản trực thuộc. Vui lòng chuyển các bất động sản sang danh mục khác trước khi xóa."
+            ], 422);
         }
 
         $categoryName = $category->name;

@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+const backendTarget = process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8080';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -14,17 +16,17 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: backendTarget,
         changeOrigin: true,
         secure: false,
       },
       '/uploads': {
-        target: 'http://localhost:8080',
+        target: backendTarget,
         changeOrigin: true,
         secure: false,
       },
       '/storage': {
-        target: 'http://localhost:8080',
+        target: backendTarget,
         changeOrigin: true,
         secure: false,
       },

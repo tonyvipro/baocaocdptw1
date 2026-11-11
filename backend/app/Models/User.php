@@ -18,6 +18,7 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
+        'unit',
         'avatar',
         'is_active',
         'dark_mode',
@@ -31,6 +32,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'role_id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
@@ -41,6 +43,19 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return app(\App\Services\Permissions::class)->allows($this, $permission);
+    }
+
+    public function accessData(): array
+    {
+        return [
+            'permissions' => app(\App\Services\Permissions::class)->forUser($this),
+            'role_label' => \App\Enums\Role::tryFrom((int) $this->role_id)?->label() ?? 'Chưa phân quyền',
+        ];
     }
 
     public function contracts()

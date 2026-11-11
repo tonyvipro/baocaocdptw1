@@ -56,7 +56,10 @@ class PropertyReadController extends Controller
 
         // A reachable, empty database is an empty catalog, never demo data.
         $ownListings = $request->boolean('all') || $request->boolean('mine');
-        $query = Property::with(['propertyType', 'images']);
+        $query = Property::with(['propertyType', 'category'])->when(\Illuminate\Support\Facades\Schema::hasTable('property_images'), fn ($q) => $q->with('images'));
+        if ($request->filled('category_id') && $request->input('category_id') !== 'all') {
+            $query->where('category_id', $request->input('category_id'));
+        }
         if ($ownListings) {
             $user = $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
             abort_unless($user && $user->is_active, 401, 'Vui lòng đăng nhập lại.');
@@ -87,8 +90,11 @@ class PropertyReadController extends Controller
             }
         }
 
-        $query = Property::with('propertyType')->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
+        $query = Property::with(['propertyType', 'category'])->when(Schema::hasTable('property_images'), fn ($query) => $query->with('images'));
         \App\Support\PropertySearch::apply($query, $request);
+        if ($request->filled('category_id') && $request->input('category_id') !== 'all') {
+            $query->where('category_id', $request->input('category_id'));
+        }
         foreach (['type', 'purpose', 'city'] as $field) {
             if ($request->filled($field) && $request->input($field) !== 'all') {
                 $query->where($field, $request->input($field));

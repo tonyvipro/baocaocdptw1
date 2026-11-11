@@ -20,6 +20,7 @@
     "test:history": "node tests/history-browser.mjs",
     "test:database-refresh": "node tests/database-refresh-browser.mjs",
     "test:auth-session": "node tests/auth-session.test.mjs",
+    "test:permissions": "node tests/permissions.test.mjs",
     "test:input-policy": "node tests/input-policy.test.mjs",
     "test:suggestions": "node tests/search-suggestions.test.mjs",
     "test:customers": "node tests/customer-crm.test.mjs",

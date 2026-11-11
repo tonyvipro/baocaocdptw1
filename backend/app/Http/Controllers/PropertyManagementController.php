@@ -13,7 +13,7 @@ class PropertyManagementController extends Controller
 {
     private function currentUser(Request $request): ?\App\Models\User
     {
-        return $request->user('sanctum') ?? (auth('sanctum')->user() ?? $request->user());
+        return $request->user() ?? $request->user('sanctum') ?? (auth('sanctum')->user() ?? auth()->user());
     }
 
     private function authorizeProperty(Request $request, ?Property $property = null, bool $adminOnly = false): void
@@ -35,6 +35,7 @@ class PropertyManagementController extends Controller
             'price_sale' => ['nullable', 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:9999999999999'],
             'price_rent' => ['nullable', 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'min:0', 'max:9999999999999'],
             'area' => [($create ? 'required' : 'sometimes'), 'numeric', 'regex:/^\d+(?:\.\d{1,2})?$/', 'gt:0', 'max:100000000'],
+            'category_id' => 'nullable|integer|exists:categories,id',
             'property_type_id' => 'nullable|integer|exists:property_types,id',
             'bedrooms' => 'nullable|integer|min:0|max:1000',
             'bathrooms' => 'nullable|integer|min:0|max:1000',
@@ -95,6 +96,13 @@ class PropertyManagementController extends Controller
 
     private function assignType(array $data): array
     {
+        if (array_key_exists('category_id', $data)) {
+            $data['category_id'] = !empty($data['category_id']) ? (int) $data['category_id'] : null;
+            if ($data['category_id'] && empty($data['type'])) {
+                $cat = \App\Models\Category::find($data['category_id']);
+                if ($cat) $data['type'] = $cat->name;
+            }
+        }
         if (!array_key_exists('type', $data) && !array_key_exists('property_type_id', $data)) return $data;
         $type = !empty($data['property_type_id']) ? PropertyType::find($data['property_type_id']) : PropertyType::where('name', $data['type'] ?? '')->first();
         if ($type) {
@@ -110,11 +118,17 @@ class PropertyManagementController extends Controller
     private function log(Request $request, Property $property, string $action, array $old, array $extra = []): void
     {
         $user = $this->currentUser($request);
-        DB::table('activity_logs')->insert([
-            'user_id' => $user?->id ?? 0, 'table_name' => 'properties', 'record_id' => $property->id,
-            'action' => $action, 'old_data' => json_encode($old), 'new_data' => json_encode(array_merge($property->toArray(), $extra)),
-            'ip_address' => $request->ip(), 'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $snapshot = \App\Models\ActivityLog::extractActorSnapshot($user);
+        \App\Models\ActivityLog::create(array_merge([
+            'user_id' => $user?->id,
+            'table_name' => 'properties',
+            'record_id' => $property->id,
+            'action' => $action,
+            'old_data' => $old,
+            'new_data' => array_merge($property->toArray(), $extra),
+            'subject_snapshot' => ['id' => $property->id, 'title' => $property->title, 'code' => $property->code],
+            'ip_address' => $request->ip(),
+        ], $snapshot));
     }
 
     public function store(Request $request)

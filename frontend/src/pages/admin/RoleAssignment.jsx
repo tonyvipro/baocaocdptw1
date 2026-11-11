@@ -1,5 +1,5 @@
 import { useConfirm } from '../../components/forms/ConfirmProvider';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ShieldCheck, ShieldAlert, KeyRound, Users, Search, RefreshCw,
   CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, ArrowLeft,
@@ -9,6 +9,7 @@ import {
 import { broadcastDataChange, subscribeDataChange } from '../../services/tabSync';
 import ConflictWarningBanner from '../../components/ConflictWarningBanner';
 import { resolveAvatarUrl } from '../../services/api';
+import { fetchRoles as loadRoles } from '../../services/roles';
 
 export default function RoleAssignment({ onNavigateToDashboard }) {
   const confirm = useConfirm();
@@ -95,21 +96,9 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
   const fetchRoles = useCallback(async () => {
     setRolesLoading(true);
     try {
-      const token = localStorage.getItem('3tv_token') || '';
-      const res = await fetch('/api/roles', {
-        headers: {
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.status === 'success') {
-          setRoles(json.data || []);
-        }
-      }
+      setRoles(await loadRoles());
     } catch (err) {
-      console.error(err);
+      setToastMessage({ type: 'error', message: err.message || 'Không tải được vai trò.' });
     } finally {
       setRolesLoading(false);
     }
@@ -181,7 +170,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
       return;
     }
     setSelectedUser(user);
-    setSelectedRoleId(user.role_id || 2); // Mặc định chọn vai trò hiện tại của user
+    setSelectedRoleId(user.role_id || null); // Mặc định chọn vai trò hiện tại của user
     setAssignmentNote('');
   };
 
@@ -243,6 +232,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
       }
 
       const assignedRole = roles.find(r => r.id === selectedRoleId);
+      window.dispatchEvent(new Event('3tv:permissions-changed'));
       showToast(
         `Đã gán vai trò "${assignedRole?.name || 'Mới'}" cho tài khoản "${selectedUser.name}" thành công!`,
         'success'
@@ -280,96 +270,12 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
     }
   };
 
-  // Helper hiển thị badge vai trò với màu sắc chuẩn mực
-  const getRoleBadge = (roleName, roleId) => {
-    switch (roleId) {
-      case 1:
-      case 'Admin':
-        return {
-          bg: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
-          dot: 'bg-rose-400',
-          label: 'Admin (Quản trị viên)'
-        };
-      case 2:
-      case 'BĐS':
-        return {
-          bg: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-          dot: 'bg-blue-400',
-          label: 'BĐS (Môi giới)'
-        };
-      case 3:
-      case 'Owner':
-        return {
-          bg: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-          dot: 'bg-purple-400',
-          label: 'Owne (Owner / Chủ sở hữu)'
-        };
-      case 4:
-      case 'Staff':
-        return {
-          bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-          dot: 'bg-emerald-400',
-          label: 'Staf (Staff / Nhân viên)'
-        };
-      default:
-        return {
-          bg: 'bg-slate-700/40 text-slate-700 border-slate-600/50',
-          dot: 'bg-slate-400',
-          label: roleName || 'Khách hàng'
-        };
-    }
-  };
-
-  // Định nghĩa mô tả chuẩn cho 3 vai trò trọng tâm theo Hình 11
-  const roleSpecs = useMemo(() => ({
-    2: {
-      key: 'BĐS',
-      title: 'BĐS',
-      subTitle: 'Quyền đăng và quản lý tin bất động sản',
-      description: 'Cho phép đăng tin mua bán/cho thuê, quản lý danh sách tin cá nhân, xem lịch hẹn xem nhà và tiếp nhận khách quan tâm.',
-      icon: Building2,
-      badgeColor: 'border-blue-500/40 text-blue-400 bg-blue-500/10',
-      activeBorder: 'border-blue-500 bg-blue-50 ring-1 ring-blue-500',
-    },
-    3: {
-      key: 'Owner',
-      title: 'Owne (Owner)',
-      subTitle: 'Quyền chủ sở hữu và xem báo cáo',
-      description: 'Cho phép quản lý tài sản chính chủ, theo dõi tình trạng cho thuê, theo dõi hợp đồng và xem báo cáo tài chính/vận hành liên quan.',
-      icon: KeyRound,
-      badgeColor: 'border-purple-500/40 text-purple-400 bg-purple-500/10',
-      activeBorder: 'border-purple-500 bg-purple-50 ring-1 ring-purple-500',
-    },
-    4: {
-      key: 'Staff',
-      title: 'Staf (Staff)',
-      subTitle: 'Quyền nhân viên quản lý hệ thống hạn chế',
-      description: 'Quyền nhân viên vận hành hỗ trợ kiểm duyệt tin sơ bộ, điều phối lịch hẹn xem bất động sản và hỗ trợ khách hàng theo phân công.',
-      icon: Briefcase,
-      badgeColor: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10',
-      activeBorder: 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500',
-    },
-    1: {
-      key: 'Admin',
-      title: 'Quản trị viên (Admin)',
-      subTitle: 'Toàn quyền cấu hình và quản trị hệ thống',
-      description: 'Quyền quản trị cấp cao nhất: phân quyền tài khoản, quản lý danh mục, duyệt hợp đồng và xem báo cáo doanh thu toàn diện.',
-      icon: Shield,
-      badgeColor: 'border-rose-500/40 text-rose-400 bg-rose-500/10',
-      activeBorder: 'border-rose-500 bg-rose-50 ring-1 ring-rose-500',
-    },
-    5: {
-      key: 'Customer',
-      title: 'Khách hàng (Customer)',
-      subTitle: 'Quyền tìm kiếm và tương tác cơ bản',
-      description: 'Quyền thành viên tiêu chuẩn: tìm kiếm tin đăng, lưu tin yêu thích, gửi yêu cầu liên hệ và đặt lịch hẹn xem nhà.',
-      icon: User,
-      badgeColor: 'border-slate-500/40 text-slate-700 bg-slate-50',
-      activeBorder: 'border-slate-400 bg-white ring-1 ring-slate-400',
-    }
-  }), []);
-
-
+  // Labels and descriptions are supplied by the PHP role catalog.
+  const getRoleBadge = (roleName, roleId) => ({
+    bg: 'bg-slate-50 text-slate-700 border-slate-200',
+    dot: 'bg-slate-500',
+    label: roles.find(role => role.id === roleId)?.label || roleName || 'Chưa phân quyền',
+  });
 
   return (
     <div className="space-y-6">
@@ -477,7 +383,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
             >
               <option value="all">Tất cả vai trò</option>
               {roles.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.users_count || 0})</option>
+                <option key={r.id} value={r.id}>{r.label} ({r.users_count || 0})</option>
               ))}
             </select>
           </div>
@@ -702,7 +608,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                   <div className="flex items-center gap-2 mt-1 text-[11px]">
                     <span className="text-slate-500">Vai trò hiện tại:</span>
                     <span className="font-bold text-slate-700">
-                      {selectedUser.role?.name || 'Chưa phân quyền'}
+                      {roles.find(role => role.id === selectedUser.role_id)?.label || selectedUser.role?.name || 'Chưa phân quyền'}
                     </span>
                   </div>
                 </div>
@@ -718,16 +624,18 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
             </div>
           )}
 
-          {/* CÁC TÙY CHỌN GÁN VAI TRÒ MỚI (YÊU CẦU 3: BĐS, OWNE, STAF) */}
+          {/* Tất cả vai trò do backend cung cấp. */}
           <div className="space-y-3">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
               Chọn Nhóm Quyền Mới (Radio Tùy Chọn) <span className="text-red-500">*</span>
             </label>
 
-            {/* Danh sách các vai trò chính (Đặc biệt 3 vai trò BĐS, Owne, Staf theo Hình 11) */}
+            {/* Bao gồm Owner, Staff và Customer. */}
             <div className="space-y-2.5">
-              {[2, 3, 4, 1].map((roleId) => {
-                const spec = roleSpecs[roleId];
+              {roles.map((role) => {
+                const roleId = role.id;
+                const spec = { title: role.label, subTitle: role.name, description: role.description, icon: Shield,
+                  badgeColor: 'border-slate-200 text-slate-600 bg-slate-50', activeBorder: 'border-red-500 bg-red-50 ring-1 ring-red-500' };
                 if (!spec) return null;
                 const isChecked = selectedRoleId === roleId;
                 const isCurrentRole = selectedUser?.role_id === roleId;

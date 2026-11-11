@@ -10,7 +10,7 @@ final class ActivityDestination
     public function record(User $viewer, string $table, int $id, string $action = ''): ?array
     {
         if ($id < 1) return null;
-        $manager = in_array((int) $viewer->role_id, [1, 2], true);
+        $manager = $viewer->hasPermission('admin.access');
         if (in_array($table, ['customer_activities', 'customer_interactions'], true)) {
             $customerId = \Illuminate\Support\Facades\DB::table($table)->where('id', $id)->value('customer_id');
             return $manager && $customerId ? ['url' => '#admin/customers?tab=tracking&record='.$customerId, 'label' => 'Xem theo dõi khách hàng'] : null;
@@ -22,7 +22,7 @@ final class ActivityDestination
         }
         if ($table === 'users') {
             if ($id === (int) $viewer->id) return ['url' => '?modal=profile', 'label' => 'Xem hồ sơ'];
-            return (int) $viewer->role_id === 1 ? ['url' => '#admin/users?record='.$id, 'label' => 'Xem người dùng'] : null;
+            return $viewer->hasPermission('users.manage') ? ['url' => '#admin/users?record='.$id, 'label' => 'Xem người dùng'] : null;
         }
         if ($table === 'invoices') return ['url' => $manager ? '#admin/invoices/'.$id : '#my-invoices', 'label' => 'Xem hóa đơn'];
         if ($table === 'contracts' && !$manager) return ['url' => '#my-contracts/'.$id, 'label' => 'Xem hợp đồng'];
@@ -33,6 +33,12 @@ final class ActivityDestination
             'customers' => ['customers', 'khách hàng'], 'customer_demands' => ['demands', 'nhu cầu'],
             'appointments' => ['appointments', 'lịch hẹn'], 'contract_documents' => ['contract-documents', 'tài liệu']];
         if (!isset($modules[$table])) return null;
+        $permission = match ($table) {
+            'categories' => 'categories.manage', 'brokers' => 'brokers.manage',
+            'broker_assignments' => 'assignments.manage', 'customers' => 'customers.manage',
+            'customer_demands' => 'demands.manage', default => null,
+        };
+        if ($permission && !$viewer->hasPermission($permission)) return null;
         [$module, $label] = $modules[$table];
         if (str_contains($action, 'DELETE')) {
             return ['url' => '#admin/'.$module.($table === 'properties' ? '?tab=trash' : ''), 'label' => 'Mở quản lý '.$label];
@@ -57,7 +63,7 @@ final class ActivityDestination
         }
         if (str_contains((string) ($data['category'] ?? ''), 'profile')) return ['url' => '?modal=profile', 'label' => 'Xem hồ sơ'];
         $category = strtolower((string) ($data['category'] ?? ''));
-        $manager = in_array((int) $viewer->role_id, [1, 2], true);
+        $manager = $viewer->hasPermission('admin.access');
         if (str_contains($category, 'payment')) return ['url' => $manager ? '#admin/invoices' : '#my-invoices', 'label' => 'Mở hóa đơn'];
         if (str_contains($category, 'contract')) return ['url' => $manager ? '#admin/contracts' : '#my-contracts', 'label' => 'Mở hợp đồng'];
         if ($manager && str_contains($category, 'appointment')) return ['url' => '#admin/appointments', 'label' => 'Mở lịch hẹn'];

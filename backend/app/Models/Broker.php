@@ -38,4 +38,9 @@ class Broker extends Model
     {
         return $this->hasMany(BrokerAssignment::class, 'broker_id');
     }
+
+    public function primaryCustomers()
+    {
+        return $this->hasMany(Customer::class, 'primary_broker_id');
+    }
 }

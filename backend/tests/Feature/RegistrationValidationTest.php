@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class RegistrationValidationTest extends TestCase
@@ -63,5 +66,51 @@ class RegistrationValidationTest extends TestCase
     {
         $this->postJson('/api/register', $this->payload(['phone' => '']))
             ->assertCreated()->assertJsonPath('user.phone', null);
+    }
+
+    public function test_duplicate_email_is_checked_after_normalizing_case(): void
+    {
+        $this->postJson('/api/register', $this->payload())->assertCreated();
+
+        $this->postJson('/api/register', $this->payload(['email' => 'Registration@Example.COM']))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('email');
+
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_registration_hashes_password_and_ignores_privileged_fields(): void
+    {
+        $response = $this->postJson('/api/register', $this->payload([
+            'email' => 'New.Customer@Example.COM',
+            'role_id' => 1,
+            'is_active' => false,
+        ]))->assertCreated()->assertJsonPath('user.role_id', 5)
+            ->assertJsonPath('user.email', 'new.customer@example.com')
+            ->assertJsonMissingPath('user.password');
+
+        $user = User::firstOrFail();
+        $this->assertTrue(Hash::check('test-password', $user->password));
+        $this->assertTrue($user->is_active);
+        $this->assertSame('Customer', $user->role->name);
+        $this->assertAuthenticatedAs($user, 'web');
+
+        auth('web')->logout();
+        $this->assertGuest('web');
+        $this->withToken($response->json('token'))->getJson('/api/user')
+            ->assertOk()->assertJsonPath('id', $user->id);
+    }
+
+    public function test_registration_rolls_back_when_token_creation_fails(): void
+    {
+        // RefreshDatabase is forced to SQLite :memory: by phpunit.xml.
+        Schema::drop('personal_access_tokens');
+
+        $this->postJson('/api/register', $this->payload())->assertServerError();
+
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('roles', 0);
+        $this->assertGuest('web');
     }
 }

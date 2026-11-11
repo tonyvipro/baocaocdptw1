@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Edit3, Eye, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit3, Eye, Plus, RefreshCw, Search, Trash2, UserMinus } from 'lucide-react';
 import { customerRequest, crmDate } from '../../services/customers';
 import { broadcastDataChange, subscribeDataChange } from '../../services/tabSync';
 import CustomerForm from '../../components/customers/CustomerForm';
@@ -31,6 +31,7 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
   const [revision, setRevision] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -107,7 +108,7 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
     options?.groups[row.customer_group] || '—',
     crmDate(row.created_at, false),
   ];
-  const actionLabel = tracking ? 'Xóa khỏi danh sách theo dõi' : 'Xóa thông tin khách hàng';
+  const actionLabel = tracking ? 'Gỡ khỏi danh sách theo dõi (giữ nguyên hồ sơ)' : 'Xóa thông tin khách hàng';
   const columns = customerColumns[view];
 
   return <div className="space-y-5">
@@ -122,6 +123,13 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
       <header className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
         <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700"
+          >
+            <Plus size={15} /> Tạo mới
+          </button>
           <label className="relative block min-w-0 flex-1"><span className="sr-only">Tìm khách hàng</span><Search size={15} className="absolute left-3 top-3 text-slate-400" />
             <input type="search" maxLength={250} value={search} onChange={event => { setSearch(event.target.value.slice(0, 250)); setPage(1); }} placeholder="Tìm khách hàng..." className={crmInput + ' pl-9 sm:w-64'} />
           </label>
@@ -141,7 +149,27 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
                 <td className="px-3 py-2"><div className="flex justify-end gap-1">
                   <button type="button" title={tracking ? 'Xem thông tin và lịch sử tương tác' : 'Xem thông tin khách hàng'} aria-label={'Xem khách hàng ' + row.name} onClick={() => setSelectedId(row.id)} className="rounded p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-600"><Eye size={16} /></button>
                   <button type="button" title="Chỉnh sửa thông tin khách hàng" aria-label={'Sửa khách hàng ' + row.name} onClick={() => edit(row)} className="rounded p-2 text-slate-500 hover:bg-slate-100"><Edit3 size={16} /></button>
-                  <button type="button" title={actionLabel} aria-label={actionLabel + ' ' + row.name} onClick={() => { setDeleteError(''); setDeleting(row); }} className="rounded p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
+                  {tracking ? (
+                    <button
+                      type="button"
+                      title="Gỡ khỏi danh sách theo dõi (giữ nguyên hồ sơ)"
+                      aria-label={'Gỡ theo dõi ' + row.name}
+                      onClick={() => { setDeleteError(''); setDeleting(row); }}
+                      className="rounded p-2 text-slate-500 hover:bg-amber-50 hover:text-amber-600"
+                    >
+                      <UserMinus size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Xóa thông tin khách hàng"
+                      aria-label={'Xóa khách hàng ' + row.name}
+                      onClick={() => { setDeleteError(''); setDeleting(row); }}
+                      className="rounded p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div></td>
               </tr>)}
           </tbody>
@@ -156,16 +184,30 @@ export default function CustomerManagement({ currentUser, initialView = 'managem
         </div>}
       </footer>
     </section>
-    {editing && options && <CustomerForm key={editing.id} customer={editing} options={options} currentUser={currentUser} mode={view} onClose={() => setEditing(null)} onSaved={message => { setEditing(null); changed(message); }} />}
+    {creating && options && <CustomerForm customer={null} options={options} currentUser={currentUser} mode={view} onClose={() => setCreating(false)} onSaved={message => { setCreating(false); changed(message); }} onSelectExisting={id => { setCreating(false); setSelectedId(id); }} />}
+    {editing && options && <CustomerForm key={editing.id} customer={editing} options={options} currentUser={currentUser} mode={view} onClose={() => setEditing(null)} onSaved={message => { setEditing(null); changed(message); }} onSelectExisting={id => { setEditing(null); setSelectedId(id); }} />}
     {selectedId && options && (tracking
       ? <CustomerWorkspace key={selectedId} id={selectedId} options={options} onClose={() => setSelectedId(null)} onEdit={edit} onChanged={changed} />
       : <CustomerDetails key={selectedId} id={selectedId} options={options} onClose={() => setSelectedId(null)} />)}
     {deleting && <CrmDialog title={tracking ? 'Gỡ khách hàng khỏi danh sách theo dõi?' : 'Xóa thông tin khách hàng?'} onClose={() => { if (!deleteBusy) setDeleting(null); }}>
       <CrmError error={deleteError} />
-      <p className="text-sm leading-6 text-slate-600">{tracking ? 'Gỡ ' : 'Xóa hồ sơ '}<strong>{deleting.name}</strong>{tracking ? ' khỏi danh sách theo dõi. Thông tin khách hàng vẫn được giữ ở tab Quản lý khách hàng.' : ' khỏi hệ thống quản lý khách hàng và danh sách theo dõi.'}</p>
+      <p className="text-sm leading-6 text-slate-600">
+        {tracking ? (
+          <>Hành động này chỉ <strong>gỡ khách hàng khỏi danh sách theo dõi</strong>. Toàn bộ hồ sơ của <strong>{deleting.name}</strong>, cùng nhu cầu, lịch sử tương tác và kế hoạch chăm sóc vẫn được <strong>giữ nguyên vẹn</strong> ở tab Quản lý khách hàng.</>
+        ) : (
+          <>Bạn có chắc chắn muốn xóa hồ sơ khách hàng <strong>{deleting.name}</strong>? Thao tác này sẽ xóa hồ sơ khỏi hệ thống quản lý khách hàng.</>
+        )}
+      </p>
       <div className="mt-5 flex justify-end gap-3">
         <button type="button" disabled={deleteBusy} onClick={() => setDeleting(null)} className="rounded border border-slate-300 px-4 py-2 text-sm">Hủy</button>
-        <button type="button" disabled={deleteBusy} onClick={confirmDelete} className="rounded bg-rose-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{deleteBusy ? 'Đang xử lý...' : tracking ? 'Gỡ theo dõi' : 'Xóa khách hàng'}</button>
+        <button
+          type="button"
+          disabled={deleteBusy}
+          onClick={confirmDelete}
+          className={`rounded px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${tracking ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700'}`}
+        >
+          {deleteBusy ? 'Đang xử lý...' : tracking ? 'Gỡ theo dõi (Giữ hồ sơ)' : 'Xóa khách hàng'}
+        </button>
       </div>
     </CrmDialog>}
   </div>;

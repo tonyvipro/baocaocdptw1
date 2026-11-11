@@ -243,8 +243,8 @@ export default function DashboardOverview() {
             </p>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200 pt-2.5">
-            <span>Hóa đơn đã thu tiền:</span>
-            <span className="font-bold text-slate-900">Status = 1 (Đã TT)</span>
+            <span>Dòng tiền thực thu:</span>
+            <span className="font-bold text-slate-900">Theo ngày thu tiền</span>
           </div>
         </div>
 

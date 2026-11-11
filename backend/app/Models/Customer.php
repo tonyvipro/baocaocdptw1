@@ -13,7 +13,7 @@ class Customer extends Model
     public const GROUPS = ['new' => 'Khách hàng mới', 'potential' => 'Tiềm năng', 'vip' => 'VIP', 'existing' => 'Khách hàng cũ'];
     public const TYPES = ['call' => 'Gọi điện', 'email' => 'Gửi email', 'meeting' => 'Gặp mặt / xem nhà', 'message' => 'Nhắn tin', 'note' => 'Ghi chú'];
 
-    protected $fillable = ['name', 'company', 'source', 'email', 'phone', 'customer_group', 'status', 'notes', 'assigned_to', 'created_by', 'is_tracked'];
+    protected $fillable = ['name', 'company', 'source', 'email', 'phone', 'customer_group', 'status', 'notes', 'assigned_to', 'primary_broker_id', 'created_by', 'is_tracked', 'merged_into_id'];
     protected $appends = ['code'];
     protected $attributes = ['version' => 1, 'is_tracked' => true];
 
@@ -30,6 +30,31 @@ class Customer extends Model
     public function assignedTo()
     {
         return $this->belongsTo(User::class, 'assigned_to')->withTrashed()->select(['id', 'name']);
+    }
+
+    public function primaryBroker()
+    {
+        return $this->belongsTo(Broker::class, 'primary_broker_id')->withTrashed();
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(BrokerAssignment::class, 'customer_id');
+    }
+
+    public function demands()
+    {
+        return $this->hasMany(CustomerDemand::class);
+    }
+
+    public function mergedInto()
+    {
+        return $this->belongsTo(Customer::class, 'merged_into_id')->withTrashed();
+    }
+
+    public function mergedFrom()
+    {
+        return $this->hasMany(Customer::class, 'merged_into_id')->withTrashed();
     }
 
     public function interactions()

@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->redirectGuestsTo(fn ($request) => $request->is('api/*') ? null : '/');
         $middleware->prepend(\App\Http\Middleware\RequestDiagnostics::class);
         $middleware->append(\App\Http\Middleware\ValidateInputPolicy::class);
         $middleware->web(append: [\App\Http\Middleware\RecordUserActivity::class]);
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->shouldRenderJsonWhen(fn ($request, $exception) => $request->is('api/*') || $request->expectsJson());
         $exceptions->render(function (\App\Exceptions\StaleVersionException $e, $request) {
             return $e->render($request);
         });

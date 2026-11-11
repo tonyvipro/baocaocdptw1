@@ -17,8 +17,9 @@ export async function notificationRequest(path = '', { method = 'GET', signal, s
   return data;
 }
 
-export async function downloadActivityLogs() {
-  const response = await fetch('/api/notifications/logs/download', { credentials: 'same-origin', headers: notificationHeaders() });
+export async function downloadActivityLogs(queryString = '') {
+  const qs = queryString ? (queryString.startsWith('?') ? queryString : '?' + queryString) : '';
+  const response = await fetch('/api/notifications/logs/download' + qs, { credentials: 'same-origin', headers: notificationHeaders() });
   if (!response.ok || !response.headers.get('content-type')?.includes('text/csv')) {
     if (response.status === 401) window.dispatchEvent(new CustomEvent('3tv:auth-required'));
     throw new Error('Không thể tải xuống nhật ký. Vui lòng kiểm tra phiên đăng nhập và thử lại.');

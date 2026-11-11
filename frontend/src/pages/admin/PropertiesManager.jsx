@@ -11,6 +11,7 @@ import ChangePropertyStatusModal from '../../components/ChangePropertyStatusModa
 import BulkChangePropertyStatusModal from '../../components/BulkChangePropertyStatusModal';
 import useRecordLink from '../../hooks/useRecordLink';
 import PropertyImage from '../../components/properties/PropertyImage';
+import { fetchCategoryOptions } from '../../services/categories';
 
 export default function PropertiesManager() {
   // Navigation Tabs: 'list' | 'create' | 'trash' | 'review'
@@ -1163,7 +1164,8 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
     title: '',
     purpose: 'sale',
-    type: 'Căn hộ cao cấp',
+    type: 'Căn hộ chung cư',
+    category_id: '',
     price: '',
     area: '',
     bedrooms: '2',
@@ -1183,8 +1185,21 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
     amenities: ['Hồ bơi', 'Phòng gym', 'Bảo vệ 24/7', 'Thang máy']
   });
 
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetchCategoryOptions()
+      .then(cats => {
+        if (active && Array.isArray(cats) && cats.length > 0) {
+          setCategories(cats);
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const availableAmenities = [
     'Hồ bơi', 'Phòng gym', 'Bảo vệ 24/7', 'Thang máy', 
@@ -1204,6 +1219,16 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCategoryChange = (e) => {
+    const catId = e.target.value;
+    const matched = categories.find(c => String(c.id) === String(catId));
+    setFormData(prev => ({
+      ...prev,
+      category_id: catId ? Number(catId) : '',
+      type: matched ? matched.name : prev.type
+    }));
   };
 
   const handleSubmit = async (e, isDraft = false) => {
@@ -1236,6 +1261,7 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
     try {
       const payload = {
         ...formData,
+        category_id: formData.category_id ? Number(formData.category_id) : null,
         price: Number(formData.price),
         area: Number(formData.area),
         bedrooms: Number(formData.bedrooms),
@@ -1328,20 +1354,23 @@ function CreatePropertyForm({ onSuccess, onCancel }) {
         {/* Hàng 2: Loại BĐS, Giá, Diện tích */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="font-bold text-slate-700">Loại bất động sản (*):</label>
+            <label className="font-bold text-slate-700">Danh mục loại hình BĐS (*):</label>
             <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
+              name="category_id"
+              value={formData.category_id}
+              onChange={handleCategoryChange}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-red-500 font-medium"
             >
-              <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-              <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-              <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-              <option value="Shophouse thương mại">Shophouse thương mại</option>
-              <option value="Đất nền dự án">Đất nền dự án</option>
-              <option value="Penthouse Sky Villa">Penthouse Sky Villa</option>
+              <option value="">-- Chọn danh mục --</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
+            {formData.type && (
+              <p className="text-[10px] text-slate-400">Loại BĐS: {formData.type}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -1723,7 +1752,8 @@ function PropertyDetailModal({ property, onClose, onEdit, onManageStatus }) {
 function EditPropertyModal({ property, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     title: property.title || '',
-    type: property.type || 'Căn hộ cao cấp',
+    type: property.type || 'Căn hộ chung cư',
+    category_id: property.category_id || '',
     purpose: property.purpose || 'sale',
     price: property.price || '',
     area: property.area || '',
@@ -1739,12 +1769,35 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
     image: property.image || ''
   });
 
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    fetchCategoryOptions()
+      .then(cats => {
+        if (active && Array.isArray(cats) && cats.length > 0) {
+          setCategories(cats);
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCategoryChange = (e) => {
+    const catId = e.target.value;
+    const matched = categories.find(c => String(c.id) === String(catId));
+    setFormData(prev => ({
+      ...prev,
+      category_id: catId ? Number(catId) : null,
+      type: matched ? matched.name : prev.type
+    }));
   };
 
   const handleUpdate = async (e) => {
@@ -1762,6 +1815,11 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
 
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        category_id: formData.category_id ? Number(formData.category_id) : null
+      };
+
       const token = localStorage.getItem('3tv_token') || '';
       const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1769,13 +1827,13 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
       let res = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         res = await fetch(`http://localhost:8080/api/properties/${property.id}`, {
           method: 'PUT',
           headers,
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
       }
 
@@ -1847,20 +1905,23 @@ function EditPropertyModal({ property, onClose, onSuccess }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-700">Loại BĐS:</label>
+              <label className="font-bold text-slate-700">Danh mục loại hình BĐS:</label>
               <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
+                name="category_id"
+                value={formData.category_id || ''}
+                onChange={handleCategoryChange}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
               >
-                <option value="Căn hộ cao cấp">Căn hộ cao cấp</option>
-                <option value="Nhà phố liền kề">Nhà phố liền kề</option>
-                <option value="Biệt thự đơn lập">Biệt thự đơn lập</option>
-                <option value="Shophouse thương mại">Shophouse thương mại</option>
-                <option value="Đất nền dự án">Đất nền dự án</option>
-                <option value="Penthouse Sky Villa">Penthouse Sky Villa</option>
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
+              {formData.type && (
+                <p className="text-[10px] text-slate-400">Loại BĐS: {formData.type}</p>
+              )}
             </div>
             <div className="space-y-1">
               <label className="font-bold text-slate-700">Trạng thái:</label>

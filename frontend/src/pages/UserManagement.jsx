@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Eye, Edit, Trash2, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { broadcastDataChange, subscribeDataChange } from '../services/tabSync';
 import useRecordLink from '../hooks/useRecordLink';
+import { fetchRoles, fetchUnitOptions } from '../services/roles';
 
 const apiFetch = async (url, options = {}) => {
   const token = localStorage.getItem('3tv_token');
@@ -34,6 +35,9 @@ const apiFetch = async (url, options = {}) => {
 export default function UserManagement() {
   const confirm = useConfirm();
   const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, total: 1, from: 0, to: 0, total_records: 0 });
@@ -49,7 +53,8 @@ export default function UserManagement() {
     name: '',
     email: '',
     password: '',
-    role_id: 2,
+    role_id: '',
+    unit: '',
     is_active: true
   });
 
@@ -81,9 +86,35 @@ export default function UserManagement() {
     fetchUsers(1, search);
   }, [search]);
 
+  useEffect(() => {
+    fetchRoles().then(data => {
+      setRoles(data);
+      setFormData(previous => ({ ...previous, role_id: previous.role_id || data.find(role => role.is_default)?.id || '' }));
+    }).catch(error => setStatusMessage({ type: 'error', text: error.message || 'Không tải được vai trò.' }))
+      .finally(() => setRolesLoading(false));
+
+    fetchUnitOptions().then(data => {
+      setUnits(Array.isArray(data) ? data : []);
+    }).catch(() => setUnits([]));
+  }, []);
+
   const showMessage = (type, text) => {
     setStatusMessage({ type, text });
     setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  const openAddModal = () => {
+    setCurrentUser(null);
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      role_id: roles.find(role => role.is_default)?.id || (roles[0]?.id ?? ''),
+      unit: '',
+      is_active: true
+    });
+    setModalMode('add');
+    setIsModalOpen(true);
   };
 
   const confirmDelete = (id) => {
@@ -119,6 +150,7 @@ export default function UserManagement() {
             email: res.email,
             password: '',
             role_id: res.role_id,
+            unit: res.unit || '',
             is_active: res.is_active
         });
         setModalMode('edit');
@@ -149,15 +181,20 @@ export default function UserManagement() {
     setLoading(true);
     
     try {
+      const payload = {
+        ...formData,
+        unit: formData.unit ? formData.unit.trim() : null
+      };
+
       if (modalMode === 'add') {
         const res = await apiFetch('/api/users', {
           method: 'POST',
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
         showMessage('success', 'Thêm người dùng mới thành công.');
         broadcastDataChange({ entity: 'users', action: 'create', id: res.user?.id, name: formData.name });
       } else if (modalMode === 'edit') {
-        const updateData = { ...formData, version: currentUser.version, last_updated_at: currentUser.updated_at };
+        const updateData = { ...payload, version: currentUser.version, last_updated_at: currentUser.updated_at };
         if (!updateData.password) delete updateData.password;
         
         await apiFetch(`/api/users/${currentUser.id}`, {
@@ -168,6 +205,7 @@ export default function UserManagement() {
         broadcastDataChange({ entity: 'users', action: 'update', id: currentUser.id, name: formData.name });
       }
       setIsModalOpen(false);
+      window.dispatchEvent(new Event('3tv:permissions-changed'));
       fetchUsers(pagination.current, search);
     } catch (err) {
       showMessage('error', err.message || 'Đã có lỗi xảy ra.');
@@ -207,6 +245,13 @@ export default function UserManagement() {
             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-transparent text-sm"
           />
         </div>
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="w-full md:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer"
+        >
+          + Thêm người dùng
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -242,8 +287,8 @@ export default function UserManagement() {
                             {user.name?.length > 100 ? user.name.substring(0, 100) + '...' : user.name}
                         </div>
                     </td>
-                    <td className="p-4">{user.role?.name || 'Người thuê'}</td>
-                    <td className="p-4">{user.unit || 'A101'}</td>
+                    <td className="p-4">{roles.find(role => role.id === user.role_id)?.label || user.role?.name || 'Chưa phân quyền'}</td>
+                    <td className="p-4">{user.unit || '---'}</td>
                     <td className="p-4">
                       <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-md text-xs font-medium whitespace-nowrap">
                         {user.is_active ? 'Đang hoạt động' : 'Đã khóa'}
@@ -303,8 +348,8 @@ export default function UserManagement() {
                 <div className="space-y-4">
                   <div><label className="text-xs font-semibold text-slate-500 uppercase">Tên người dùng</label><p className="text-slate-800">{currentUser.name}</p></div>
                   <div><label className="text-xs font-semibold text-slate-500 uppercase">Email</label><p className="text-slate-800">{currentUser.email}</p></div>
-                  <div><label className="text-xs font-semibold text-slate-500 uppercase">Vai trò</label><p className="text-slate-800">{currentUser.role?.name || 'Người thuê'}</p></div>
-                  <div><label className="text-xs font-semibold text-slate-500 uppercase">Đơn vị</label><p className="text-slate-800">{currentUser.unit || 'A101'}</p></div>
+                  <div><label className="text-xs font-semibold text-slate-500 uppercase">Vai trò</label><p className="text-slate-800">{roles.find(role => role.id === currentUser.role_id)?.label || currentUser.role?.name || 'Chưa phân quyền'}</p></div>
+                  <div><label className="text-xs font-semibold text-slate-500 uppercase">Căn hộ / Đơn vị</label><p className="text-slate-800">{currentUser.unit || 'Không áp dụng'}</p></div>
                   <div><label className="text-xs font-semibold text-slate-500 uppercase">Ngày tham gia</label><p className="text-slate-800">{new Date(currentUser.created_at).toLocaleDateString('vi-VN')}</p></div>
                 </div>
               ) : (
@@ -324,10 +369,26 @@ export default function UserManagement() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò</label>
-                      <select value={formData.role_id} onChange={e => setFormData({...formData, role_id: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800">
-                          <option value="1">Admin</option>
-                          <option value="2">Người thuê</option>
-                          <option value="3">Chủ nhà</option>
+                      <select required disabled={rolesLoading || roles.length === 0} value={formData.role_id} onChange={e => setFormData({...formData, role_id: Number(e.target.value)})} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800">
+                          <option value="" disabled>{rolesLoading ? 'Đang tải vai trò...' : 'Chọn vai trò'}</option>
+                          {roles.map(role => <option key={role.id} value={role.id}>{role.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Căn hộ / Đơn vị <span className="text-slate-400 text-xs font-normal">(Tùy chọn - dành cho người thuê hoặc cư dân)</span>
+                      </label>
+                      <select
+                        value={formData.unit || ''}
+                        onChange={e => setFormData({...formData, unit: e.target.value})}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-800"
+                      >
+                        <option value="">-- Không áp dụng / Không có --</option>
+                        {units.map(u => (
+                          <option key={u.id} value={u.code}>
+                            {u.code}{u.title ? ` - ${u.title}` : ''}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -339,7 +400,7 @@ export default function UserManagement() {
                   
                   <div className="pt-4 flex justify-end gap-3 mt-4">
                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Hủy</button>
-                    <button type="submit" disabled={loading} className="px-6 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center min-w-[100px]">
+                    <button type="submit" disabled={loading || rolesLoading || !formData.role_id} className="px-6 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center min-w-[100px]">
                       {loading ? 'Đang lưu...' : 'Lưu'}
                     </button>
                   </div>

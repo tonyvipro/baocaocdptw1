@@ -32,8 +32,15 @@ class ManagementAuditObserver
         $name = $model->getAttribute('name') ?? $model->getAttribute('title') ?? $model->getAttribute('request_code');
         $summary = $label.($name ? ' “'.$name.'”' : '').' (#'.$model->getKey().'): ';
         $summary .= $action === 'DELETE' ? 'Đã xóa bản ghi.' : ($changes ? $formatter->describe($changes) : 'Đã lưu; không có trường thông tin thay đổi.');
-        $log = ActivityLog::create(['user_id' => $actor->id, 'action' => $logAction, 'table_name' => $table, 'record_id' => $model->getKey(),
-            'new_data' => ['description' => $summary, 'changes' => $changes], 'ip_address' => $request->ip()]);
+        $log = ActivityLog::create(array_merge([
+            'user_id' => $actor->id,
+            'action' => $logAction,
+            'table_name' => $table,
+            'record_id' => $model->getKey(),
+            'new_data' => ['description' => $summary, 'changes' => $changes],
+            'subject_snapshot' => ['id' => $model->getKey(), 'label' => $name, 'table' => $table],
+            'ip_address' => $request->ip(),
+        ], ActivityLog::extractActorSnapshot($actor)));
         $logs = $request->attributes->get('audit.logs', []);
         $logs[$table.':'.$model->getKey()] = $log->id;
         $request->attributes->set('audit.logs', $logs);

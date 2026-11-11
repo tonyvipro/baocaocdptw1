@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
+use App\Http\Requests\RegisterUserRequest;
 use App\Models\User;
+use App\Services\RegisterUserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -16,59 +17,14 @@ class AuthController extends Controller
     /**
      * Đăng ký tài khoản mới (Spec Hình 6, 7, 8 & Chương 6)
      */
-    public function register(Request $request)
+    public function register(RegisterUserRequest $request, RegisterUserService $registration)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:250',
-            'email' => 'required|string|email|max:191|unique:users,email',
-            'password' => 'required|string|min:8|max:32|confirmed',
-            'password_confirmation' => 'required|string|min:8|max:32',
-            'phone' => ['nullable', 'string', 'regex:/^[0-9]{10,11}$/D'],
-        ], [
-            'name.required' => 'Vui lòng nhập họ và tên của bạn.',
-            'name.max' => 'Họ và tên không được vượt quá 250 ký tự.',
-            'email.required' => 'Vui lòng nhập địa chỉ email của bạn.',
-            'email.email' => 'Địa chỉ email không đúng định dạng.',
-            'email.max' => 'Email không được vượt quá 191 ký tự.',
-            'email.unique' => 'Email này bị trùng mất rồi! Vui lòng chọn email khác.',
-            'password.required' => 'Vui lòng nhập mật khẩu.',
-            'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
-            'password.max' => 'Mật khẩu không được dài quá 32 ký tự.',
-            'password.confirmed' => 'Xác nhận mật khẩu không trùng khớp.',
-            'password_confirmation.required' => 'Vui lòng xác nhận mật khẩu.',
-            'password_confirmation.min' => 'Xác nhận mật khẩu phải có ít nhất 8 ký tự.',
-            'password_confirmation.max' => 'Xác nhận mật khẩu không được dài quá 32 ký tự.',
-            'phone.string' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
-            'phone.regex' => 'Số điện thoại phải bao gồm từ 10 đến 11 chữ số.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first(),
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Tìm hoặc gán role mặc định: Customer (Khách hàng)
-        // Role IDs are used by the authorization policy; registration is always customer (5).
-        \Illuminate\Support\Facades\DB::table('roles')->insertOrIgnore([
-            'id' => 5, 'name' => 'Customer', 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $roleId = 5;
-
-        $user = User::create([
-            'name' => trim($request->name),
-            'email' => strtolower(trim($request->email)),
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone ? trim($request->phone) : null,
-            'role_id' => $roleId,
-            'is_active' => 1,
-            'dark_mode' => 0,
-        ]);
+        $result = $registration->register($request->validated());
+        $user = $result['user'];
 
         // Tự động đăng nhập
-        Auth::login($user);
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
 
         return response()->json([
             'status' => 'success',
@@ -81,11 +37,12 @@ class AuthController extends Controller
                 'avatar' => $user->avatar,
                 'role' => $user->role ? $user->role->name : 'Khách hàng',
                 'role_id' => $user->role_id,
+                ...$user->accessData(),
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
                 'version' => (int) ($user->version ?? 1),
             ],
-            'token' => $user->createToken('auth_token')->plainTextToken
+            'token' => $result['token']
         ], 201);
     }
 
@@ -117,7 +74,7 @@ class AuthController extends Controller
         // Tìm người dùng theo email hoặc username 'admin'
         $user = null;
         if (in_array($inputLogin, ['admin', 'administrator'])) {
-            $user = User::where('email', 'admin@3tvland.vn')->orWhere('role_id', 1)->first();
+            $user = User::where('email', 'admin@3tvland.vn')->orWhere('role_id', \App\Enums\Role::Admin->value)->first();
         } else {
             $user = User::where('email', $inputLogin)->first();
         }
@@ -129,7 +86,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $isAdmin = (int) $user->role_id === 1;
+        $isAdmin = (int) $user->role_id === \App\Enums\Role::Admin->value;
         $validPassword = Hash::check($password, $user->password);
 
         if (!$validPassword) {
@@ -147,7 +104,7 @@ class AuthController extends Controller
         }
 
         // Đăng nhập user vào session
-        Auth::login($user, $remember);
+        Auth::guard('web')->login($user, $remember);
         try {
             $request->session()->regenerate();
         } catch (\Throwable $e) {}
@@ -163,6 +120,7 @@ class AuthController extends Controller
                 'avatar' => $user->avatar,
                 'role' => $user->role ? $user->role->name : ($isAdmin ? 'Admin' : 'Thành viên'),
                 'role_id' => $user->role_id,
+                ...$user->accessData(),
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
                 'version' => (int) ($user->version ?? 1),
@@ -204,6 +162,7 @@ class AuthController extends Controller
                 'avatar' => $user->avatar,
                 'role' => $user->role ? $user->role->name : 'Thành viên',
                 'role_id' => $user->role_id,
+                ...$user->accessData(),
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
                 'version' => (int) ($user->version ?? 1),
@@ -220,7 +179,7 @@ class AuthController extends Controller
         $user = $this->getAuthenticatedUser($request);
         $token = $user?->currentAccessToken();
         if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) $token->delete();
-        Auth::logout();
+        Auth::guard('web')->logout();
         try {
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -317,6 +276,7 @@ class AuthController extends Controller
                 'avatar' => $user->avatar,
                 'role' => $user->role ? $user->role->name : 'Thành viên',
                 'role_id' => $user->role_id,
+                ...$user->accessData(),
                 'is_active' => $user->is_active,
                 'dark_mode' => $user->dark_mode,
                 'version' => (int) ($user->version ?? 1),

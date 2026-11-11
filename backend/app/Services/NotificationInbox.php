@@ -26,7 +26,7 @@ class NotificationInbox
 
     public function synchronize(User $user): void
     {
-        $admin = (int) $user->role_id === 1;
+        $admin = $user->hasPermission('notifications.view_all');
         $invoices = DB::table('invoices')->join('contracts', 'contracts.id', '=', 'invoices.contract_id')
             ->whereNull('contracts.deleted_at')
             ->when(!$admin, fn ($query) => $query->where(fn ($q) => $q->where('contracts.customer_id', $user->id)->orWhere('contracts.broker_id', $user->id)))

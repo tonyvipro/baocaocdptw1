@@ -26,4 +26,14 @@ class Category extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'category_id');
+    }
+
+    public function demands()
+    {
+        return $this->hasMany(CustomerDemand::class, 'category_id');
+    }
 }

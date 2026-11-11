@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Mail, Lock, Eye, EyeOff, User, Phone, CheckCircle2,
-  XCircle, X, ArrowRight, ShieldCheck, Sparkles, AlertTriangle
+  XCircle, X, ShieldCheck
 } from 'lucide-react';
 import { loginUser, registerUser } from '../services/api';
 
@@ -219,18 +219,9 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onAu
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">
-                    Mật Khẩu
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => alert('Vui lòng liên hệ Hotline 1900 6868 hoặc quản trị viên để đặt lại mật khẩu.')}
-                    className="text-xs text-red-600 hover:text-red-700 font-semibold hover:underline"
-                  >
-                    Quên Mật Khẩu?
-                  </button>
-                </div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Mật Khẩu
+                </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input

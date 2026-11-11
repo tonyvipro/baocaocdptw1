@@ -14,6 +14,8 @@ import MapView from './components/MapView';
 import ContactModal from './components/ContactModal';
 import CompareDrawer from './components/CompareDrawer';
 import AuthModal from './components/AuthModal';
+import { hasPermission, canOpenAdminMenu, firstAdminMenu } from './utils/permissions';
+import { subscribeDataChange } from './services/tabSync';
 import UserProfileModal from './components/UserProfileModal';
 import RecentViewsModal from './components/RecentViewsModal';
 import PostPropertyModal from './components/PostPropertyModal';
@@ -222,6 +224,22 @@ export default function App() {
     } catch { /* A temporary network failure is not a successful login. */ }
   };
 
+  // Refresh server-owned capabilities when returning to the tab or after role assignment.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const refresh = () => checkAuth();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('3tv:permissions-changed', refresh);
+    const unsubscribe = subscribeDataChange(event => { if (event.entity === 'users') refresh(); });
+    const interval = setInterval(refresh, 30000);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('3tv:permissions-changed', refresh);
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [currentUser?.id]);
+
   useEffect(() => {
     loadData();
     checkAuth();
@@ -344,7 +362,7 @@ export default function App() {
         setAuthMode('login');
         setShowAuthModal(true);
         goHome();
-      } else if (currentUser.role_id === 1 || currentUser.role_id === 2) {
+      } else if (hasPermission(currentUser, 'contract-documents.menu')) {
         // Nếu là Admin/Môi giới, chuyển sang màn hình Quản lý tài liệu hợp đồng
         localStorage.setItem('3tv_app_mode', 'admin');
         localStorage.setItem('3tv_admin_active_menu', 'contract-documents');
@@ -501,7 +519,7 @@ export default function App() {
       })
       .catch(() => {});
 
-    if (user.role_id === 1) {
+    if (hasPermission(user, 'dashboard.view')) {
       setCurrentAppMode('admin');
     } else {
       setCurrentAppMode('client');
@@ -656,7 +674,9 @@ export default function App() {
         onOpenProfile={() => setShowProfileModal(true)}
         onOpenAdmin={() => {
           localStorage.setItem('3tv_app_mode', 'admin');
-          const tab = localStorage.getItem('3tv_admin_active_menu') || 'dashboard';
+          const savedTab = localStorage.getItem('3tv_admin_active_menu');
+          const tab = canOpenAdminMenu(currentUser, savedTab) ? savedTab : firstAdminMenu(currentUser);
+          if (!tab) return;
           window.location.hash = `#admin/${tab}`;
           setCurrentAppMode('admin');
         }}

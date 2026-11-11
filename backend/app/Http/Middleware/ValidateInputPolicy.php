@@ -46,6 +46,13 @@ class ValidateInputPolicy
                     continue;
                 }
                 if (preg_match('/(?:^|_)(?:phone|mobile|tel)$/', $field)) {
+                    if ($request->is('api/customers*') && is_string($value)) {
+                        $normalized = \App\Services\CustomerDuplicateService::normalizePhone($value);
+                        if ($normalized !== null) {
+                            $value = $normalized;
+                            $request->merge([$key => $value]);
+                        }
+                    }
                     if (!is_string($value) || !preg_match('/^[0-9]{10,11}$/D', $value)) {
                         $errors[$path] = ['Số điện thoại phải có 10–11 chữ số, không chứa dấu hoặc chữ.'];
                     }

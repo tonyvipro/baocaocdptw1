@@ -9,6 +9,56 @@ const address = 'http://localhost:3001';
 const log = path.join(directory, 'vite-local.log');
 const vite = path.join(directory, 'node_modules/vite/bin/vite.js');
 
+const backendAddress = 'http://127.0.0.1:8080';
+const backendDirectory = path.resolve(directory, '../backend');
+const backendLog = path.join(backendDirectory, 'laravel-local.log');
+const artisan = path.join(backendDirectory, 'artisan');
+
+async function inspectBackend() {
+  try {
+    const res = await fetch(backendAddress + '/up', { signal: AbortSignal.timeout(1200) });
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function startBackend() {
+  if (await inspectBackend()) {
+    console.log('Backend Laravel da san sang: ' + backendAddress);
+    return;
+  }
+  if (!existsSync(artisan)) {
+    console.warn('Khong tim thay artisan tai ' + backendDirectory);
+    return;
+  }
+  const output = openSync(backendLog, 'a');
+  const php = process.env.PHP_BINARY || 'php';
+  const child = spawn(php, [artisan, 'serve', '--host=127.0.0.1', '--port=8080'], {
+    cwd: backendDirectory,
+    detached: true,
+    windowsHide: true,
+    stdio: ['ignore', output, output],
+  });
+  closeSync(output);
+  child.unref();
+
+  const deadline = Date.now() + 10000;
+  let ready = false;
+  while (Date.now() < deadline) {
+    await delay(400);
+    if (await inspectBackend()) {
+      ready = true;
+      break;
+    }
+  }
+  if (ready) {
+    console.log('Da khoi dong Backend Laravel: ' + backendAddress);
+  } else {
+    console.log('Backend dang khoi dong nen. Log: ' + backendLog);
+  }
+}
+
 async function inspect() {
   let response;
   try { response = await fetch(address, { signal: AbortSignal.timeout(1200) }); }
@@ -23,6 +73,7 @@ async function inspect() {
 }
 
 try {
+  await startBackend();
   if (!existsSync(vite)) throw new Error('Chua co thu vien frontend. Chay npm.cmd install trong thu muc frontend.');
   if (await inspect()) {
     console.log('Website da san sang: ' + address);

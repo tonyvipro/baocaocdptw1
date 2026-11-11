@@ -293,13 +293,29 @@ class PaymentService
                 ], 409));
             }
 
-            // 4. Dọn dẹp các giao dịch QR đang chờ cũ của hóa đơn này để không bị nghẽn (Mục 3.4.1)
+            // 4. Kiểm tra có giao dịch PENDING còn hiệu lực không
+            $hasPending = Transaction::where('invoice_id', $locked->id)
+                ->where('status', TransactionStatus::PENDING)
+                ->where('source', TransactionSource::GATEWAY)
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>', Carbon::now());
+                })
+                ->exists();
+
+            if ($hasPending) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Hóa đơn đang có một giao dịch chờ thanh toán. Vui lòng hoàn tất hoặc hủy giao dịch đó.',
+                ], 409));
+            }
+
+            // Dọn dẹp các giao dịch QR đã quá hạn (hoặc hết hạn)
             Transaction::where('invoice_id', $locked->id)
                 ->where('status', TransactionStatus::PENDING)
                 ->where('source', TransactionSource::GATEWAY)
+                ->where('expires_at', '<=', Carbon::now())
                 ->update([
-                    'status' => TransactionStatus::CANCELLED,
-                    'failure_reason' => 'Thay thế bởi mã QR thanh toán mới.',
+                    'status' => TransactionStatus::EXPIRED,
+                    'failure_reason' => 'Hết hạn thanh toán.',
                     'updated_at' => Carbon::now(),
                 ]);
 

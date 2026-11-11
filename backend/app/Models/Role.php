@@ -9,6 +9,8 @@ class Role extends Model
 {
     use HasFactory;
 
+    public const CUSTOMER_ID = \App\Enums\Role::Customer->value;
+
     protected $fillable = [
         'name',
         'description',
