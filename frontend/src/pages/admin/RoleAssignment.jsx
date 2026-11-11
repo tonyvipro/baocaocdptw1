@@ -421,10 +421,10 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
               <table className="w-full text-left border-collapse text-xs table-fixed">
                 <thead>
                   <tr className="bg-white border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-2 w-10 text-center">ID</th>
-                    <th className="py-3 px-3">Tài Khoản</th>
-                    <th className="py-3 px-2 text-center w-28">Vai Trò</th>
-                    <th className="py-3 px-2 text-center w-16">Thao Tác</th>
+                    <th className="py-3 px-2 w-12 text-center">ID</th>
+                    <th className="py-3 px-3 w-[44%]">Tài Khoản</th>
+                    <th className="py-3 px-3 w-[26%] text-left">Vai Trò</th>
+                    <th className="py-3 px-2 text-center w-[22%]">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -442,7 +442,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-2 text-center"><div className="h-5 bg-slate-50 rounded-full w-20 mx-auto" /></td>
+                        <td className="py-3 px-3 text-left"><div className="h-5 bg-slate-50 rounded-full w-20" /></td>
                         <td className="py-3 px-2 text-center"><div className="h-6 bg-slate-50 rounded w-12 mx-auto" /></td>
                       </tr>
                     ))
@@ -501,7 +501,7 @@ export default function RoleAssignment({ onNavigateToDashboard }) {
                           </td>
 
                           {/* Vai trò hiện tại */}
-                          <td className="py-3 px-2 text-center whitespace-nowrap">
+                          <td className="py-3 px-3 text-left whitespace-nowrap">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
                               {u.role?.name || 'Chưa phân quyền'}
